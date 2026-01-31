@@ -18,3 +18,21 @@ if [ -n "$RECENT_FILES" ]; then
     # Log to stderr (visible in Claude Code)
     echo "[ContinuousLearning] New patterns detected" >&2
 fi
+
+# --- Check for new spec artifacts (lightweight, < 100ms) ---
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || true)
+if [ -n "$REPO_ROOT" ]; then
+    SPEC_HINT=false
+    # Check for new files in openspec/changes/ or .spec/
+    if [ -d "$REPO_ROOT/openspec/changes" ]; then
+        NEW_SPECS=$(find "$REPO_ROOT/openspec/changes" -name "*.md" -newer "$LAST_CHECK" -type f 2>/dev/null | head -1)
+        [ -n "$NEW_SPECS" ] && SPEC_HINT=true
+    fi
+    if [ "$SPEC_HINT" = "false" ] && [ -d "$REPO_ROOT/.spec" ]; then
+        NEW_SPECS=$(find "$REPO_ROOT/.spec" -name "*.md" -newer "$LAST_CHECK" -type f 2>/dev/null | head -1)
+        [ -n "$NEW_SPECS" ] && SPEC_HINT=true
+    fi
+    if [ "$SPEC_HINT" = "true" ]; then
+        echo "[ContinuousLearning] New spec artifacts detected — run auto_learn.sh to extract patterns" >&2
+    fi
+fi

@@ -213,6 +213,15 @@ echo "conversation" | ./scripts/extract_patterns.sh
 ./scripts/auto_learn.sh --dry-run    # Preview
 ```
 
+#### Spec-driven development report
+```bash
+./scripts/spec_report.sh                    # Full report
+./scripts/spec_report.sh --project ~/Projects/myapp  # For a specific project
+./scripts/spec_report.sh --json             # Machine-readable output
+```
+
+Shows: spec file overview (archived vs active), pattern extraction stats by confidence and domain, learning pipeline (spec vs coding patterns), and tool installation status.
+
 #### Export patterns
 ```bash
 ./scripts/export_instincts.sh --min-confidence HIGH

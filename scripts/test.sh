@@ -177,7 +177,56 @@ else
   fail "spec_init.sh not found"
 fi
 
-# ── Test 9: on-spec-complete.md exists ────────────────────────────
+# ── Test 9: spec_report.sh --help exits 0 ─────────────────────────
+echo ""
+echo "📋 Test: spec_report.sh --help"
+SPEC_REPORT="$SCRIPT_DIR/spec_report.sh"
+if [[ -f "$SPEC_REPORT" ]]; then
+  if bash "$SPEC_REPORT" --help >/dev/null 2>&1; then
+    pass "spec_report.sh --help"
+  else
+    fail "spec_report.sh --help exited non-zero"
+  fi
+else
+  fail "spec_report.sh not found"
+fi
+
+# ── Test 9b: auto_learn.sh --help regression check ───────────────
+echo ""
+echo "📋 Test: auto_learn.sh --help regression"
+AUTO_LEARN="$SCRIPT_DIR/auto_learn.sh"
+if [[ -f "$AUTO_LEARN" ]]; then
+  if bash "$AUTO_LEARN" --help >/dev/null 2>&1; then
+    pass "auto_learn.sh --help (regression)"
+  else
+    fail "auto_learn.sh --help exited non-zero (regression)"
+  fi
+else
+  fail "auto_learn.sh not found"
+fi
+
+# ── Test 9c: .spec_processed handling ─────────────────────────────
+echo ""
+echo "📋 Test: .spec_processed file handling"
+TMPDIR_TEST=$(mktemp -d)
+TEST_SPEC_PROCESSED="$TMPDIR_TEST/.spec_processed"
+# Create and verify
+touch "$TEST_SPEC_PROCESSED"
+echo "openspec/changes/archive/test-spec.md" >> "$TEST_SPEC_PROCESSED"
+if grep -qxF "openspec/changes/archive/test-spec.md" "$TEST_SPEC_PROCESSED" 2>/dev/null; then
+  pass ".spec_processed: entry written and found"
+else
+  fail ".spec_processed: entry not found after write"
+fi
+# Verify non-existent entry is not found
+if grep -qxF "openspec/changes/archive/nonexistent.md" "$TEST_SPEC_PROCESSED" 2>/dev/null; then
+  fail ".spec_processed: false positive match"
+else
+  pass ".spec_processed: non-existent entry correctly not matched"
+fi
+rm -rf "$TMPDIR_TEST"
+
+# ── Test 10: on-spec-complete.md exists ────────────────────────────
 echo ""
 echo "📋 Test: on-spec-complete.md exists"
 if [[ -f "$REPO_DIR/hooks/on-spec-complete.md" ]]; then

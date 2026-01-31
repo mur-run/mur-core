@@ -31,7 +31,8 @@ skills/claude-code-learner/
 │   ├── test.sh                     # Smoke tests for the skill
 │   ├── merge_team.sh              # Merge team branches (supports --strategy)
 │   ├── privacy_filter.sh          # Privacy filtering (pipe or --check mode)
-│   └── validate.sh                # Pattern file validation (--fix, --json)
+│   ├── validate.sh                # Pattern file validation (--fix, --json)
+│   └── spec_report.sh            # Spec-driven development learning report
 ├── templates/
 │   ├── pattern-template.md         # Pattern record template
 │   └── skill-template.md           # Auto-generated skill template
@@ -215,6 +216,21 @@ A pattern becomes a native Claude Code skill when:
 ```
 
 Shows: total patterns, confidence breakdown, domain breakdown, top-5 most-seen, promotion candidates, last sync/auto-learn times.
+
+### Spec-Driven Development Report
+
+```bash
+# Full report
+./scripts/spec_report.sh
+
+# For a specific project
+./scripts/spec_report.sh --project ~/Projects/myapp
+
+# Machine-readable JSON output
+./scripts/spec_report.sh --json
+```
+
+Shows: spec file overview (archived vs active, latest date), pattern extraction stats by confidence and domain, learning pipeline comparison (spec-originated vs coding-originated patterns), promotion candidates, and tool installation status.
 
 ### Smoke Tests
 
