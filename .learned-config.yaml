@@ -27,3 +27,18 @@ merge:
   auto_resolve_conflicts: true
   require_review_for_global: true
   min_confidence_to_share: "MEDIUM"
+
+integrations:
+  # Spec-driven development tools
+  spec_tool: auto          # auto | openspec | speckit | both
+  superpowers: true        # Enable Superpowers workflow integration
+
+  # Auto-extraction settings
+  auto_extract_from_specs: true    # Extract patterns from completed specs
+  extract_decisions: true           # Save architectural decisions as patterns
+  extract_rejected_alternatives: true  # Save why alternatives were rejected
+
+  # Spec artifact directories to scan
+  spec_dirs:
+    - openspec/changes/archive/    # OpenSpec archived specs
+    - .spec/                        # Spec Kit artifacts

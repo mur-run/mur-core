@@ -163,6 +163,43 @@ else
   echo "  ℹ️  No example patterns found (skipping)"
 fi
 
+# ── Test 8: spec_init.sh --help exits 0 ───────────────────────────
+echo ""
+echo "📋 Test: spec_init.sh --help"
+SPEC_INIT="$SCRIPT_DIR/spec_init.sh"
+if [[ -f "$SPEC_INIT" ]]; then
+  if bash "$SPEC_INIT" --help >/dev/null 2>&1; then
+    pass "spec_init.sh --help"
+  else
+    fail "spec_init.sh --help exited non-zero"
+  fi
+else
+  fail "spec_init.sh not found"
+fi
+
+# ── Test 9: on-spec-complete.md exists ────────────────────────────
+echo ""
+echo "📋 Test: on-spec-complete.md exists"
+if [[ -f "$REPO_DIR/hooks/on-spec-complete.md" ]]; then
+  pass "hooks/on-spec-complete.md exists"
+else
+  fail "hooks/on-spec-complete.md not found"
+fi
+
+# ── Test 10: .learned-config.yaml has integrations section ────────
+echo ""
+echo "📋 Test: .learned-config.yaml integrations"
+CONFIG="$REPO_DIR/.learned-config.yaml"
+if [[ -f "$CONFIG" ]]; then
+  if grep -q '^integrations:' "$CONFIG"; then
+    pass ".learned-config.yaml has integrations section"
+  else
+    fail ".learned-config.yaml missing integrations section"
+  fi
+else
+  fail ".learned-config.yaml not found"
+fi
+
 # ── Summary ───────────────────────────────────────────────────────
 echo ""
 echo "======================================"
