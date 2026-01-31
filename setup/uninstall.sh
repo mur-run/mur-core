@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+echo "🧹 Claude Code Learner - Uninstall"
+echo "==================================="
+echo ""
+echo "Manual steps:"
+echo "1. Remove hooks from ~/.claude/settings.json"
+echo "2. Remove cron jobs: crontab -e"
+echo "3. Optionally remove ~/.claude/skills/learned-*/"
+echo ""
+echo "Your learned patterns in this repo are preserved."

@@ -1,0 +1,29 @@
+# Team Learning Configuration
+team:
+  name: "TWDD Engineering"
+  
+sync:
+  # 自動 push 間隔（分鐘）
+  auto_push_interval: 30
+  # 自動 pull 間隔（分鐘）
+  auto_pull_interval: 60
+  
+privacy:
+  # 分享設定
+  share_global: true
+  share_domain: true
+  share_project: true
+  share_personal: false
+  
+  # 自動排除含有以下關鍵字的 patterns
+  exclude_keywords:
+    - password
+    - api_key
+    - secret
+    - token
+    
+merge:
+  # 合併策略
+  auto_resolve_conflicts: true
+  require_review_for_global: true
+  min_confidence_to_share: "MEDIUM"

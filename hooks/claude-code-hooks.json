@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cat ~/clawd/skills/claude-code-learner/hooks/on-prompt-reminder.md >&2"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/clawd/skills/claude-code-learner/scripts/on_session_stop.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
