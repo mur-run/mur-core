@@ -24,3 +24,8 @@ times_seen: 1
 Only extract if: it required actual discovery (not just docs), it will help with future tasks, and it has been verified to work. Skip trivial or well-documented things.
 
 - For personal/private patterns: ~/clawd/skills/claude-code-learner/learned/personal/{your-name}/{category}/
+
+[SpecAwareness] If this project uses spec-driven development (check for openspec/ or .spec/ directories):
+- Reference the current spec when making implementation decisions
+- If you deviate from the spec, note WHY and save it as a pattern
+- After completing a spec task, check if anything learned should be saved

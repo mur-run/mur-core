@@ -213,6 +213,15 @@ echo "conversation" | ./scripts/extract_patterns.sh
 ./scripts/auto_learn.sh --dry-run    # Preview
 ```
 
+#### Spec-driven development report
+```bash
+./scripts/spec_report.sh                    # Full report
+./scripts/spec_report.sh --project ~/Projects/myapp  # For a specific project
+./scripts/spec_report.sh --json             # Machine-readable output
+```
+
+Shows: spec file overview (archived vs active), pattern extraction stats by confidence and domain, learning pipeline (spec vs coding patterns), and tool installation status.
+
 #### Export patterns
 ```bash
 ./scripts/export_instincts.sh --min-confidence HIGH
@@ -290,6 +299,51 @@ Checks: YAML frontmatter, required fields, valid confidence/domain/category valu
 - `main` — 團隊共享的穩定 patterns
 - `learnings/{name}` — 個人的即時推送
 - 從不直接 push 到 main，透過 merge_team.sh 合併
+
+## Spec-Driven Development Integration
+
+### Supported Tools
+
+| Tool | Purpose | Install |
+|------|---------|---------|
+| **Superpowers** | Claude Code plugin for spec-driven workflows | `/plugin marketplace add obra/superpowers-marketplace` (inside Claude Code) |
+| **OpenSpec** | Specification authoring and change management | `npm install -g @fission-ai/openspec@latest` |
+| **Spec Kit** | GitHub's spec-driven development toolkit | `uv tool install specify-cli --from git+https://github.com/github/spec-kit.git` |
+
+### Setup
+
+Initialize spec-driven development for any project:
+
+```bash
+./scripts/spec_init.sh --project ~/Projects/myapp
+./scripts/spec_init.sh --project ~/Projects/myapp --tool both --superpowers
+```
+
+### Workflow: Spec → Execute → Learn
+
+1. **Spec** — Write specifications using OpenSpec or Spec Kit before coding
+2. **Execute** — Implement against the spec; Claude Code hooks remind you to reference it
+3. **Learn** — When a spec phase completes, `on-spec-complete.md` prompts extraction of:
+   - Architectural decisions (why this approach?)
+   - Rejected alternatives (why NOT that approach?)
+   - Reusable requirement patterns
+
+### Auto-Extraction from Specs
+
+The `[SpecAwareness]` hook (in `on-prompt-reminder.md`) ensures Claude:
+- References the current spec during implementation
+- Notes deviations from the spec as patterns
+- Checks for learnings after completing spec tasks
+
+The `[SpecLearning]` hook (in `on-spec-complete.md`) triggers after spec completion to extract architectural decisions, tech stack choices, and requirement patterns.
+
+### Configuration
+
+In `.learned-config.yaml`, the `integrations` section controls:
+- `spec_tool`: Which tool to use (`auto`, `openspec`, `speckit`, `both`)
+- `auto_extract_from_specs`: Enable/disable automatic pattern extraction
+- `extract_decisions`: Save architectural decisions as patterns
+- `spec_dirs`: Directories to scan for completed spec artifacts
 
 ## ⚠️ Rules
 

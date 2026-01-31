@@ -107,6 +107,68 @@ else
   echo "📂 Step 1: Skipping extraction (hooks handle real-time extraction)" >&2
 fi
 
+# --- Step 1.5: Extract patterns from spec artifacts ---
+SPEC_SCANNED=0
+SPEC_NEW=0
+
+# Check if auto_extract_from_specs is enabled in config
+CONFIG_FILE="$SKILL_DIR/.learned-config.yaml"
+SPEC_EXTRACT_ENABLED=false
+if [[ -f "$CONFIG_FILE" ]]; then
+  if grep -q 'auto_extract_from_specs: *true' "$CONFIG_FILE" 2>/dev/null; then
+    SPEC_EXTRACT_ENABLED=true
+  fi
+fi
+
+if [[ "$SPEC_EXTRACT_ENABLED" == "true" ]]; then
+  echo "" >&2
+  echo "📜 Step 1.5: Scanning spec artifacts for patterns..." >&2
+
+  # Determine the current git repo root (scan specs from there, not the skill repo)
+  REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "$HOME")
+
+  SPEC_PROCESSED="$LEARNED_DIR/.spec_processed"
+  touch "$SPEC_PROCESSED"
+
+  # Directories to scan for spec artifacts
+  SPEC_SCAN_DIRS=(
+    "$REPO_ROOT/openspec/changes/archive/"
+    "$REPO_ROOT/.spec/"
+  )
+
+  for SCAN_DIR in "${SPEC_SCAN_DIRS[@]}"; do
+    if [[ ! -d "$SCAN_DIR" ]]; then
+      continue
+    fi
+    while IFS= read -r -d '' SPEC_FILE; do
+      SPEC_SCANNED=$((SPEC_SCANNED + 1))
+      # Check if already processed
+      REL_PATH="${SPEC_FILE#$REPO_ROOT/}"
+      if grep -qxF "$REL_PATH" "$SPEC_PROCESSED" 2>/dev/null; then
+        continue
+      fi
+      # New spec file — extract patterns
+      SPEC_NEW=$((SPEC_NEW + 1))
+      if [[ "$DRY_RUN" == "true" ]]; then
+        echo "   [DRY RUN] Would extract from: $REL_PATH" >&2
+      else
+        echo "   Extracting from: $REL_PATH" >&2
+        "$SCRIPT_DIR/extract_patterns.sh" -f "$SPEC_FILE" -s "spec:$REL_PATH" --context _global --category pattern 2>&1 || {
+          echo "   ⚠️  Error extracting from $REL_PATH" >&2
+          ERRORS=$((ERRORS + 1))
+        }
+      fi
+      # Mark as processed
+      echo "$REL_PATH" >> "$SPEC_PROCESSED"
+    done < <(find "$SCAN_DIR" -name "*.md" -type f -print0 2>/dev/null)
+  done
+
+  echo "   Spec files scanned: $SPEC_SCANNED, new patterns extracted: $SPEC_NEW" >&2
+else
+  echo "" >&2
+  echo "📜 Step 1.5: Spec extraction disabled (auto_extract_from_specs != true)" >&2
+fi
+
 # --- Step 2: Review & merge if enough patterns ---
 PATTERNS_AFTER=$(find "$LEARNED_DIR" -name "*.md" -not -name ".gitkeep" -not -name "archived-*" -not -name "skill-*" -not -name ".last_check" 2>/dev/null | wc -l | tr -d ' ')
 

@@ -31,7 +31,8 @@ skills/claude-code-learner/
 │   ├── test.sh                     # Smoke tests for the skill
 │   ├── merge_team.sh              # Merge team branches (supports --strategy)
 │   ├── privacy_filter.sh          # Privacy filtering (pipe or --check mode)
-│   └── validate.sh                # Pattern file validation (--fix, --json)
+│   ├── validate.sh                # Pattern file validation (--fix, --json)
+│   └── spec_report.sh            # Spec-driven development learning report
 ├── templates/
 │   ├── pattern-template.md         # Pattern record template
 │   └── skill-template.md           # Auto-generated skill template
@@ -216,6 +217,21 @@ A pattern becomes a native Claude Code skill when:
 
 Shows: total patterns, confidence breakdown, domain breakdown, top-5 most-seen, promotion candidates, last sync/auto-learn times.
 
+### Spec-Driven Development Report
+
+```bash
+# Full report
+./scripts/spec_report.sh
+
+# For a specific project
+./scripts/spec_report.sh --project ~/Projects/myapp
+
+# Machine-readable JSON output
+./scripts/spec_report.sh --json
+```
+
+Shows: spec file overview (archived vs active, latest date), pattern extraction stats by confidence and domain, learning pipeline comparison (spec-originated vs coding-originated patterns), promotion candidates, and tool installation status.
+
 ### Smoke Tests
 
 ```bash
@@ -380,6 +396,52 @@ The repo ships with two example patterns to illustrate the format:
 - **`learned/backend/pattern/postgres-advisory-lock.md`** — Using PostgreSQL advisory locks to prevent duplicate job execution
 
 These are real-world patterns that demonstrate the frontmatter format, section structure, and confidence levels.
+
+## Spec-Driven Development
+
+### Overview
+
+Integrate spec-driven development tools with the learning system. Write specs before coding, then automatically extract architectural decisions, tech stack choices, and requirement patterns as reusable learnings.
+
+### Quick Start
+
+```bash
+# 1. Install spec tools
+npm install -g @fission-ai/openspec@latest
+uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
+
+# 2. Initialize for your project
+./scripts/spec_init.sh --project ~/Projects/myapp --superpowers
+```
+
+### Workflow
+
+```
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│    SPEC      │────▶│   EXECUTE    │────▶│    LEARN     │
+│              │     │              │     │              │
+│ Write specs  │     │ Implement    │     │ Extract      │
+│ with OpenSpec│     │ against spec │     │ patterns     │
+│ or Spec Kit  │     │ (hooks keep  │     │ from specs   │
+│              │     │  you on      │     │ and save as  │
+│              │     │  track)      │     │ learnings    │
+└──────────────┘     └──────────────┘     └──────────────┘
+```
+
+### Supported Tools
+
+| Tool | Purpose | Install Command |
+|------|---------|----------------|
+| **Superpowers** | Claude Code plugin for enhanced spec workflows | Inside Claude Code: `/plugin marketplace add obra/superpowers-marketplace` |
+| **OpenSpec** | Spec authoring & change management | `npm install -g @fission-ai/openspec@latest` |
+| **Spec Kit** | GitHub's spec-driven development toolkit | `uv tool install specify-cli --from git+https://github.com/github/spec-kit.git` |
+
+### How It Works
+
+- **`hooks/on-prompt-reminder.md`** includes `[SpecAwareness]` — reminds Claude to reference specs during implementation
+- **`hooks/on-spec-complete.md`** includes `[SpecLearning]` — triggers pattern extraction after spec phases
+- **`scripts/spec_init.sh`** — one-command setup for any project
+- **`.learned-config.yaml`** `integrations` section — configure which tools, auto-extraction settings, and spec directories
 
 ## Design Influences
 
