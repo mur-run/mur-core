@@ -7,6 +7,10 @@
           {
             "type": "command",
             "command": "cat ~/clawd/skills/claude-code-learner/hooks/on-prompt-reminder.md >&2"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/clawd/skills/claude-code-learner/scripts/check_spec_init.sh >&2"
           }
         ]
       }
