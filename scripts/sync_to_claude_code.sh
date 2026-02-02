@@ -65,7 +65,7 @@ get_field() {
 # --- Helper: read section content ---
 get_section() {
   local file="$1" section="$2"
-  sed -n "/^## ${section}/,/^## /{/^## /!p}" "$file" | sed '/^$/d' | sed '/^---$/d'
+  awk -v sect="## ${section}" 'BEGIN{f=0} $0==sect{f=1;next} /^## /{f=0} f && !/^---$/ && !/^$/' "$file"
 }
 
 # --- Sync patterns ---
