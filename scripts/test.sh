@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test.sh — Smoke tests for claude-code-learner
+# test.sh — Smoke tests for murmur-ai
 # Usage: ./scripts/test.sh
 set -euo pipefail
 

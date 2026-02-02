@@ -1,5 +1,5 @@
 ---
-name: claude-code-learner
+name: murmur-ai
 description: "Drive the locally installed Claude Code CLI in headless mode (`claude -p`) for codebase analysis, refactoring, bug fixing, test generation, code review, and structured output. Includes continuous learning with Hook-based real-time pattern extraction, 3D categorization (Domain/Category/Project), and auto-sync to Claude Code native skills."
 ---
 
@@ -24,12 +24,12 @@ claude --version   # verify Claude Code is installed
 
 ```bash
 # Simple prompt (read-only plan mode)
-./skills/claude-code-learner/scripts/claude_code_run.sh \
+./skills/murmur-ai/scripts/claude_code_run.sh \
   -p "Summarize this project." \
   --permission-mode plan
 
 # With a working directory
-./skills/claude-code-learner/scripts/claude_code_run.sh \
+./skills/murmur-ai/scripts/claude_code_run.sh \
   -p "Find and fix the null pointer bug in src/." \
   --workdir ~/Projects/myapp \
   --permission-mode acceptEdits \

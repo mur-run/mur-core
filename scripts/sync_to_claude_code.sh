@@ -133,7 +133,7 @@ ${P_SOLUTION}
 - Category: ${P_CATEGORY:-pattern}
 - Confidence: HIGH
 - Times seen: ${P_TIMES}
-- Source: claude-code-learner
+- Source: murmur-ai
 EOF
 
   echo "  ✅ Synced: $P_NAME → $SKILL_OUT" >&2

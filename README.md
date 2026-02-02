@@ -1,4 +1,4 @@
-# claude-code-learner
+# murmur-ai
 
 A Clawdbot skill for driving the local [Claude Code](https://code.claude.com/) CLI in headless mode, with **continuous learning** via Claude Code Hooks.
 
@@ -12,7 +12,7 @@ A Clawdbot skill for driving the local [Claude Code](https://code.claude.com/) C
 ## File Structure
 
 ```
-skills/claude-code-learner/
+skills/murmur-ai/
 ├── SKILL.md                        # Skill definition (triggers, docs, examples)
 ├── README.md                       # This file
 ├── hooks/
@@ -96,7 +96,7 @@ The installer is idempotent — already-installed steps are skipped. Running `--
 View the hooks config and merge manually:
 
 ```bash
-cat ~/clawd/skills/claude-code-learner/hooks/claude-code-hooks.json
+cat ~/clawd/skills/murmur-ai/hooks/claude-code-hooks.json
 # Then add the "hooks" section to ~/.claude/settings.json
 ```
 
@@ -266,7 +266,7 @@ echo "conversation text" | ./scripts/extract_patterns.sh
 Cron setup:
 ```bash
 # Via Clawdbot
-clawdbot cron add --schedule "0 3 * * *" --command "cd ~/clawd/skills/claude-code-learner && ./scripts/auto_learn.sh"
+clawdbot cron add --schedule "0 3 * * *" --command "cd ~/clawd/skills/murmur-ai && ./scripts/auto_learn.sh"
 ```
 
 ## Team Collaboration (Hub + Spoke)
@@ -289,7 +289,7 @@ This skill supports multi-person collaboration using a Hub + Spoke branching mod
 ### Quick Start (Each Team Member)
 
 ```bash
-cd ~/clawd/skills/claude-code-learner
+cd ~/clawd/skills/murmur-ai
 ./setup/install.sh
 ```
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Claude Code Learner - Setup (Solo / Team)
+# Murmur AI - Setup (Solo / Team)
 # 
 # Solo mode (default):  ./setup/install.sh
 # Team mode:            ./setup/install.sh --team
@@ -29,7 +29,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-echo "🧠 Claude Code Learner - Setup ($MODE mode)"
+echo "🧠 Murmur AI - Setup ($MODE mode)"
 echo "===================================="
 
 # 1. Verify claude is installed
@@ -44,7 +44,7 @@ REPO_DIR="$(dirname "$SCRIPT_DIR")"
 LEARNED_DIR="$REPO_DIR/learned"
 
 if [ ! -f "$REPO_DIR/SKILL.md" ]; then
-    echo "❌ Not in the claude-code-learner directory"
+    echo "❌ Not in the murmur-ai directory"
     exit 1
 fi
 
@@ -76,8 +76,8 @@ with open('$file', 'r') as f:
 
 def replace_paths(obj):
     if isinstance(obj, str):
-        obj = obj.replace('~/clawd/skills/claude-code-learner', '$REPO_DIR')
-        obj = re.sub(r'\\\$HOME/clawd/skills/claude-code-learner', '$REPO_DIR', obj)
+        obj = obj.replace('~/clawd/skills/murmur-ai', '$REPO_DIR')
+        obj = re.sub(r'\\\$HOME/clawd/skills/murmur-ai', '$REPO_DIR', obj)
         return obj
     elif isinstance(obj, dict):
         return {k: replace_paths(v) for k, v in obj.items()}
@@ -103,13 +103,13 @@ import json
 with open('$CLAUDE_SETTINGS') as f:
     data = json.load(f)
 hooks = data.get('hooks', {})
-# Check if any hook command references claude-code-learner
+# Check if any hook command references murmur-ai
 import json as j
 found = False
 for event, groups in hooks.items():
     for group in (groups if isinstance(groups, list) else []):
         for hook in group.get('hooks', []):
-            if 'claude-code-learner' in hook.get('command', ''):
+            if 'murmur-ai' in hook.get('command', ''):
                 found = True
 print('yes' if found else 'no')
 " 2>/dev/null | grep -q "yes"
@@ -186,10 +186,10 @@ for event, event_hooks in our_hooks.items():
         for matcher_group in event_hooks:
             for hook in matcher_group.get('hooks', []):
                 cmd = hook.get('command', '')
-                if 'claude-code-learner' in cmd and cmd not in existing_commands:
+                if 'murmur-ai' in cmd and cmd not in existing_commands:
                     existing_hooks[event].append(matcher_group)
                     break
-                elif 'claude-code-learner' not in cmd:
+                elif 'murmur-ai' not in cmd:
                     existing_hooks[event].append(matcher_group)
                     break
 
@@ -214,7 +214,7 @@ echo "📂 Repo path: $REPO_DIR"
 CRON_CMD_LEARN="cd $REPO_DIR && ./scripts/auto_learn.sh 2>/dev/null"
 
 # Check if auto-learn cron already exists
-if crontab -l 2>/dev/null | grep -q "claude-code-learner.*auto_learn"; then
+if crontab -l 2>/dev/null | grep -q "murmur-ai.*auto_learn"; then
     echo ""
     echo "✅ Auto-learn cron already set — skipping"
     LEARN_CRON_EXISTS=true
@@ -224,7 +224,7 @@ else
     echo "  This runs review + sync + commit on your patterns."
     read -p "  Set up auto-learn cron? [y/N]: " SETUP_LEARN
     if [[ "${SETUP_LEARN:-N}" =~ ^[Yy] ]]; then
-        (crontab -l 2>/dev/null | grep -v "claude-code-learner.*auto_learn"; echo "0 3 * * * $CRON_CMD_LEARN") | crontab -
+        (crontab -l 2>/dev/null | grep -v "murmur-ai.*auto_learn"; echo "0 3 * * * $CRON_CMD_LEARN") | crontab -
         echo "  ✅ Auto-learn cron job added (daily at 3am)"
     else
         echo "  ℹ️  Skipped. To add manually:"
@@ -259,13 +259,13 @@ if [ "$MODE" = "team" ]; then
     # Auto-push cron (every 30 min)
     CRON_CMD_PUSH="cd $REPO_DIR && git add learned/ && git diff --cached --quiet || git commit -m 'learn: auto-commit by $USER_SLUG' && git push origin $BRANCH 2>/dev/null"
 
-    if crontab -l 2>/dev/null | grep -q "claude-code-learner.*auto-commit"; then
+    if crontab -l 2>/dev/null | grep -q "murmur-ai.*auto-commit"; then
         echo "  ✅ Auto-push cron already set — skipping"
     else
         echo ""
         read -p "  Set up auto-push cron (every 30 min)? [y/N]: " SETUP_PUSH
         if [[ "${SETUP_PUSH:-N}" =~ ^[Yy] ]]; then
-            (crontab -l 2>/dev/null | grep -v "claude-code-learner.*auto-commit"; echo "*/30 * * * * $CRON_CMD_PUSH") | crontab -
+            (crontab -l 2>/dev/null | grep -v "murmur-ai.*auto-commit"; echo "*/30 * * * * $CRON_CMD_PUSH") | crontab -
             echo "  ✅ Auto-push cron job added (every 30 min)"
         else
             echo "  ℹ️  Skipped. To add manually:"
@@ -276,12 +276,12 @@ if [ "$MODE" = "team" ]; then
     # Auto-pull cron (every hour)
     CRON_CMD_PULL="cd $REPO_DIR && git fetch origin main && git merge origin/main --no-edit 2>/dev/null; $REPO_DIR/scripts/sync_to_claude_code.sh 2>/dev/null"
 
-    if crontab -l 2>/dev/null | grep -q "claude-code-learner.*sync_to_claude_code"; then
+    if crontab -l 2>/dev/null | grep -q "murmur-ai.*sync_to_claude_code"; then
         echo "  ✅ Auto-pull cron already set — skipping"
     else
         read -p "  Set up auto-pull cron (every hour)? [y/N]: " SETUP_PULL
         if [[ "${SETUP_PULL:-N}" =~ ^[Yy] ]]; then
-            (crontab -l 2>/dev/null | grep -v "claude-code-learner.*sync_to_claude_code"; echo "0 * * * * $CRON_CMD_PULL") | crontab -
+            (crontab -l 2>/dev/null | grep -v "murmur-ai.*sync_to_claude_code"; echo "0 * * * * $CRON_CMD_PULL") | crontab -
             echo "  ✅ Auto-pull cron job added (every hour)"
         else
             echo "  ℹ️  Skipped. To add manually:"
