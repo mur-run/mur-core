@@ -60,7 +60,7 @@ func TestListSkillsEmpty(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListSkills() error = %v", err)
 	}
-	if skills != nil && len(skills) > 0 {
+	if len(skills) > 0 {
 		t.Errorf("ListSkills() on empty = %v, want nil/empty", skills)
 	}
 }
