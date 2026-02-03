@@ -1,6 +1,6 @@
 # 08: Skills Sync
 
-**Status:** In Progress  
+**Status:** Done  
 **Priority:** Medium  
 **Effort:** Medium (2-3 hours)
 
@@ -155,13 +155,13 @@ func SyncAll() (map[string][]SyncResult, error) {
 
 ## Acceptance Criteria
 
-- [ ] `go build ./...` 無 warning
-- [ ] `mur sync skills` 同步 skills 到所有 CLI
-- [ ] `mur skills list` 列出可用 skills
-- [ ] `mur skills import <path>` 匯入 skill
-- [ ] `mur skills import --superpowers` 從 Superpowers 匯入
-- [ ] `mur sync all` 包含 skills 同步
-- [ ] Skills 正確複製到各 CLI 目錄
+- [x] `go build ./...` 無 warning
+- [x] `mur sync skills` 同步 skills 到所有 CLI
+- [x] `mur skills list` 列出可用 skills
+- [x] `mur skills import <path>` 匯入 skill
+- [x] `mur skills import --superpowers` 從 Superpowers 匯入
+- [x] `mur sync all` 包含 skills 同步
+- [x] Skills 正確複製到各 CLI 目錄
 
 ## Directory Structure
 

@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"time"
 
 	"github.com/karajanchang/murmur-ai/internal/config"
 	"github.com/karajanchang/murmur-ai/internal/router"
+	"github.com/karajanchang/murmur-ai/internal/stats"
 	"github.com/spf13/cobra"
 )
 
@@ -45,11 +47,16 @@ func runExecute(cmd *cobra.Command, args []string) error {
 
 	var tool string
 	var reason string
+	var complexity float64
+	autoRouted := forceTool == ""
 
 	if forceTool != "" {
 		// User explicitly chose a tool
 		tool = forceTool
 		reason = "user specified with -t flag"
+		// Still analyze for stats
+		analysis := router.AnalyzePrompt(prompt)
+		complexity = analysis.Complexity
 	} else {
 		// Use router
 		selection, err := router.SelectTool(prompt, cfg)
@@ -58,6 +65,7 @@ func runExecute(cmd *cobra.Command, args []string) error {
 		}
 		tool = selection.Tool
 		reason = selection.Reason
+		complexity = selection.Analysis.Complexity
 
 		if explain {
 			// Show decision and exit
@@ -98,13 +106,31 @@ func runExecute(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("→ %s (%s)\n\n", tool, reason)
 
-	// Execute the tool
+	// Execute the tool and track stats
+	startTime := time.Now()
 	execCmd := exec.Command(binPath, cmdArgs...)
 	execCmd.Stdin = os.Stdin
 	execCmd.Stdout = os.Stdout
 	execCmd.Stderr = os.Stderr
 
-	return execCmd.Run()
+	runErr := execCmd.Run()
+	duration := time.Since(startTime)
+
+	// Record stats (ignore errors - stats are non-critical)
+	_ = stats.Record(stats.UsageRecord{
+		Tool:         tool,
+		Timestamp:    startTime,
+		PromptLength: len(prompt),
+		DurationMs:   duration.Milliseconds(),
+		CostEstimate: stats.EstimateCost(tool, len(prompt)),
+		Tier:         toolCfg.Tier,
+		RoutingMode:  cfg.Routing.Mode,
+		AutoRouted:   autoRouted,
+		Complexity:   complexity,
+		Success:      runErr == nil,
+	})
+
+	return runErr
 }
 
 // truncateStr truncates a string to max length, adding "..." if truncated.
