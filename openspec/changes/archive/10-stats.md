@@ -1,6 +1,6 @@
 # 10: Stats Package
 
-**Status:** In Progress  
+**Status:** Done  
 **Priority:** Medium  
 **Effort:** Medium (2-3 hours)
 
@@ -192,12 +192,12 @@ func TestReset(t *testing.T)
 
 ## Success Criteria
 
-- [ ] `mur run` 後自動記錄使用資料
-- [ ] `mur stats` 顯示清晰的統計總覽
-- [ ] `mur stats --tool X` 過濾特定工具
-- [ ] `mur stats --period X` 過濾時間範圍
-- [ ] `mur stats --json` 輸出 JSON
-- [ ] `mur stats reset` 清除資料
-- [ ] 顯示估算節省的成本
-- [ ] `go build ./...` 成功
-- [ ] Unit tests 通過
+- [x] `mur run` 後自動記錄使用資料
+- [x] `mur stats` 顯示清晰的統計總覽
+- [x] `mur stats --tool X` 過濾特定工具
+- [x] `mur stats --period X` 過濾時間範圍
+- [x] `mur stats --json` 輸出 JSON
+- [x] `mur stats reset` 清除資料
+- [x] 顯示估算節省的成本
+- [x] `go build ./...` 成功
+- [x] Unit tests 通過
