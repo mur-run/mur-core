@@ -1,0 +1,64 @@
+{
+  "name": "murmur-ai",
+  "displayName": "Murmur AI",
+  "description": "VS Code integration for murmur-ai - learn and share coding patterns with AI agents",
+  "version": "0.1.0",
+  "publisher": "karajanchang",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/anthropics/murmur-ai"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other",
+    "Machine Learning"
+  ],
+  "keywords": [
+    "ai",
+    "patterns",
+    "learning",
+    "agents",
+    "murmur"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "murmur.sync",
+        "title": "Murmur: Sync All"
+      },
+      {
+        "command": "murmur.learn.extract",
+        "title": "Murmur: Extract Learnings"
+      },
+      {
+        "command": "murmur.stats",
+        "title": "Murmur: Show Stats"
+      },
+      {
+        "command": "murmur.patterns",
+        "title": "Murmur: List Patterns"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.80.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "typescript": "^5.0.0"
+  }
+}

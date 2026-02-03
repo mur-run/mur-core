@@ -11,13 +11,32 @@ import (
 
 // Config represents the murmur configuration structure.
 type Config struct {
-	DefaultTool string          `yaml:"default_tool"`
-	Tools       map[string]Tool `yaml:"tools"`
-	Routing     RoutingConfig   `yaml:"routing"`
-	Learning    LearningConfig  `yaml:"learning"`
-	MCP         MCPConfig       `yaml:"mcp"`
-	Hooks       HooksConfig     `yaml:"hooks"`
-	Team        TeamConfig      `yaml:"team"`
+	DefaultTool   string              `yaml:"default_tool"`
+	Tools         map[string]Tool     `yaml:"tools"`
+	Routing       RoutingConfig       `yaml:"routing"`
+	Learning      LearningConfig      `yaml:"learning"`
+	MCP           MCPConfig           `yaml:"mcp"`
+	Hooks         HooksConfig         `yaml:"hooks"`
+	Team          TeamConfig          `yaml:"team"`
+	Notifications NotificationsConfig `yaml:"notifications"`
+}
+
+// NotificationsConfig represents notification settings.
+type NotificationsConfig struct {
+	Enabled bool          `yaml:"enabled"`
+	Slack   SlackConfig   `yaml:"slack"`
+	Discord DiscordConfig `yaml:"discord"`
+}
+
+// SlackConfig represents Slack webhook settings.
+type SlackConfig struct {
+	WebhookURL string `yaml:"webhook_url"`
+	Channel    string `yaml:"channel"`
+}
+
+// DiscordConfig represents Discord webhook settings.
+type DiscordConfig struct {
+	WebhookURL string `yaml:"webhook_url"`
 }
 
 // TeamConfig represents team sharing settings.
