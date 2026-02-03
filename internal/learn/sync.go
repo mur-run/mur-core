@@ -330,37 +330,6 @@ func CleanupSyncedPatterns() error {
 		}
 	}
 
-	// Clean up Auggie
-	auggieSkills := filepath.Join(home, ".augment", "skills")
-	if entries, err := os.ReadDir(auggieSkills); err == nil {
-		for _, entry := range entries {
-			if !entry.IsDir() && strings.HasPrefix(entry.Name(), "learned-") && strings.HasSuffix(entry.Name(), ".md") {
-				name := strings.TrimPrefix(entry.Name(), "learned-")
-				name = strings.TrimSuffix(name, ".md")
-				if !validNames[name] {
-					_ = os.Remove(filepath.Join(auggieSkills, entry.Name()))
-				}
-			}
-		}
-	}
-
-	// Clean up OpenCode
-	opencodeSkills := filepath.Join(home, ".opencode", "skills")
-	if entries, err := os.ReadDir(opencodeSkills); err == nil {
-		for _, entry := range entries {
-			if !entry.IsDir() && strings.HasPrefix(entry.Name(), "learned-") && strings.HasSuffix(entry.Name(), ".md") {
-				name := strings.TrimPrefix(entry.Name(), "learned-")
-				name = strings.TrimSuffix(name, ".md")
-				if !validNames[name] {
-					_ = os.Remove(filepath.Join(opencodeSkills, entry.Name()))
-				}
-			}
-		}
-	}
-
-	// Note: Codex uses a single instructions.md file, so we regenerate the whole file
-	// instead of cleaning up individual patterns. This is handled in syncToCodex.
-
 	return nil
 }
 

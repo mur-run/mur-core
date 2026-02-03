@@ -91,9 +91,9 @@ mur run -p "simple question" --explain  # should route to free
 ## Acceptance Criteria
 
 - [x] `go build ./...` compiles without errors
-- [ ] codex appears in default config with tier=paid
-- [ ] opencode appears in default config with tier=free
-- [ ] `mur sync` syncs MCP to opencode's settings.json
-- [ ] Codex patterns sync to ~/.codex/instructions.md
-- [ ] Router selects codex for complex tasks (paid tier)
-- [ ] Router selects opencode for simple tasks (free tier)
+- [x] codex appears in default config with tier=paid
+- [x] opencode appears in default config with tier=free
+- [x] `mur sync` syncs MCP to opencode's settings.json
+- [x] Codex patterns sync to ~/.codex/instructions.md
+- [x] Router selects codex for complex tasks (paid tier)
+- [x] Router selects opencode for simple tasks (free tier)

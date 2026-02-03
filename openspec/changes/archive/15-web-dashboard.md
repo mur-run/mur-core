@@ -107,7 +107,7 @@ mur serve --port 9000  # Custom port
 
 ## Status
 - [x] Spec created
-- [ ] API handlers implemented
-- [ ] Static HTML embedded
-- [ ] serve command added
-- [ ] Build tested
+- [x] API handlers implemented
+- [x] Static HTML embedded
+- [x] serve command added
+- [x] Build tested
