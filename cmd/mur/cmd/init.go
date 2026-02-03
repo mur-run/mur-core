@@ -19,7 +19,7 @@ var initCmd = &cobra.Command{
 		}
 
 		murDir := filepath.Join(home, ".murmur")
-		
+
 		// Create directories
 		dirs := []string{
 			murDir,
@@ -86,7 +86,7 @@ mcp:
 		fmt.Println("  mur config     # Configure your AI tools")
 		fmt.Println("  mur health     # Check tool availability")
 		fmt.Println("  mur run -p \"your prompt\"  # Run a task")
-		
+
 		return nil
 	},
 }

@@ -59,13 +59,13 @@ type DailyStats struct {
 
 // Summary aggregates overall usage data.
 type Summary struct {
-	TotalRuns      int                `json:"total_runs"`
+	TotalRuns      int                  `json:"total_runs"`
 	ByTool         map[string]ToolStats `json:"by_tool"`
-	EstimatedCost  float64            `json:"estimated_cost"`
-	EstimatedSaved float64            `json:"estimated_saved"`
-	AutoRouteStats AutoRouteStats     `json:"auto_route_stats"`
-	DailyTrend     []DailyStats       `json:"daily_trend"`
-	Period         string             `json:"period"`
+	EstimatedCost  float64              `json:"estimated_cost"`
+	EstimatedSaved float64              `json:"estimated_saved"`
+	AutoRouteStats AutoRouteStats       `json:"auto_route_stats"`
+	DailyTrend     []DailyStats         `json:"daily_trend"`
+	Period         string               `json:"period"`
 }
 
 // Cost per 1K characters (rough estimates)

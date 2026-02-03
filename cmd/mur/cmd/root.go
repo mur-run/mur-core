@@ -29,7 +29,7 @@ func Execute() error {
 
 func init() {
 	rootCmd.SetVersionTemplate("mur version {{.Version}}\n")
-	
+
 	// Global flags
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose output")
 }

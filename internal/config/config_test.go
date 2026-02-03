@@ -157,8 +157,8 @@ func TestGetTool(t *testing.T) {
 func TestEnsureTool(t *testing.T) {
 	cfg := &Config{
 		Tools: map[string]Tool{
-			"claude":  {Enabled: true},
-			"auggie":  {Enabled: false},
+			"claude": {Enabled: true},
+			"auggie": {Enabled: false},
 		},
 	}
 

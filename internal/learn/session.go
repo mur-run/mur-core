@@ -22,9 +22,9 @@ type Session struct {
 
 // SessionMessage represents a message in a session.
 type SessionMessage struct {
-	Type      string    // "user", "assistant", "progress", etc.
-	Role      string    // "user", "assistant"
-	Content   string    // Text content
+	Type      string // "user", "assistant", "progress", etc.
+	Role      string // "user", "assistant"
+	Content   string // Text content
 	Timestamp time.Time
 }
 
@@ -200,7 +200,7 @@ func parseJSONL(path string) ([]SessionMessage, error) {
 
 	var messages []SessionMessage
 	scanner := bufio.NewScanner(file)
-	
+
 	// Increase buffer size for large lines
 	buf := make([]byte, 0, 64*1024)
 	scanner.Buffer(buf, 1024*1024)

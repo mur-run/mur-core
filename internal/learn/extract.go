@@ -115,7 +115,7 @@ func ExtractFromMessages(messages []SessionMessage, sourceID string) ([]Extracte
 
 				// Generate a unique name
 				name := generatePatternName(para, matcher)
-				
+
 				// Check for duplicates
 				hash := hashContent(para)
 				if seen[hash] {
@@ -209,7 +209,7 @@ func matchPattern(text string, matcher PatternMatcher) (bool, float64) {
 func generatePatternName(text string, matcher PatternMatcher) string {
 	// Extract key terms from the text
 	lower := strings.ToLower(text)
-	
+
 	// Find the first matched keyword
 	var matchedKeyword string
 	for _, kw := range matcher.Keywords {
@@ -221,7 +221,7 @@ func generatePatternName(text string, matcher PatternMatcher) string {
 
 	// Extract significant words near the keyword
 	words := extractSignificantWords(text)
-	
+
 	// Build name
 	var nameParts []string
 	if len(words) > 0 {
@@ -306,7 +306,7 @@ func extractSignificantWords(text string) []string {
 func splitIntoParagraphs(text string) []string {
 	// Split by double newlines or markdown headers
 	parts := regexp.MustCompile(`\n\n+|(?m)^#{1,3}\s+`).Split(text, -1)
-	
+
 	var paragraphs []string
 	for _, p := range parts {
 		p = strings.TrimSpace(p)
@@ -314,7 +314,7 @@ func splitIntoParagraphs(text string) []string {
 			paragraphs = append(paragraphs, p)
 		}
 	}
-	
+
 	return paragraphs
 }
 
@@ -322,7 +322,7 @@ func splitIntoParagraphs(text string) []string {
 func extractCodeBlocks(text string) []string {
 	re := regexp.MustCompile("```[a-z]*\n([\\s\\S]*?)```")
 	matches := re.FindAllStringSubmatch(text, -1)
-	
+
 	var blocks []string
 	for _, m := range matches {
 		if len(m) > 1 {
@@ -337,7 +337,7 @@ func formatContent(text string, codeBlocks []string) string {
 	// If we have code blocks, prioritize them
 	if len(codeBlocks) > 0 {
 		var sb strings.Builder
-		
+
 		// Add explanatory text (first 200 chars without code)
 		clean := regexp.MustCompile("```[\\s\\S]*?```").ReplaceAllString(text, "")
 		clean = strings.TrimSpace(clean)
@@ -348,17 +348,17 @@ func formatContent(text string, codeBlocks []string) string {
 			sb.WriteString(clean)
 			sb.WriteString("\n\n")
 		}
-		
+
 		// Add code blocks
 		for _, block := range codeBlocks {
 			sb.WriteString("```\n")
 			sb.WriteString(block)
 			sb.WriteString("\n```\n")
 		}
-		
+
 		return strings.TrimSpace(sb.String())
 	}
-	
+
 	// No code blocks, just clean up the text
 	if len(text) > 500 {
 		text = text[:500] + "..."

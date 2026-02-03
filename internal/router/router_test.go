@@ -42,7 +42,7 @@ func TestAnalyzePrompt(t *testing.T) {
 		{
 			name:        "file operation",
 			prompt:      "read file main.go and fix the bug",
-			wantLow:     0.0,  // lowered: tool use gives some score but keywords reduce it
+			wantLow:     0.0, // lowered: tool use gives some score but keywords reduce it
 			wantHigh:    0.25,
 			wantCat:     "debugging",
 			wantToolUse: true,
@@ -50,7 +50,7 @@ func TestAnalyzePrompt(t *testing.T) {
 		{
 			name:        "project work",
 			prompt:      "in this project, implement a new feature for user authentication",
-			wantLow:     0.1,  // lowered: has implement keyword but not super complex
+			wantLow:     0.1, // lowered: has implement keyword but not super complex
 			wantHigh:    0.5,
 			wantCat:     "coding",
 			wantToolUse: true,
