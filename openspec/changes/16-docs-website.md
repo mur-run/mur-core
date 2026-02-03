@@ -61,7 +61,7 @@ GitHub Actions workflow triggers on push to main, builds docs, deploys to GitHub
 
 ## Status
 - [x] Change spec created
-- [ ] MkDocs configuration
-- [ ] Documentation content
-- [ ] GitHub Actions workflow
-- [ ] DNS configuration
+- [x] MkDocs configuration
+- [x] Documentation content
+- [x] GitHub Actions workflow
+- [ ] DNS configuration (manual setup required)
