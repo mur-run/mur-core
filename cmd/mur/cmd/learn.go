@@ -10,6 +10,7 @@ import (
 	"github.com/karajanchang/murmur-ai/internal/config"
 	"github.com/karajanchang/murmur-ai/internal/learn"
 	"github.com/karajanchang/murmur-ai/internal/learning"
+	"github.com/karajanchang/murmur-ai/internal/notify"
 	"github.com/spf13/cobra"
 )
 
@@ -146,6 +147,19 @@ Examples:
 
 		fmt.Printf("\n✓ Pattern '%s' added successfully\n", name)
 		fmt.Println("  Run 'mur learn sync' to sync to AI tools")
+
+		// Send notification
+		if notify.IsConfigured() {
+			opts := notify.Options{
+				PatternName: p.Name,
+				Confidence:  p.Confidence,
+				Preview:     p.Description,
+			}
+			if err := notify.Notify(notify.EventPatternAdded, opts); err != nil {
+				// Don't fail on notification error, just log
+				fmt.Printf("  ⚠ Notification failed: %v\n", err)
+			}
+		}
 
 		return nil
 	},
@@ -423,6 +437,22 @@ Examples:
 			fmt.Println("(dry-run mode, no PRs created)")
 		} else {
 			fmt.Printf("PRs created: %d, failed: %d\n", result.PRsCreated, result.PRsFailed)
+
+			// Send notifications for created PRs
+			if notify.IsConfigured() && result.PRsCreated > 0 {
+				for _, pr := range result.Patterns {
+					if pr.Error == nil && pr.PRURL != "" {
+						opts := notify.Options{
+							PatternName: pr.Pattern.Name,
+							Confidence:  pr.Pattern.Confidence,
+							PRURL:       pr.PRURL,
+						}
+						if err := notify.Notify(notify.EventPRCreated, opts); err != nil {
+							fmt.Printf("  ⚠ Notification failed for %s: %v\n", pr.Pattern.Name, err)
+						}
+					}
+				}
+			}
 		}
 
 		return nil
@@ -538,6 +568,16 @@ func runExtractAuto(dryRun bool) error {
 				fmt.Printf("  ⚠ auto-push failed: %v\n", err)
 			} else {
 				fmt.Println("  ✓ Patterns pushed to learning repo")
+			}
+		}
+
+		// Send notification about extracted patterns
+		if notify.IsConfigured() {
+			opts := notify.Options{
+				Count: savedCount,
+			}
+			if err := notify.Notify(notify.EventPatternsExtracted, opts); err != nil {
+				fmt.Printf("  ⚠ Notification failed: %v\n", err)
 			}
 		}
 	}

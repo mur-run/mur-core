@@ -1,6 +1,6 @@
 # 20: Slack/Discord Notifications
 
-**Status:** In Progress  
+**Status:** Done  
 **Priority:** Medium  
 **Effort:** Small (2-3 hours)
 
@@ -162,13 +162,13 @@ cmd/
 
 ## Acceptance Criteria
 
-- [ ] `go build ./...` 無 warning
-- [ ] `mur notify test` 發送測試通知
-- [ ] `mur config notifications` 顯示/設定 webhook
-- [ ] `mur learn add` 後發送通知 (if enabled)
-- [ ] `mur learn extract --auto` 發現新 patterns 後發送通知
-- [ ] `mur learn auto-merge` PR 建立後發送通知
-- [ ] Slack/Discord rich format 顯示 pattern 資訊
+- [x] `go build ./...` 無 warning
+- [x] `mur notify test` 發送測試通知
+- [x] `mur config notifications` 顯示/設定 webhook
+- [x] `mur learn add` 後發送通知 (if enabled)
+- [x] `mur learn extract --auto` 發現新 patterns 後發送通知
+- [x] `mur learn auto-merge` PR 建立後發送通知
+- [x] Slack/Discord rich format 顯示 pattern 資訊
 
 ## Dependencies
 

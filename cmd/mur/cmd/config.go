@@ -160,10 +160,133 @@ Examples:
 	},
 }
 
+var configNotificationsCmd = &cobra.Command{
+	Use:   "notifications [slack|discord] [webhook-url]",
+	Short: "Configure notifications",
+	Long: `Configure Slack and Discord webhook notifications.
+
+Examples:
+  mur config notifications                      # Show current settings
+  mur config notifications --enable             # Enable notifications
+  mur config notifications --disable            # Disable notifications
+  mur config notifications slack <webhook-url>  # Set Slack webhook
+  mur config notifications discord <webhook-url> # Set Discord webhook`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cfg, err := config.Load()
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+
+		enable, _ := cmd.Flags().GetBool("enable")
+		disable, _ := cmd.Flags().GetBool("disable")
+
+		// Handle enable/disable flags
+		if enable {
+			cfg.Notifications.Enabled = true
+			if err := cfg.Save(); err != nil {
+				return fmt.Errorf("failed to save config: %w", err)
+			}
+			fmt.Println("✓ Notifications enabled")
+			return nil
+		}
+
+		if disable {
+			cfg.Notifications.Enabled = false
+			if err := cfg.Save(); err != nil {
+				return fmt.Errorf("failed to save config: %w", err)
+			}
+			fmt.Println("✓ Notifications disabled")
+			return nil
+		}
+
+		// Handle webhook configuration
+		if len(args) >= 2 {
+			service := args[0]
+			webhookURL := args[1]
+
+			switch service {
+			case "slack":
+				cfg.Notifications.Slack.WebhookURL = webhookURL
+				if err := cfg.Save(); err != nil {
+					return fmt.Errorf("failed to save config: %w", err)
+				}
+				fmt.Println("✓ Slack webhook configured")
+				fmt.Println("  Run 'mur notify test --slack' to test")
+				return nil
+			case "discord":
+				cfg.Notifications.Discord.WebhookURL = webhookURL
+				if err := cfg.Save(); err != nil {
+					return fmt.Errorf("failed to save config: %w", err)
+				}
+				fmt.Println("✓ Discord webhook configured")
+				fmt.Println("  Run 'mur notify test --discord' to test")
+				return nil
+			default:
+				return fmt.Errorf("unknown service: %s. Use 'slack' or 'discord'", service)
+			}
+		}
+
+		// Show current settings
+		fmt.Println("Notification Settings")
+		fmt.Println("=====================")
+		fmt.Println("")
+
+		status := "disabled"
+		if cfg.Notifications.Enabled {
+			status = "enabled"
+		}
+		fmt.Printf("  Status: %s\n", status)
+		fmt.Println("")
+
+		fmt.Println("  Slack:")
+		if cfg.Notifications.Slack.WebhookURL != "" {
+			// Mask webhook URL for security
+			masked := maskWebhook(cfg.Notifications.Slack.WebhookURL)
+			fmt.Printf("    Webhook: %s\n", masked)
+		} else {
+			fmt.Println("    Webhook: (not configured)")
+		}
+		if cfg.Notifications.Slack.Channel != "" {
+			fmt.Printf("    Channel: %s\n", cfg.Notifications.Slack.Channel)
+		}
+		fmt.Println("")
+
+		fmt.Println("  Discord:")
+		if cfg.Notifications.Discord.WebhookURL != "" {
+			masked := maskWebhook(cfg.Notifications.Discord.WebhookURL)
+			fmt.Printf("    Webhook: %s\n", masked)
+		} else {
+			fmt.Println("    Webhook: (not configured)")
+		}
+		fmt.Println("")
+
+		fmt.Println("Commands:")
+		fmt.Println("  mur config notifications --enable")
+		fmt.Println("  mur config notifications --disable")
+		fmt.Println("  mur config notifications slack <webhook-url>")
+		fmt.Println("  mur config notifications discord <webhook-url>")
+		fmt.Println("  mur notify test")
+
+		return nil
+	},
+}
+
+// maskWebhook hides most of a webhook URL for security.
+func maskWebhook(url string) string {
+	if len(url) < 20 {
+		return "***"
+	}
+	return url[:20] + "..." + url[len(url)-8:]
+}
+
 func init() {
 	rootCmd.AddCommand(configCmd)
 	configCmd.AddCommand(configShowCmd)
 	configCmd.AddCommand(configSetCmd)
 	configCmd.AddCommand(configDefaultCmd)
 	configCmd.AddCommand(configRoutingCmd)
+	configCmd.AddCommand(configNotificationsCmd)
+
+	configNotificationsCmd.Flags().Bool("enable", false, "Enable notifications")
+	configNotificationsCmd.Flags().Bool("disable", false, "Disable notifications")
 }
