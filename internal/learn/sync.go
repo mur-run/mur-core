@@ -180,7 +180,7 @@ func CleanupSyncedPatterns() error {
 			if entry.IsDir() && strings.HasPrefix(entry.Name(), "learned-") {
 				name := strings.TrimPrefix(entry.Name(), "learned-")
 				if !validNames[name] {
-					os.RemoveAll(filepath.Join(claudeSkills, entry.Name()))
+					_ = os.RemoveAll(filepath.Join(claudeSkills, entry.Name()))
 				}
 			}
 		}
@@ -194,7 +194,7 @@ func CleanupSyncedPatterns() error {
 				name := strings.TrimPrefix(entry.Name(), "learned-")
 				name = strings.TrimSuffix(name, ".md")
 				if !validNames[name] {
-					os.Remove(filepath.Join(geminiSkills, entry.Name()))
+					_ = os.Remove(filepath.Join(geminiSkills, entry.Name()))
 				}
 			}
 		}
@@ -316,13 +316,13 @@ func copyFile(src, dst string) error {
 	if err != nil {
 		return err
 	}
-	defer srcFile.Close()
+	defer func() { _ = srcFile.Close() }()
 
 	dstFile, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
-	defer dstFile.Close()
+	defer func() { _ = dstFile.Close() }()
 
 	_, err = io.Copy(dstFile, srcFile)
 	return err

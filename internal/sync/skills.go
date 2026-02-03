@@ -96,7 +96,7 @@ func parseSkillFile(path string) (Skill, error) {
 	if err != nil {
 		return Skill{}, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	skill := Skill{
 		SourcePath: path,
@@ -252,13 +252,13 @@ func copyFile(src, dst string) error {
 	if err != nil {
 		return err
 	}
-	defer srcFile.Close()
+	defer func() { _ = srcFile.Close() }()
 
 	dstFile, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
-	defer dstFile.Close()
+	defer func() { _ = dstFile.Close() }()
 
 	_, err = io.Copy(dstFile, srcFile)
 	return err
@@ -301,7 +301,7 @@ func ImportFromSuperpowers() (int, error) {
 
 	// Check if Superpowers skills directory exists
 	if _, err := os.Stat(spDir); os.IsNotExist(err) {
-		return 0, fmt.Errorf("Superpowers skills not found at %s", spDir)
+		return 0, fmt.Errorf("superpowers skills not found at %s", spDir)
 	}
 
 	entries, err := os.ReadDir(spDir)

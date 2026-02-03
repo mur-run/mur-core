@@ -36,8 +36,8 @@ func TestDefaultSkillsTargets(t *testing.T) {
 func TestSkillsSourceDir(t *testing.T) {
 	tmpDir := t.TempDir()
 	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", oldHome) }()
 
 	dir, err := SkillsSourceDir()
 	if err != nil {
@@ -53,8 +53,8 @@ func TestSkillsSourceDir(t *testing.T) {
 func TestListSkillsEmpty(t *testing.T) {
 	tmpDir := t.TempDir()
 	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", oldHome) }()
 
 	skills, err := ListSkills()
 	if err != nil {
@@ -68,8 +68,8 @@ func TestListSkillsEmpty(t *testing.T) {
 func TestListSkillsWithFile(t *testing.T) {
 	tmpDir := t.TempDir()
 	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", oldHome) }()
 
 	// Create skills dir with a skill file
 	skillsDir := filepath.Join(tmpDir, ".murmur", "skills")
@@ -100,8 +100,8 @@ Do test things.
 func TestEnsureSkillsDir(t *testing.T) {
 	tmpDir := t.TempDir()
 	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", oldHome) }()
 
 	if err := EnsureSkillsDir(); err != nil {
 		t.Fatalf("EnsureSkillsDir() error = %v", err)
@@ -123,8 +123,8 @@ func TestImportSkillNotFound(t *testing.T) {
 func TestImportSkill(t *testing.T) {
 	tmpDir := t.TempDir()
 	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", oldHome) }()
 
 	// Create a source skill file
 	srcPath := filepath.Join(tmpDir, "source-skill.md")
@@ -160,8 +160,8 @@ func TestSyncResult(t *testing.T) {
 func TestSyncSkillsNoDir(t *testing.T) {
 	tmpDir := t.TempDir()
 	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", oldHome) }()
 
 	_, err := SyncSkills()
 	if err == nil {
@@ -172,8 +172,8 @@ func TestSyncSkillsNoDir(t *testing.T) {
 func TestSyncSkillsEmpty(t *testing.T) {
 	tmpDir := t.TempDir()
 	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", oldHome) }()
 
 	// Create empty skills dir
 	skillsDir := filepath.Join(tmpDir, ".murmur", "skills")

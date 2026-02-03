@@ -16,7 +16,7 @@ func setupTestEnv(t *testing.T) (string, func()) {
 
 	// Override home directory
 	origHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
+	_ = os.Setenv("HOME", tmpDir)
 
 	// Create .murmur directory
 	murmurDir := filepath.Join(tmpDir, ".murmur")
@@ -25,8 +25,8 @@ func setupTestEnv(t *testing.T) (string, func()) {
 	}
 
 	cleanup := func() {
-		os.Setenv("HOME", origHome)
-		os.RemoveAll(tmpDir)
+		_ = os.Setenv("HOME", origHome)
+		_ = os.RemoveAll(tmpDir)
 	}
 
 	return tmpDir, cleanup

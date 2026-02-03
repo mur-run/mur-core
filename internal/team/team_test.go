@@ -9,8 +9,8 @@ import (
 func TestTeamDir(t *testing.T) {
 	tmpDir := t.TempDir()
 	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", oldHome) }()
 
 	dir, err := TeamDir()
 	if err != nil {
@@ -26,8 +26,8 @@ func TestTeamDir(t *testing.T) {
 func TestIsInitializedFalse(t *testing.T) {
 	tmpDir := t.TempDir()
 	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", oldHome) }()
 
 	if IsInitialized() {
 		t.Error("IsInitialized() should return false for empty dir")
@@ -37,8 +37,8 @@ func TestIsInitializedFalse(t *testing.T) {
 func TestIsInitializedTrue(t *testing.T) {
 	tmpDir := t.TempDir()
 	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", oldHome) }()
 
 	// Create team dir with .git
 	teamDir := filepath.Join(tmpDir, ".murmur", "team", ".git")
@@ -52,8 +52,8 @@ func TestIsInitializedTrue(t *testing.T) {
 func TestStatusNotInitialized(t *testing.T) {
 	tmpDir := t.TempDir()
 	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", oldHome) }()
 
 	status, err := Status()
 	if err != nil {
@@ -71,8 +71,8 @@ func TestStatusNotInitialized(t *testing.T) {
 func TestPatternsDir(t *testing.T) {
 	tmpDir := t.TempDir()
 	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", oldHome) }()
 
 	dir, err := PatternsDir()
 	if err != nil {
@@ -88,8 +88,8 @@ func TestPatternsDir(t *testing.T) {
 func TestHooksDir(t *testing.T) {
 	tmpDir := t.TempDir()
 	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", oldHome) }()
 
 	dir, err := HooksDir()
 	if err != nil {
@@ -105,8 +105,8 @@ func TestHooksDir(t *testing.T) {
 func TestSkillsDir(t *testing.T) {
 	tmpDir := t.TempDir()
 	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", oldHome) }()
 
 	dir, err := SkillsDir()
 	if err != nil {
@@ -122,8 +122,8 @@ func TestSkillsDir(t *testing.T) {
 func TestMCPDir(t *testing.T) {
 	tmpDir := t.TempDir()
 	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", oldHome) }()
 
 	dir, err := MCPDir()
 	if err != nil {
@@ -139,8 +139,8 @@ func TestMCPDir(t *testing.T) {
 func TestEnsureStructure(t *testing.T) {
 	tmpDir := t.TempDir()
 	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", oldHome) }()
 
 	if err := EnsureStructure(); err != nil {
 		t.Fatalf("EnsureStructure() error = %v", err)
@@ -160,8 +160,8 @@ func TestEnsureStructure(t *testing.T) {
 func TestPullNotInitialized(t *testing.T) {
 	tmpDir := t.TempDir()
 	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", oldHome) }()
 
 	err := Pull()
 	if err == nil {
@@ -172,8 +172,8 @@ func TestPullNotInitialized(t *testing.T) {
 func TestPushNotInitialized(t *testing.T) {
 	tmpDir := t.TempDir()
 	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", oldHome) }()
 
 	err := Push("test message")
 	if err == nil {
@@ -184,8 +184,8 @@ func TestPushNotInitialized(t *testing.T) {
 func TestSyncNotInitialized(t *testing.T) {
 	tmpDir := t.TempDir()
 	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", oldHome) }()
 
 	err := Sync()
 	if err == nil {
@@ -196,8 +196,8 @@ func TestSyncNotInitialized(t *testing.T) {
 func TestCloneAlreadyInitialized(t *testing.T) {
 	tmpDir := t.TempDir()
 	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", oldHome) }()
 
 	// Create team dir with .git
 	teamDir := filepath.Join(tmpDir, ".murmur", "team", ".git")

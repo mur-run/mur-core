@@ -65,8 +65,8 @@ func TestPatternCRUD(t *testing.T) {
 	// Setup temp home
 	tmpDir := t.TempDir()
 	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", oldHome) }()
 
 	// Test Add
 	p := Pattern{
@@ -117,8 +117,8 @@ func TestPatternCRUD(t *testing.T) {
 func TestListEmpty(t *testing.T) {
 	tmpDir := t.TempDir()
 	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", oldHome) }()
 
 	patterns, err := List()
 	if err != nil {
@@ -132,8 +132,8 @@ func TestListEmpty(t *testing.T) {
 func TestPatternDefaults(t *testing.T) {
 	tmpDir := t.TempDir()
 	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", oldHome) }()
 
 	// Add pattern without optional fields
 	p := Pattern{
@@ -165,8 +165,8 @@ func TestPatternDefaults(t *testing.T) {
 func TestPatternsDir(t *testing.T) {
 	tmpDir := t.TempDir()
 	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", oldHome) }()
 
 	dir, err := PatternsDir()
 	if err != nil {

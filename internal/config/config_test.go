@@ -28,8 +28,8 @@ tools:
 
 	// Override home for test
 	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", oldHome) }()
 
 	cfg, err := Load()
 	if err != nil {
@@ -49,8 +49,8 @@ func TestLoadMissing(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", oldHome) }()
 
 	cfg, err := Load()
 	if err != nil {
@@ -67,8 +67,8 @@ func TestSave(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", oldHome) }()
 
 	cfg := &Config{
 		DefaultTool: "auggie",

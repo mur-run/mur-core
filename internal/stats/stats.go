@@ -111,7 +111,7 @@ func Record(record UsageRecord) error {
 	if err != nil {
 		return fmt.Errorf("cannot open stats file: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	// Write JSON line
 	data, err := json.Marshal(record)
@@ -140,7 +140,7 @@ func Query(filter QueryFilter) ([]UsageRecord, error) {
 		}
 		return nil, fmt.Errorf("cannot open stats file: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	var records []UsageRecord
 	scanner := bufio.NewScanner(f)

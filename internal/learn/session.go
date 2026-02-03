@@ -196,7 +196,7 @@ func parseJSONL(path string) ([]SessionMessage, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	var messages []SessionMessage
 	scanner := bufio.NewScanner(file)
