@@ -1,6 +1,6 @@
 # 09: Team Sharing
 
-**Status:** In Progress  
+**Status:** Done  
 **Priority:** High  
 **Effort:** Medium (2-3 hours)
 
@@ -178,14 +178,14 @@ func runGit(args ...string) (string, error) {
 
 ## Acceptance Criteria
 
-- [ ] `go build ./...` 無 warning
-- [ ] `mur team init <url>` clone repo 到 `~/.murmur/team/`
-- [ ] `mur team status` 顯示 repo 狀態
-- [ ] `mur team pull` 拉取最新變更
-- [ ] `mur team push` 推送本地變更
-- [ ] `mur team sync` 雙向同步
-- [ ] Pattern 可標記 `team_shared: true`
-- [ ] `mur learn sync` 自動同步 team-shared patterns
+- [x] `go build ./...` 無 warning
+- [x] `mur team init <url>` clone repo 到 `~/.murmur/team/`
+- [x] `mur team status` 顯示 repo 狀態
+- [x] `mur team pull` 拉取最新變更
+- [x] `mur team push` 推送本地變更
+- [x] `mur team sync` 雙向同步
+- [x] Pattern 可標記 `team_shared: true`
+- [x] `mur learn sync` 自動同步 team-shared patterns
 
 ## Dependencies
 
