@@ -1,6 +1,6 @@
-# Binaries
-mur
-mur.exe
+# Binaries (at root level only)
+/mur
+/mur.exe
 *.exe
 *.dll
 *.so
