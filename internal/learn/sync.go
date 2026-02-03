@@ -2,9 +2,12 @@ package learn
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/karajanchang/murmur-ai/internal/team"
 )
 
 // SyncResult holds the result of a pattern sync operation.
@@ -14,7 +17,7 @@ type SyncResult struct {
 	Message string
 }
 
-// SyncPatterns syncs all patterns to CLI tools.
+// SyncPatterns syncs all patterns to CLI tools and team repo.
 func SyncPatterns() ([]SyncResult, error) {
 	patterns, err := List()
 	if err != nil {
@@ -42,6 +45,12 @@ func SyncPatterns() ([]SyncResult, error) {
 	// Sync to Gemini CLI
 	geminiResult := syncToGeminiCLI(home, patterns)
 	results = append(results, geminiResult)
+
+	// Sync team-shared patterns to team repo
+	if team.IsInitialized() {
+		teamResult := syncToTeamRepo(patterns)
+		results = append(results, teamResult)
+	}
 
 	return results, nil
 }
@@ -192,4 +201,129 @@ func CleanupSyncedPatterns() error {
 	}
 
 	return nil
+}
+
+// syncToTeamRepo syncs team-shared patterns to the team repo.
+func syncToTeamRepo(patterns []Pattern) SyncResult {
+	teamPatternsDir, err := team.PatternsDir()
+	if err != nil {
+		return SyncResult{
+			Target:  "Team Repo",
+			Success: false,
+			Message: fmt.Sprintf("cannot get team patterns dir: %v", err),
+		}
+	}
+
+	// Ensure directory exists
+	if err := os.MkdirAll(teamPatternsDir, 0755); err != nil {
+		return SyncResult{
+			Target:  "Team Repo",
+			Success: false,
+			Message: fmt.Sprintf("cannot create team patterns dir: %v", err),
+		}
+	}
+
+	synced := 0
+	for _, p := range patterns {
+		if !p.TeamShared {
+			continue
+		}
+
+		// Copy pattern file to team repo
+		srcPath, err := patternPath(p.Name)
+		if err != nil {
+			continue
+		}
+
+		dstPath := filepath.Join(teamPatternsDir, p.Name+".yaml")
+		if err := copyFile(srcPath, dstPath); err != nil {
+			continue
+		}
+		synced++
+	}
+
+	if synced == 0 {
+		return SyncResult{
+			Target:  "Team Repo",
+			Success: true,
+			Message: "no team-shared patterns",
+		}
+	}
+
+	return SyncResult{
+		Target:  "Team Repo",
+		Success: true,
+		Message: fmt.Sprintf("synced %d patterns to team repo", synced),
+	}
+}
+
+// SyncFromTeamRepo imports patterns from team repo to local.
+func SyncFromTeamRepo() ([]SyncResult, error) {
+	if !team.IsInitialized() {
+		return nil, fmt.Errorf("team repo not initialized")
+	}
+
+	teamPatternsDir, err := team.PatternsDir()
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if team patterns directory exists
+	if _, err := os.Stat(teamPatternsDir); os.IsNotExist(err) {
+		return []SyncResult{
+			{Target: "Local", Success: true, Message: "no team patterns found"},
+		}, nil
+	}
+
+	entries, err := os.ReadDir(teamPatternsDir)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read team patterns: %w", err)
+	}
+
+	imported := 0
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".yaml") {
+			continue
+		}
+
+		srcPath := filepath.Join(teamPatternsDir, entry.Name())
+		name := strings.TrimSuffix(entry.Name(), ".yaml")
+
+		dstPath, err := patternPath(name)
+		if err != nil {
+			continue
+		}
+
+		// Copy team pattern to local
+		if err := copyFile(srcPath, dstPath); err != nil {
+			continue
+		}
+		imported++
+	}
+
+	return []SyncResult{
+		{
+			Target:  "Local",
+			Success: true,
+			Message: fmt.Sprintf("imported %d patterns from team repo", imported),
+		},
+	}, nil
+}
+
+// copyFile copies a file from src to dst.
+func copyFile(src, dst string) error {
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+
+	dstFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer dstFile.Close()
+
+	_, err = io.Copy(dstFile, srcFile)
+	return err
 }

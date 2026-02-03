@@ -72,6 +72,19 @@ var syncAllCmd = &cobra.Command{
 			}
 		}
 
+		// Print skills results
+		if skillsResults, ok := results["skills"]; ok {
+			fmt.Println()
+			fmt.Println("Skills:")
+			for _, r := range skillsResults {
+				status := "✓"
+				if !r.Success {
+					status = "✗"
+				}
+				fmt.Printf("  %s %s: %s\n", status, r.Target, r.Message)
+			}
+		}
+
 		fmt.Println()
 		fmt.Println("Done.")
 		return nil
@@ -130,9 +143,36 @@ var syncHooksCmd = &cobra.Command{
 	},
 }
 
+var syncSkillsCmd = &cobra.Command{
+	Use:   "skills",
+	Short: "Sync skills to all CLI tools",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		fmt.Println("Syncing skills...")
+		fmt.Println()
+
+		results, err := sync.SyncSkills()
+		if err != nil {
+			return fmt.Errorf("sync failed: %w", err)
+		}
+
+		for _, r := range results {
+			status := "✓"
+			if !r.Success {
+				status = "✗"
+			}
+			fmt.Printf("  %s %s: %s\n", status, r.Target, r.Message)
+		}
+
+		fmt.Println()
+		fmt.Println("Done.")
+		return nil
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(syncCmd)
 	syncCmd.AddCommand(syncAllCmd)
 	syncCmd.AddCommand(syncMcpCmd)
 	syncCmd.AddCommand(syncHooksCmd)
+	syncCmd.AddCommand(syncSkillsCmd)
 }

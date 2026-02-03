@@ -1,0 +1,354 @@
+// Package sync provides configuration synchronization to AI CLI tools.
+// This file implements skills synchronization.
+package sync
+
+import (
+	"bufio"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"strings"
+)
+
+// Skill represents a skill/methodology that can be synced.
+type Skill struct {
+	Name         string
+	Description  string
+	Instructions string
+	SourcePath   string
+}
+
+// SkillsTarget represents where skills are synced to.
+type SkillsTarget struct {
+	Name      string
+	SkillsDir string // relative to home
+}
+
+// DefaultSkillsTargets returns supported CLI skill directories.
+func DefaultSkillsTargets() []SkillsTarget {
+	return []SkillsTarget{
+		{Name: "Claude Code", SkillsDir: ".claude/skills"},
+		{Name: "Gemini CLI", SkillsDir: ".gemini/skills"},
+		{Name: "Auggie", SkillsDir: ".augment/skills"},
+	}
+}
+
+// SkillsSourceDir returns the path to murmur skills directory.
+func SkillsSourceDir() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("cannot determine home directory: %w", err)
+	}
+	return filepath.Join(home, ".murmur", "skills"), nil
+}
+
+// SuperpowersSkillsDir returns the path to Superpowers plugin skills.
+func SuperpowersSkillsDir() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("cannot determine home directory: %w", err)
+	}
+	return filepath.Join(home, ".claude", "plugins", "using-superpowers", "skills"), nil
+}
+
+// ListSkills returns all available skills from ~/.murmur/skills/
+func ListSkills() ([]Skill, error) {
+	skillsDir, err := SkillsSourceDir()
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if skills directory exists
+	if _, err := os.Stat(skillsDir); os.IsNotExist(err) {
+		return nil, nil // No skills yet
+	}
+
+	entries, err := os.ReadDir(skillsDir)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read skills directory: %w", err)
+	}
+
+	var skills []Skill
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		if !strings.HasSuffix(entry.Name(), ".md") {
+			continue
+		}
+
+		skillPath := filepath.Join(skillsDir, entry.Name())
+		skill, err := parseSkillFile(skillPath)
+		if err != nil {
+			// Skip invalid files
+			continue
+		}
+		skills = append(skills, skill)
+	}
+
+	return skills, nil
+}
+
+// parseSkillFile parses a SKILL.md file and extracts metadata.
+func parseSkillFile(path string) (Skill, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return Skill{}, err
+	}
+	defer file.Close()
+
+	skill := Skill{
+		SourcePath: path,
+		Name:       strings.TrimSuffix(filepath.Base(path), ".md"),
+	}
+
+	scanner := bufio.NewScanner(file)
+	var currentSection string
+	var descLines []string
+	var instrLines []string
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		// Check for skill name (# Title)
+		if strings.HasPrefix(line, "# ") && skill.Name == strings.TrimSuffix(filepath.Base(path), ".md") {
+			skill.Name = strings.TrimPrefix(line, "# ")
+			continue
+		}
+
+		// Check for section headers
+		if strings.HasPrefix(line, "## ") {
+			section := strings.ToLower(strings.TrimPrefix(line, "## "))
+			if strings.Contains(section, "description") {
+				currentSection = "description"
+			} else if strings.Contains(section, "instruction") {
+				currentSection = "instructions"
+			} else {
+				currentSection = ""
+			}
+			continue
+		}
+
+		// Collect content based on current section
+		switch currentSection {
+		case "description":
+			descLines = append(descLines, line)
+		case "instructions":
+			instrLines = append(instrLines, line)
+		}
+	}
+
+	skill.Description = strings.TrimSpace(strings.Join(descLines, "\n"))
+	skill.Instructions = strings.TrimSpace(strings.Join(instrLines, "\n"))
+
+	// If no description found, use first non-empty line after title
+	if skill.Description == "" {
+		file.Seek(0, 0)
+		scanner = bufio.NewScanner(file)
+		foundTitle := false
+		for scanner.Scan() {
+			line := strings.TrimSpace(scanner.Text())
+			if strings.HasPrefix(line, "# ") {
+				foundTitle = true
+				continue
+			}
+			if foundTitle && line != "" && !strings.HasPrefix(line, "#") {
+				skill.Description = line
+				break
+			}
+		}
+	}
+
+	return skill, nil
+}
+
+// SyncSkills syncs skills to all CLI tools.
+func SyncSkills() ([]SyncResult, error) {
+	skillsDir, err := SkillsSourceDir()
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if skills directory exists
+	if _, err := os.Stat(skillsDir); os.IsNotExist(err) {
+		return nil, fmt.Errorf("no skills directory found at %s", skillsDir)
+	}
+
+	// List skill files
+	entries, err := os.ReadDir(skillsDir)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read skills directory: %w", err)
+	}
+
+	// Filter .md files
+	var skillFiles []string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		if strings.HasSuffix(entry.Name(), ".md") {
+			skillFiles = append(skillFiles, entry.Name())
+		}
+	}
+
+	if len(skillFiles) == 0 {
+		return nil, fmt.Errorf("no skill files found in %s", skillsDir)
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, fmt.Errorf("cannot determine home directory: %w", err)
+	}
+
+	var results []SyncResult
+	for _, target := range DefaultSkillsTargets() {
+		result := syncSkillsToTarget(home, skillsDir, target, skillFiles)
+		results = append(results, result)
+	}
+
+	return results, nil
+}
+
+// syncSkillsToTarget syncs skills to a single CLI target.
+func syncSkillsToTarget(home, skillsDir string, target SkillsTarget, skillFiles []string) SyncResult {
+	targetDir := filepath.Join(home, target.SkillsDir)
+
+	// Ensure target directory exists
+	if err := os.MkdirAll(targetDir, 0755); err != nil {
+		return SyncResult{
+			Target:  target.Name,
+			Success: false,
+			Message: fmt.Sprintf("cannot create directory: %v", err),
+		}
+	}
+
+	// Copy each skill file
+	copied := 0
+	for _, filename := range skillFiles {
+		srcPath := filepath.Join(skillsDir, filename)
+		dstPath := filepath.Join(targetDir, filename)
+
+		if err := copyFile(srcPath, dstPath); err != nil {
+			return SyncResult{
+				Target:  target.Name,
+				Success: false,
+				Message: fmt.Sprintf("cannot copy %s: %v", filename, err),
+			}
+		}
+		copied++
+	}
+
+	return SyncResult{
+		Target:  target.Name,
+		Success: true,
+		Message: fmt.Sprintf("synced %d skills", copied),
+	}
+}
+
+// copyFile copies a file from src to dst.
+func copyFile(src, dst string) error {
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+
+	dstFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer dstFile.Close()
+
+	_, err = io.Copy(dstFile, srcFile)
+	return err
+}
+
+// ImportSkill imports a skill from a file path to ~/.murmur/skills/
+func ImportSkill(path string) error {
+	// Validate source exists
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return fmt.Errorf("file not found: %s", path)
+	}
+
+	skillsDir, err := SkillsSourceDir()
+	if err != nil {
+		return err
+	}
+
+	// Ensure skills directory exists
+	if err := os.MkdirAll(skillsDir, 0755); err != nil {
+		return fmt.Errorf("cannot create skills directory: %w", err)
+	}
+
+	// Copy to skills directory
+	filename := filepath.Base(path)
+	if !strings.HasSuffix(filename, ".md") {
+		filename = filename + ".md"
+	}
+	dstPath := filepath.Join(skillsDir, filename)
+
+	return copyFile(path, dstPath)
+}
+
+// ImportFromSuperpowers imports skills from Superpowers plugin.
+// Returns number of skills imported.
+func ImportFromSuperpowers() (int, error) {
+	spDir, err := SuperpowersSkillsDir()
+	if err != nil {
+		return 0, err
+	}
+
+	// Check if Superpowers skills directory exists
+	if _, err := os.Stat(spDir); os.IsNotExist(err) {
+		return 0, fmt.Errorf("Superpowers skills not found at %s", spDir)
+	}
+
+	entries, err := os.ReadDir(spDir)
+	if err != nil {
+		return 0, fmt.Errorf("cannot read Superpowers skills: %w", err)
+	}
+
+	skillsDir, err := SkillsSourceDir()
+	if err != nil {
+		return 0, err
+	}
+
+	// Ensure skills directory exists
+	if err := os.MkdirAll(skillsDir, 0755); err != nil {
+		return 0, fmt.Errorf("cannot create skills directory: %w", err)
+	}
+
+	imported := 0
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		if !strings.HasSuffix(entry.Name(), ".md") {
+			continue
+		}
+
+		srcPath := filepath.Join(spDir, entry.Name())
+		dstPath := filepath.Join(skillsDir, entry.Name())
+
+		if err := copyFile(srcPath, dstPath); err != nil {
+			continue // Skip files that fail
+		}
+		imported++
+	}
+
+	if imported == 0 {
+		return 0, fmt.Errorf("no skills found in Superpowers plugin")
+	}
+
+	return imported, nil
+}
+
+// EnsureSkillsDir creates the skills directory if it doesn't exist.
+func EnsureSkillsDir() error {
+	skillsDir, err := SkillsSourceDir()
+	if err != nil {
+		return err
+	}
+	return os.MkdirAll(skillsDir, 0755)
+}

@@ -21,6 +21,7 @@ func DefaultTargets() []CLITarget {
 	return []CLITarget{
 		{Name: "Claude Code", ConfigPath: ".claude/settings.json"},
 		{Name: "Gemini CLI", ConfigPath: ".gemini/settings.json"},
+		{Name: "Auggie", ConfigPath: ".augment/settings.json"},
 	}
 }
 
@@ -121,7 +122,7 @@ func syncMCPToTarget(home string, target CLITarget, servers map[string]interface
 	}
 }
 
-// SyncAll syncs all configuration (MCP, hooks, etc.) to CLI tools.
+// SyncAll syncs all configuration (MCP, hooks, skills, etc.) to CLI tools.
 func SyncAll() (map[string][]SyncResult, error) {
 	results := make(map[string][]SyncResult)
 
@@ -138,6 +139,13 @@ func SyncAll() (map[string][]SyncResult, error) {
 		return nil, fmt.Errorf("hooks sync failed: %w", err)
 	}
 	results["hooks"] = hooksResults
+
+	// Sync Skills (don't fail if no skills exist)
+	skillsResults, err := SyncSkills()
+	if err == nil {
+		results["skills"] = skillsResults
+	}
+	// Note: We don't return error for skills - they're optional
 
 	return results, nil
 }
@@ -156,6 +164,9 @@ var eventMapping = map[string]map[string]string{
 		"BeforeTool":       "BeforeTool",
 		"AfterTool":        "AfterTool",
 	},
+	// Auggie doesn't support hooks natively, but we include it for MCP sync.
+	// Empty mapping means no hooks will be synced.
+	"Auggie": {},
 }
 
 // SyncHooks syncs hooks configuration to all CLI tools.

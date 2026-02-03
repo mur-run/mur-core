@@ -17,6 +17,14 @@ type Config struct {
 	Learning    LearningConfig  `yaml:"learning"`
 	MCP         MCPConfig       `yaml:"mcp"`
 	Hooks       HooksConfig     `yaml:"hooks"`
+	Team        TeamConfig      `yaml:"team"`
+}
+
+// TeamConfig represents team sharing settings.
+type TeamConfig struct {
+	Repo     string `yaml:"repo"`      // Git repo URL
+	Branch   string `yaml:"branch"`    // Branch name (default: main)
+	AutoSync bool   `yaml:"auto_sync"` // Auto sync on pull
 }
 
 // RoutingConfig controls automatic tool selection.
@@ -188,11 +196,11 @@ func defaultConfig() *Config {
 				Capabilities: []string{"coding", "simple-qa", "analysis"},
 			},
 			"auggie": {
-				Enabled:      false,
+				Enabled:      true,
 				Binary:       "auggie",
-				Flags:        []string{},
+				Flags:        []string{"-p", "-i"},
 				Tier:         "free",
-				Capabilities: []string{"simple-qa"},
+				Capabilities: []string{"coding", "simple-qa"},
 			},
 		},
 		Routing: RoutingConfig{
