@@ -267,6 +267,104 @@ func syncToOpenCode(home string, patterns []Pattern) SyncResult {
 	}
 }
 
+// syncToAider syncs patterns to ~/.aider/conventions/learned-{name}.md
+func syncToAider(home string, patterns []Pattern) SyncResult {
+	conventionsDir := filepath.Join(home, ".aider", "conventions")
+
+	// Ensure conventions directory exists
+	if err := os.MkdirAll(conventionsDir, 0755); err != nil {
+		return SyncResult{
+			Target:  "Aider",
+			Success: false,
+			Message: fmt.Sprintf("cannot create conventions directory: %v", err),
+		}
+	}
+
+	synced := 0
+	for _, p := range patterns {
+		fileName := fmt.Sprintf("learned-%s.md", p.Name)
+		conventionPath := filepath.Join(conventionsDir, fileName)
+		content := patternToSkill(p)
+
+		if err := os.WriteFile(conventionPath, []byte(content), 0644); err != nil {
+			continue
+		}
+		synced++
+	}
+
+	return SyncResult{
+		Target:  "Aider",
+		Success: true,
+		Message: fmt.Sprintf("synced %d patterns to ~/.aider/conventions/", synced),
+	}
+}
+
+// syncToContinue syncs patterns to ~/.continue/skills/learned-{name}.md
+func syncToContinue(home string, patterns []Pattern) SyncResult {
+	skillsDir := filepath.Join(home, ".continue", "skills")
+
+	// Ensure skills directory exists
+	if err := os.MkdirAll(skillsDir, 0755); err != nil {
+		return SyncResult{
+			Target:  "Continue",
+			Success: false,
+			Message: fmt.Sprintf("cannot create skills directory: %v", err),
+		}
+	}
+
+	synced := 0
+	for _, p := range patterns {
+		fileName := fmt.Sprintf("learned-%s.md", p.Name)
+		skillPath := filepath.Join(skillsDir, fileName)
+		content := patternToSkill(p)
+
+		if err := os.WriteFile(skillPath, []byte(content), 0644); err != nil {
+			continue
+		}
+		synced++
+	}
+
+	return SyncResult{
+		Target:  "Continue",
+		Success: true,
+		Message: fmt.Sprintf("synced %d patterns to ~/.continue/skills/", synced),
+	}
+}
+
+// syncToCursor syncs patterns to ~/.cursor/skills/learned-{name}.md
+// Note: Cursor also supports .cursorrules for project-level instructions,
+// but we sync to global skills directory for consistency.
+func syncToCursor(home string, patterns []Pattern) SyncResult {
+	skillsDir := filepath.Join(home, ".cursor", "skills")
+
+	// Ensure skills directory exists
+	if err := os.MkdirAll(skillsDir, 0755); err != nil {
+		return SyncResult{
+			Target:  "Cursor",
+			Success: false,
+			Message: fmt.Sprintf("cannot create skills directory: %v", err),
+		}
+	}
+
+	synced := 0
+	for _, p := range patterns {
+		fileName := fmt.Sprintf("learned-%s.md", p.Name)
+		skillPath := filepath.Join(skillsDir, fileName)
+		content := patternToSkill(p)
+
+		if err := os.WriteFile(skillPath, []byte(content), 0644); err != nil {
+			continue
+		}
+		synced++
+	}
+
+	return SyncResult{
+		Target:  "Cursor",
+		Success: true,
+		Message: fmt.Sprintf("synced %d patterns to ~/.cursor/skills/", synced),
+	}
+}
+
 // patternToSkill converts a Pattern to SKILL.md format.
 func patternToSkill(p Pattern) string {
 	var sb strings.Builder
