@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 
+	"github.com/karajanchang/murmur-ai/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -22,40 +23,45 @@ Examples:
 	RunE: func(cmd *cobra.Command, args []string) error {
 		prompt, _ := cmd.Flags().GetString("prompt")
 		tool, _ := cmd.Flags().GetString("tool")
-		
+
 		if prompt == "" {
 			return fmt.Errorf("prompt is required. Use -p \"your prompt\"")
 		}
 
+		// Load config
+		cfg, err := config.Load()
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+
+		// Use default tool from config if not specified
 		if tool == "" {
-			tool = "claude" // TODO: read from config
+			tool = cfg.GetDefaultTool()
 		}
 
-		// Map tool to binary
-		binaries := map[string]struct {
-			bin  string
-			args []string
-		}{
-			"claude": {bin: "claude", args: []string{"-p", prompt}},
-			"gemini": {bin: "gemini", args: []string{"-p", prompt}},
-			"auggie": {bin: "auggie", args: []string{prompt}},
-		}
-
-		toolConfig, ok := binaries[tool]
+		// Get tool config
+		toolCfg, ok := cfg.GetTool(tool)
 		if !ok {
-			return fmt.Errorf("unknown tool: %s. Available: claude, gemini, auggie", tool)
+			return fmt.Errorf("unknown tool: %s. Check ~/.murmur/config.yaml", tool)
 		}
+
+		if !toolCfg.Enabled {
+			return fmt.Errorf("tool %s is disabled. Enable it in ~/.murmur/config.yaml", tool)
+		}
+
+		// Build command args
+		cmdArgs := append(toolCfg.Flags, prompt)
 
 		// Check if binary exists
-		binPath, err := exec.LookPath(toolConfig.bin)
+		binPath, err := exec.LookPath(toolCfg.Binary)
 		if err != nil {
-			return fmt.Errorf("%s not found in PATH. Install it first", toolConfig.bin)
+			return fmt.Errorf("%s not found in PATH. Install it first", toolCfg.Binary)
 		}
 
 		fmt.Printf("Running with %s...\n\n", tool)
 
 		// Execute the tool
-		execCmd := exec.Command(binPath, toolConfig.args...)
+		execCmd := exec.Command(binPath, cmdArgs...)
 		execCmd.Stdin = os.Stdin
 		execCmd.Stdout = os.Stdout
 		execCmd.Stderr = os.Stderr

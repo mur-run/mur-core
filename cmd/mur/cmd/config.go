@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/karajanchang/murmur-ai/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -34,14 +36,42 @@ var configShowCmd = &cobra.Command{
 var configSetCmd = &cobra.Command{
 	Use:   "set [key] [value]",
 	Short: "Set a configuration value",
-	Args:  cobra.ExactArgs(2),
+	Long: `Set a configuration value.
+
+Supported keys:
+  default_tool    - The default AI tool to use
+
+Examples:
+  mur config set default_tool gemini`,
+	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		key := args[0]
 		value := args[1]
 
-		// TODO: implement proper YAML editing
-		fmt.Printf("Setting %s = %s\n", key, value)
-		fmt.Println("⚠️  Not implemented yet. Edit ~/.murmur/config.yaml directly.")
+		cfg, err := config.Load()
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+
+		switch key {
+		case "default_tool":
+			if err := cfg.SetDefaultTool(value); err != nil {
+				// List available tools
+				var tools []string
+				for name := range cfg.Tools {
+					tools = append(tools, name)
+				}
+				return fmt.Errorf("%w. Available: %s", err, strings.Join(tools, ", "))
+			}
+		default:
+			return fmt.Errorf("unknown key: %s. Supported: default_tool", key)
+		}
+
+		if err := cfg.Save(); err != nil {
+			return fmt.Errorf("failed to save config: %w", err)
+		}
+
+		fmt.Printf("✓ Set %s = %s\n", key, value)
 		return nil
 	},
 }
@@ -49,24 +79,37 @@ var configSetCmd = &cobra.Command{
 var configDefaultCmd = &cobra.Command{
 	Use:   "default [tool]",
 	Short: "Set the default AI tool",
-	Args:  cobra.ExactArgs(1),
+	Long: `Set the default AI tool to use with 'mur run'.
+
+Available tools depend on your config. Common options:
+  claude, gemini, auggie, codex
+
+Examples:
+  mur config default gemini
+  mur config default claude`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		tool := args[0]
 
-		valid := map[string]bool{
-			"claude": true,
-			"gemini": true,
-			"auggie": true,
-			"codex":  true,
+		cfg, err := config.Load()
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
 		}
 
-		if !valid[tool] {
-			return fmt.Errorf("unknown tool: %s. Available: claude, gemini, auggie, codex", tool)
+		if err := cfg.SetDefaultTool(tool); err != nil {
+			// List available tools
+			var tools []string
+			for name := range cfg.Tools {
+				tools = append(tools, name)
+			}
+			return fmt.Errorf("%w. Available: %s", err, strings.Join(tools, ", "))
 		}
 
-		// TODO: implement proper YAML editing
+		if err := cfg.Save(); err != nil {
+			return fmt.Errorf("failed to save config: %w", err)
+		}
+
 		fmt.Printf("✓ Default tool set to: %s\n", tool)
-		fmt.Println("⚠️  Not fully implemented yet. Edit ~/.murmur/config.yaml directly.")
 		return nil
 	},
 }
