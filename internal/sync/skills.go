@@ -144,7 +144,7 @@ func parseSkillFile(path string) (Skill, error) {
 
 	// If no description found, use first non-empty line after title
 	if skill.Description == "" {
-		file.Seek(0, 0)
+		_, _ = file.Seek(0, 0)
 		scanner = bufio.NewScanner(file)
 		foundTitle := false
 		for scanner.Scan() {

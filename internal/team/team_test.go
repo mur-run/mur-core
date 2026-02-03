@@ -42,7 +42,7 @@ func TestIsInitializedTrue(t *testing.T) {
 
 	// Create team dir with .git
 	teamDir := filepath.Join(tmpDir, ".murmur", "team", ".git")
-	os.MkdirAll(teamDir, 0755)
+	_ = os.MkdirAll(teamDir, 0755)
 
 	if !IsInitialized() {
 		t.Error("IsInitialized() should return true when .git exists")
@@ -201,7 +201,7 @@ func TestCloneAlreadyInitialized(t *testing.T) {
 
 	// Create team dir with .git
 	teamDir := filepath.Join(tmpDir, ".murmur", "team", ".git")
-	os.MkdirAll(teamDir, 0755)
+	_ = os.MkdirAll(teamDir, 0755)
 
 	err := Clone("https://github.com/example/repo.git")
 	if err == nil {

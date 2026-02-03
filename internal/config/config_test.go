@@ -10,7 +10,7 @@ func TestLoad(t *testing.T) {
 	// Create temp config
 	tmpDir := t.TempDir()
 	configDir := filepath.Join(tmpDir, ".murmur")
-	os.MkdirAll(configDir, 0755)
+	_ = os.MkdirAll(configDir, 0755)
 
 	configContent := `default_tool: gemini
 tools:
@@ -24,7 +24,7 @@ tools:
     flags: ["-p"]
 `
 	configPath := filepath.Join(configDir, "config.yaml")
-	os.WriteFile(configPath, []byte(configContent), 0644)
+	_ = os.WriteFile(configPath, []byte(configContent), 0644)
 
 	// Override home for test
 	oldHome := os.Getenv("HOME")

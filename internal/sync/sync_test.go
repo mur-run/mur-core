@@ -73,7 +73,7 @@ func TestListSkillsWithFile(t *testing.T) {
 
 	// Create skills dir with a skill file
 	skillsDir := filepath.Join(tmpDir, ".murmur", "skills")
-	os.MkdirAll(skillsDir, 0755)
+	_ = os.MkdirAll(skillsDir, 0755)
 
 	skillContent := `# Test Skill
 
@@ -83,7 +83,7 @@ A test skill for testing.
 ## Instructions
 Do test things.
 `
-	os.WriteFile(filepath.Join(skillsDir, "test-skill.md"), []byte(skillContent), 0644)
+	_ = os.WriteFile(filepath.Join(skillsDir, "test-skill.md"), []byte(skillContent), 0644)
 
 	skills, err := ListSkills()
 	if err != nil {
@@ -128,7 +128,7 @@ func TestImportSkill(t *testing.T) {
 
 	// Create a source skill file
 	srcPath := filepath.Join(tmpDir, "source-skill.md")
-	os.WriteFile(srcPath, []byte("# My Skill\n\nContent here."), 0644)
+	_ = os.WriteFile(srcPath, []byte("# My Skill\n\nContent here."), 0644)
 
 	if err := ImportSkill(srcPath); err != nil {
 		t.Fatalf("ImportSkill() error = %v", err)
@@ -177,7 +177,7 @@ func TestSyncSkillsEmpty(t *testing.T) {
 
 	// Create empty skills dir
 	skillsDir := filepath.Join(tmpDir, ".murmur", "skills")
-	os.MkdirAll(skillsDir, 0755)
+	_ = os.MkdirAll(skillsDir, 0755)
 
 	_, err := SyncSkills()
 	if err == nil {

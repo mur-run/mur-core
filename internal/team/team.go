@@ -204,8 +204,8 @@ func Status() (*TeamStatus, error) {
 	if output, err := runGit("rev-list", "--left-right", "--count", "HEAD...@{upstream}"); err == nil {
 		parts := strings.Fields(strings.TrimSpace(output))
 		if len(parts) == 2 {
-			fmt.Sscanf(parts[0], "%d", &status.Ahead)
-			fmt.Sscanf(parts[1], "%d", &status.Behind)
+			_, _ = fmt.Sscanf(parts[0], "%d", &status.Ahead)
+			_, _ = fmt.Sscanf(parts[1], "%d", &status.Behind)
 		}
 	}
 

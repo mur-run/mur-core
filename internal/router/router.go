@@ -74,7 +74,7 @@ func SelectTool(prompt string, cfg *config.Config) (*ToolSelection, error) {
 			selected = selectByTier(available, cfg, "paid")
 			if selected != "" {
 				if analysis.NeedsToolUse {
-					reason = fmt.Sprintf("auto: needs tool use, using paid tool")
+					reason = "auto: needs tool use, using paid tool"
 				} else {
 					reason = fmt.Sprintf("auto: complexity %.2f >= %.2f threshold, using paid tool", analysis.Complexity, threshold)
 				}

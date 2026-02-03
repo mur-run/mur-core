@@ -395,11 +395,3 @@ func sortByConfidence(patterns []ExtractedPattern) {
 		}
 	}
 }
-
-// min returns the smaller of two integers.
-func minInt(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
