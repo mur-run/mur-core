@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/karajanchang/murmur-ai/internal/sync"
 	"github.com/spf13/cobra"
 )
 
@@ -22,26 +23,27 @@ var syncAllCmd = &cobra.Command{
 	Short: "Sync everything (MCP, hooks, skills)",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		fmt.Println("Syncing all configurations...")
-		fmt.Println("")
+		fmt.Println()
 
-		steps := []struct {
-			name   string
-			status string
-		}{
-			{"MCP servers", "⚠️ not implemented"},
-			{"Hooks", "⚠️ not implemented"},
-			{"Skills/Patterns", "⚠️ not implemented"},
+		results, err := sync.SyncAll()
+		if err != nil {
+			return fmt.Errorf("sync failed: %w", err)
 		}
 
-		for _, s := range steps {
-			fmt.Printf("  → %s: %s\n", s.name, s.status)
+		// Print MCP results
+		if mcpResults, ok := results["mcp"]; ok {
+			fmt.Println("MCP servers:")
+			for _, r := range mcpResults {
+				status := "✓"
+				if !r.Success {
+					status = "✗"
+				}
+				fmt.Printf("  %s %s: %s\n", status, r.Target, r.Message)
+			}
 		}
 
-		fmt.Println("")
-		fmt.Println("Run the bash scripts for now:")
-		fmt.Println("  ~/clawd/skills/murmur-ai/scripts/mcp_sync.sh")
-		fmt.Println("  ~/clawd/skills/murmur-ai/scripts/sync_to_claude_code.sh")
-
+		fmt.Println()
+		fmt.Println("Done.")
 		return nil
 	},
 }
@@ -51,11 +53,23 @@ var syncMcpCmd = &cobra.Command{
 	Short: "Sync MCP server configuration",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		fmt.Println("Syncing MCP configuration...")
-		fmt.Println("")
-		fmt.Println("⚠️ Not implemented yet.")
-		fmt.Println("")
-		fmt.Println("Run the bash script for now:")
-		fmt.Println("  ~/clawd/skills/murmur-ai/scripts/mcp_sync.sh")
+		fmt.Println()
+
+		results, err := sync.SyncMCP()
+		if err != nil {
+			return fmt.Errorf("sync failed: %w", err)
+		}
+
+		for _, r := range results {
+			status := "✓"
+			if !r.Success {
+				status = "✗"
+			}
+			fmt.Printf("  %s %s: %s\n", status, r.Target, r.Message)
+		}
+
+		fmt.Println()
+		fmt.Println("Done.")
 		return nil
 	},
 }
@@ -65,8 +79,8 @@ var syncHooksCmd = &cobra.Command{
 	Short: "Sync hooks configuration",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		fmt.Println("Syncing hooks configuration...")
-		fmt.Println("")
-		fmt.Println("⚠️ Not implemented yet. This will be hooks_sync.sh in Go.")
+		fmt.Println()
+		fmt.Println("⚠️ Not implemented yet. Coming in a future release.")
 		return nil
 	},
 }
