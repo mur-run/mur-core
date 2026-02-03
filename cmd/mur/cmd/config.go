@@ -114,9 +114,56 @@ Examples:
 	},
 }
 
+var configRoutingCmd = &cobra.Command{
+	Use:   "routing [mode]",
+	Short: "Set routing mode",
+	Long: `Set the automatic routing mode for tool selection.
+
+Modes:
+  auto          Smart routing based on complexity (default)
+  manual        Always use default_tool
+  cost-first    Prefer free tools unless very complex
+  quality-first Prefer paid tools unless very simple
+
+Examples:
+  mur config routing auto
+  mur config routing cost-first
+  mur config routing manual`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		mode := args[0]
+		validModes := []string{"auto", "manual", "cost-first", "quality-first"}
+
+		valid := false
+		for _, m := range validModes {
+			if mode == m {
+				valid = true
+				break
+			}
+		}
+		if !valid {
+			return fmt.Errorf("invalid mode: %s. Valid modes: %v", mode, validModes)
+		}
+
+		cfg, err := config.Load()
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+
+		cfg.Routing.Mode = mode
+		if err := cfg.Save(); err != nil {
+			return fmt.Errorf("failed to save config: %w", err)
+		}
+
+		fmt.Printf("✓ Routing mode set to: %s\n", mode)
+		return nil
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(configCmd)
 	configCmd.AddCommand(configShowCmd)
 	configCmd.AddCommand(configSetCmd)
 	configCmd.AddCommand(configDefaultCmd)
+	configCmd.AddCommand(configRoutingCmd)
 }

@@ -13,9 +13,16 @@ import (
 type Config struct {
 	DefaultTool string          `yaml:"default_tool"`
 	Tools       map[string]Tool `yaml:"tools"`
+	Routing     RoutingConfig   `yaml:"routing"`
 	Learning    LearningConfig  `yaml:"learning"`
 	MCP         MCPConfig       `yaml:"mcp"`
 	Hooks       HooksConfig     `yaml:"hooks"`
+}
+
+// RoutingConfig controls automatic tool selection.
+type RoutingConfig struct {
+	Mode                string  `yaml:"mode"`                 // auto | manual | cost-first | quality-first
+	ComplexityThreshold float64 `yaml:"complexity_threshold"` // 0-1, default 0.5
 }
 
 // HooksConfig represents hooks configuration for sync to AI CLIs.
@@ -40,9 +47,11 @@ type Hook struct {
 
 // Tool represents configuration for an AI tool.
 type Tool struct {
-	Enabled bool     `yaml:"enabled"`
-	Binary  string   `yaml:"binary"`
-	Flags   []string `yaml:"flags"`
+	Enabled      bool     `yaml:"enabled"`
+	Binary       string   `yaml:"binary"`
+	Flags        []string `yaml:"flags"`
+	Tier         string   `yaml:"tier"`         // free | paid
+	Capabilities []string `yaml:"capabilities"` // coding, analysis, simple-qa, tool-use, architecture
 }
 
 // LearningConfig represents learning-related settings.
@@ -164,9 +173,31 @@ func defaultConfig() *Config {
 	return &Config{
 		DefaultTool: "claude",
 		Tools: map[string]Tool{
-			"claude": {Enabled: true, Binary: "claude", Flags: []string{"-p"}},
-			"gemini": {Enabled: true, Binary: "gemini", Flags: []string{"-p"}},
-			"auggie": {Enabled: false, Binary: "auggie", Flags: []string{}},
+			"claude": {
+				Enabled:      true,
+				Binary:       "claude",
+				Flags:        []string{"-p"},
+				Tier:         "paid",
+				Capabilities: []string{"coding", "analysis", "tool-use", "architecture"},
+			},
+			"gemini": {
+				Enabled:      true,
+				Binary:       "gemini",
+				Flags:        []string{"-p"},
+				Tier:         "free",
+				Capabilities: []string{"coding", "simple-qa", "analysis"},
+			},
+			"auggie": {
+				Enabled:      false,
+				Binary:       "auggie",
+				Flags:        []string{},
+				Tier:         "free",
+				Capabilities: []string{"simple-qa"},
+			},
+		},
+		Routing: RoutingConfig{
+			Mode:                "auto",
+			ComplexityThreshold: 0.5,
 		},
 		Learning: LearningConfig{
 			AutoExtract:  true,
