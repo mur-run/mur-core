@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/karajanchang/murmur-ai/cmd/mur/cmd"
+	"github.com/mur-run/mur-cli/cmd/mur/cmd"
 )
 
 func main() {

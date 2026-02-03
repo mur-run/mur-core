@@ -6,9 +6,9 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/karajanchang/murmur-ai/internal/config"
-	"github.com/karajanchang/murmur-ai/internal/router"
-	"github.com/karajanchang/murmur-ai/internal/stats"
+	"github.com/mur-run/mur-cli/internal/config"
+	"github.com/mur-run/mur-cli/internal/router"
+	"github.com/mur-run/mur-cli/internal/stats"
 	"github.com/spf13/cobra"
 )
 

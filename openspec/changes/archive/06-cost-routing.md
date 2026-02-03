@@ -79,7 +79,7 @@ type Tool struct {
 
 package router
 
-import "github.com/karajanchang/murmur-ai/internal/config"
+import "github.com/mur-run/mur-cli/internal/config"
 
 // PromptAnalysis contains the result of analyzing a prompt.
 type PromptAnalysis struct {

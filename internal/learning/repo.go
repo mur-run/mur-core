@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/karajanchang/murmur-ai/internal/config"
-	"github.com/karajanchang/murmur-ai/internal/learn"
+	"github.com/mur-run/mur-cli/internal/config"
+	"github.com/mur-run/mur-cli/internal/learn"
 )
 
 // RepoDir returns the path to the learning repo (~/.murmur/learning-repo/).

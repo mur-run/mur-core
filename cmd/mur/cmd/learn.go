@@ -7,10 +7,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/karajanchang/murmur-ai/internal/config"
-	"github.com/karajanchang/murmur-ai/internal/learn"
-	"github.com/karajanchang/murmur-ai/internal/learning"
-	"github.com/karajanchang/murmur-ai/internal/notify"
+	"github.com/mur-run/mur-cli/internal/config"
+	"github.com/mur-run/mur-cli/internal/learn"
+	"github.com/mur-run/mur-cli/internal/learning"
+	"github.com/mur-run/mur-cli/internal/notify"
 	"github.com/spf13/cobra"
 )
 

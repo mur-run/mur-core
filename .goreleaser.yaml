@@ -71,8 +71,8 @@ changelog:
 
 release:
   github:
-    owner: karajanchang
-    name: murmur-ai
+    owner: mur-run
+    name: mur-cli
   draft: false
   prerelease: auto
   name_template: "v{{.Version}}"
@@ -81,24 +81,24 @@ release:
     
     ```bash
     # macOS (Apple Silicon)
-    curl -L https://github.com/karajanchang/murmur-ai/releases/download/{{ .Tag }}/mur-darwin-arm64.tar.gz | tar xz
+    curl -L https://github.com/mur-run/mur-cli/releases/download/{{ .Tag }}/mur-darwin-arm64.tar.gz | tar xz
     sudo mv mur /usr/local/bin/
     
     # macOS (Intel)
-    curl -L https://github.com/karajanchang/murmur-ai/releases/download/{{ .Tag }}/mur-darwin-amd64.tar.gz | tar xz
+    curl -L https://github.com/mur-run/mur-cli/releases/download/{{ .Tag }}/mur-darwin-amd64.tar.gz | tar xz
     sudo mv mur /usr/local/bin/
     
     # Linux (amd64)
-    curl -L https://github.com/karajanchang/murmur-ai/releases/download/{{ .Tag }}/mur-linux-amd64.tar.gz | tar xz
+    curl -L https://github.com/mur-run/mur-cli/releases/download/{{ .Tag }}/mur-linux-amd64.tar.gz | tar xz
     sudo mv mur /usr/local/bin/
     
     # Or via Go
-    go install github.com/karajanchang/murmur-ai/cmd/mur@{{ .Tag }}
+    go install github.com/mur-run/mur-cli/cmd/mur@{{ .Tag }}
     ```
 
 # Homebrew tap (disabled - requires homebrew-tap repo)
 # brews:
 #   - name: mur
 #     repository:
-#       owner: karajanchang
+#       owner: mur-run
 #       name: homebrew-tap

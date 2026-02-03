@@ -1,8 +1,8 @@
 # Murmur 🔊
 
-[![CI](https://github.com/karajanchang/murmur-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/karajanchang/murmur-ai/actions/workflows/ci.yml)
-[![Release](https://github.com/karajanchang/murmur-ai/actions/workflows/release.yml/badge.svg)](https://github.com/karajanchang/murmur-ai/releases)
-[![Go Report Card](https://goreportcard.com/badge/github.com/karajanchang/murmur-ai)](https://goreportcard.com/report/github.com/karajanchang/murmur-ai)
+[![CI](https://github.com/mur-run/mur-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/mur-run/mur-cli/actions/workflows/ci.yml)
+[![Release](https://github.com/mur-run/mur-cli/actions/workflows/release.yml/badge.svg)](https://github.com/mur-run/mur-cli/releases)
+[![Go Report Card](https://goreportcard.com/badge/github.com/mur-run/mur-cli)](https://goreportcard.com/report/github.com/mur-run/mur-cli)
 
 **Unified Multi-AI CLI Management + Cross-Tool Learning System**
 
@@ -24,29 +24,29 @@ Every AI CLI tool is an isolated island. Murmur unifies them.
 ### Go Install (Recommended)
 
 ```bash
-go install github.com/karajanchang/murmur-ai/cmd/mur@latest
+go install github.com/mur-run/mur-cli/cmd/mur@latest
 ```
 
 ### Download from Releases
 
 ```bash
 # macOS (Apple Silicon)
-curl -L https://github.com/karajanchang/murmur-ai/releases/latest/download/mur-darwin-arm64.tar.gz | tar xz
+curl -L https://github.com/mur-run/mur-cli/releases/latest/download/mur-darwin-arm64.tar.gz | tar xz
 sudo mv mur /usr/local/bin/
 
 # macOS (Intel)
-curl -L https://github.com/karajanchang/murmur-ai/releases/latest/download/mur-darwin-amd64.tar.gz | tar xz
+curl -L https://github.com/mur-run/mur-cli/releases/latest/download/mur-darwin-amd64.tar.gz | tar xz
 sudo mv mur /usr/local/bin/
 
 # Linux (amd64)
-curl -L https://github.com/karajanchang/murmur-ai/releases/latest/download/mur-linux-amd64.tar.gz | tar xz
+curl -L https://github.com/mur-run/mur-cli/releases/latest/download/mur-linux-amd64.tar.gz | tar xz
 sudo mv mur /usr/local/bin/
 ```
 
 ### Build from Source
 
 ```bash
-git clone https://github.com/karajanchang/murmur-ai.git
+git clone https://github.com/mur-run/mur-cli.git
 cd murmur-ai
 go build -o mur ./cmd/mur
 sudo mv mur /usr/local/bin/

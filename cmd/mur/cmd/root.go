@@ -18,7 +18,7 @@ Features:
   • Team knowledge base — share patterns across your team
   • Smart routing — auto-select the cheapest tool for the task
 
-Learn more: https://github.com/karajanchang/murmur-ai`,
+Learn more: https://github.com/mur-run/mur-cli`,
 	Version: version,
 }
 

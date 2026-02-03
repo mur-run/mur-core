@@ -1,4 +1,4 @@
-module github.com/karajanchang/murmur-ai
+module github.com/mur-run/mur-cli
 
 go 1.21
 

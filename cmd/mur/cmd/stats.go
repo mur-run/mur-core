@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/karajanchang/murmur-ai/internal/stats"
+	"github.com/mur-run/mur-cli/internal/stats"
 	"github.com/spf13/cobra"
 )
 

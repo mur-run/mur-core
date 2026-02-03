@@ -22,7 +22,7 @@ The `mur` CLI must be installed and available in your PATH:
 brew install karajanchang/tap/mur
 
 # Or using Go
-go install github.com/karajanchang/murmur-ai/cmd/mur@latest
+go install github.com/mur-run/mur-cli/cmd/mur@latest
 ```
 
 Verify installation:
@@ -145,4 +145,4 @@ Commands have a 60-second timeout. For large codebases, consider:
 
 ## License
 
-MIT License - see the main [murmur-ai repository](https://github.com/karajanchang/murmur-ai) for details.
+MIT License - see the main [murmur-ai repository](https://github.com/mur-run/mur-cli) for details.

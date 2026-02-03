@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/karajanchang/murmur-ai/internal/config"
+	"github.com/mur-run/mur-cli/internal/config"
 	"github.com/spf13/cobra"
 )
 

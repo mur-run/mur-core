@@ -105,5 +105,5 @@ This skill wraps the `mur` CLI. Commands execute:
 
 ## Learn More
 
-- [murmur-ai on GitHub](https://github.com/karajanchang/murmur-ai)
-- [Full Documentation](https://github.com/karajanchang/murmur-ai#readme)
+- [murmur-ai on GitHub](https://github.com/mur-run/mur-cli)
+- [Full Documentation](https://github.com/mur-run/mur-cli#readme)

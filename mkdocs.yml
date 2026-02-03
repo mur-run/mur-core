@@ -2,8 +2,8 @@ site_name: Murmur
 site_url: https://docs.murmur-ai.dev
 site_description: Unified Multi-AI CLI Management + Cross-Tool Learning System
 site_author: karajanchang
-repo_name: karajanchang/murmur-ai
-repo_url: https://github.com/karajanchang/murmur-ai
+repo_name: mur-run/mur-cli
+repo_url: https://github.com/mur-run/mur-cli
 
 theme:
   name: material
@@ -81,4 +81,4 @@ nav:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/karajanchang/murmur-ai
+      link: https://github.com/mur-run/mur-cli

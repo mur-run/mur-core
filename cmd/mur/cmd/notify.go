@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/karajanchang/murmur-ai/internal/config"
-	"github.com/karajanchang/murmur-ai/internal/notify"
+	"github.com/mur-run/mur-cli/internal/config"
+	"github.com/mur-run/mur-cli/internal/notify"
 	"github.com/spf13/cobra"
 )
 

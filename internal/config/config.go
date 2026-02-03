@@ -154,7 +154,7 @@ func (c *Config) Save() error {
 	}
 
 	// Add header comment
-	header := "# Murmur Configuration\n# https://github.com/karajanchang/murmur-ai\n\n"
+	header := "# Murmur Configuration\n# https://github.com/mur-run/mur-cli\n\n"
 	content := header + string(data)
 
 	if err := os.WriteFile(path, []byte(content), 0644); err != nil {

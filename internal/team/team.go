@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/karajanchang/murmur-ai/internal/config"
+	"github.com/mur-run/mur-cli/internal/config"
 )
 
 // TeamStatus represents the current state of the team repo.

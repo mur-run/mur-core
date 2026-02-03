@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/karajanchang/murmur-ai/internal/server"
+	"github.com/mur-run/mur-cli/internal/server"
 	"github.com/spf13/cobra"
 )
 
