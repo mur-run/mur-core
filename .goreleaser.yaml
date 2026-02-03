@@ -34,10 +34,7 @@ archives:
   - id: default
     formats:
       - tar.gz
-    format_overrides:
-      - goos: windows
-        formats:
-          - zip
+      - zip
     name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
     files:
       - README.md
@@ -99,18 +96,9 @@ release:
     go install github.com/karajanchang/murmur-ai/cmd/mur@{{ .Tag }}
     ```
 
-brews:
-  - name: mur
-    repository:
-      owner: karajanchang
-      name: homebrew-tap
-      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
-    skip_upload: auto
-    directory: Formula
-    homepage: "https://github.com/karajanchang/murmur-ai"
-    description: "Unified Multi-AI CLI Management + Cross-Tool Learning System"
-    license: "MIT"
-    test: |
-      system "#{bin}/mur", "--version"
-    install: |
-      bin.install "mur"
+# Homebrew tap (disabled - requires homebrew-tap repo)
+# brews:
+#   - name: mur
+#     repository:
+#       owner: karajanchang
+#       name: homebrew-tap
