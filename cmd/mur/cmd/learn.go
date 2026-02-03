@@ -7,7 +7,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/karajanchang/murmur-ai/internal/config"
 	"github.com/karajanchang/murmur-ai/internal/learn"
+	"github.com/karajanchang/murmur-ai/internal/learning"
 	"github.com/spf13/cobra"
 )
 
@@ -272,6 +274,106 @@ Examples:
 	},
 }
 
+var learnInitRepoCmd = &cobra.Command{
+	Use:   "init <repo-url>",
+	Short: "Initialize learning repo for pattern sync",
+	Long: `Initialize a git repository for syncing learned patterns across machines.
+
+Each machine uses its own branch (based on hostname by default).
+Shared patterns can be pulled from the main branch.
+
+Examples:
+  mur learn init git@github.com:user/learning-patterns.git
+  mur learn init https://github.com/user/learning-patterns.git`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		repoURL := args[0]
+
+		fmt.Printf("Initializing learning repo: %s\n", repoURL)
+
+		if err := learning.InitRepo(repoURL); err != nil {
+			return fmt.Errorf("init failed: %w", err)
+		}
+
+		branch, _ := learning.GetBranch()
+		fmt.Println("")
+		fmt.Println("✓ Learning repo initialized")
+		fmt.Printf("  Branch: %s\n", branch)
+		fmt.Println("  Run 'mur learn push' to sync patterns")
+
+		return nil
+	},
+}
+
+var learnPushCmd = &cobra.Command{
+	Use:   "push",
+	Short: "Push patterns to learning repo",
+	Long: `Push local patterns to your branch in the learning repo.
+
+The branch name defaults to your hostname, so each machine
+has its own set of patterns.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if !learning.IsInitialized() {
+			return fmt.Errorf("learning repo not initialized (run: mur learn init <repo-url>)")
+		}
+
+		fmt.Println("Pushing patterns to learning repo...")
+
+		if err := learning.Push(); err != nil {
+			return fmt.Errorf("push failed: %w", err)
+		}
+
+		fmt.Println("✓ Patterns pushed")
+		return nil
+	},
+}
+
+var learnPullCmd = &cobra.Command{
+	Use:   "pull",
+	Short: "Pull shared patterns from main branch",
+	Long: `Pull shared patterns from the main branch of the learning repo.
+
+This imports patterns that others have shared without overwriting
+your local patterns.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if !learning.IsInitialized() {
+			return fmt.Errorf("learning repo not initialized (run: mur learn init <repo-url>)")
+		}
+
+		fmt.Println("Pulling patterns from main branch...")
+
+		if err := learning.Pull(); err != nil {
+			return fmt.Errorf("pull failed: %w", err)
+		}
+
+		fmt.Println("✓ Patterns pulled")
+		return nil
+	},
+}
+
+var learnSyncRepoCmd = &cobra.Command{
+	Use:   "repo-sync",
+	Short: "Sync patterns with learning repo (push + pull)",
+	Long: `Sync patterns bidirectionally with the learning repo.
+
+This pushes your local patterns to your branch, then pulls
+shared patterns from main (if pull_from_main is enabled).`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if !learning.IsInitialized() {
+			return fmt.Errorf("learning repo not initialized (run: mur learn init <repo-url>)")
+		}
+
+		fmt.Println("Syncing with learning repo...")
+
+		if err := learning.Sync(); err != nil {
+			return fmt.Errorf("sync failed: %w", err)
+		}
+
+		fmt.Println("✓ Sync complete")
+		return nil
+	},
+}
+
 func runExtractAuto(dryRun bool) error {
 	fmt.Println("Scanning recent sessions...")
 	fmt.Println("")
@@ -287,6 +389,7 @@ func runExtractAuto(dryRun bool) error {
 	}
 
 	totalExtracted := 0
+	savedCount := 0
 	for _, session := range sessions {
 		patterns, err := learn.ExtractFromSession(session.Path)
 		if err != nil {
@@ -310,6 +413,7 @@ func runExtractAuto(dryRun bool) error {
 						fmt.Printf("  ✗ Failed to save: %v\n", err)
 					} else {
 						fmt.Printf("  ✓ Saved as '%s'\n", ep.Pattern.Name)
+						savedCount++
 					}
 				}
 			}
@@ -321,6 +425,20 @@ func runExtractAuto(dryRun bool) error {
 		fmt.Println("No patterns found in recent sessions.")
 	} else if dryRun {
 		fmt.Printf("\nFound %d potential patterns (dry-run, not saved)\n", totalExtracted)
+	}
+
+	// Auto-push if enabled and patterns were saved
+	if !dryRun && savedCount > 0 {
+		cfg, err := config.Load()
+		if err == nil && cfg.Learning.AutoPush && learning.IsInitialized() {
+			fmt.Println("")
+			fmt.Println("Auto-pushing to learning repo...")
+			if err := learning.Push(); err != nil {
+				fmt.Printf("  ⚠ auto-push failed: %v\n", err)
+			} else {
+				fmt.Println("  ✓ Patterns pushed to learning repo")
+			}
+		}
 	}
 
 	return nil
@@ -451,6 +569,10 @@ func init() {
 	learnCmd.AddCommand(learnDeleteCmd)
 	learnCmd.AddCommand(learnSyncCmd)
 	learnCmd.AddCommand(learnExtractCmd)
+	learnCmd.AddCommand(learnInitRepoCmd)
+	learnCmd.AddCommand(learnPushCmd)
+	learnCmd.AddCommand(learnPullCmd)
+	learnCmd.AddCommand(learnSyncRepoCmd)
 
 	learnListCmd.Flags().StringP("domain", "d", "", "Filter by domain")
 	learnListCmd.Flags().StringP("category", "c", "", "Filter by category")

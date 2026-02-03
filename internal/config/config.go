@@ -67,6 +67,11 @@ type LearningConfig struct {
 	AutoExtract  bool `yaml:"auto_extract"`
 	SyncToTools  bool `yaml:"sync_to_tools"`
 	PatternLimit int  `yaml:"pattern_limit"`
+	// Learning repo sync settings
+	Repo         string `yaml:"repo"`           // git repo URL for syncing patterns
+	Branch       string `yaml:"branch"`         // branch name (default: hostname)
+	AutoPush     bool   `yaml:"auto_push"`      // auto push after extract
+	PullFromMain bool   `yaml:"pull_from_main"` // also pull shared patterns from main
 }
 
 // MCPConfig represents MCP-related settings.
