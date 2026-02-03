@@ -1,0 +1,195 @@
+package learn
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+)
+
+// SyncResult holds the result of a pattern sync operation.
+type SyncResult struct {
+	Target  string
+	Success bool
+	Message string
+}
+
+// SyncPatterns syncs all patterns to CLI tools.
+func SyncPatterns() ([]SyncResult, error) {
+	patterns, err := List()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list patterns: %w", err)
+	}
+
+	if len(patterns) == 0 {
+		return []SyncResult{
+			{Target: "Claude Code", Success: true, Message: "no patterns to sync"},
+			{Target: "Gemini CLI", Success: true, Message: "no patterns to sync"},
+		}, nil
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, fmt.Errorf("cannot determine home directory: %w", err)
+	}
+
+	var results []SyncResult
+
+	// Sync to Claude Code
+	claudeResult := syncToClaudeCode(home, patterns)
+	results = append(results, claudeResult)
+
+	// Sync to Gemini CLI
+	geminiResult := syncToGeminiCLI(home, patterns)
+	results = append(results, geminiResult)
+
+	return results, nil
+}
+
+// syncToClaudeCode syncs patterns to ~/.claude/skills/learned-{name}/SKILL.md
+func syncToClaudeCode(home string, patterns []Pattern) SyncResult {
+	skillsDir := filepath.Join(home, ".claude", "skills")
+
+	// Ensure skills directory exists
+	if err := os.MkdirAll(skillsDir, 0755); err != nil {
+		return SyncResult{
+			Target:  "Claude Code",
+			Success: false,
+			Message: fmt.Sprintf("cannot create skills directory: %v", err),
+		}
+	}
+
+	synced := 0
+	for _, p := range patterns {
+		dirName := fmt.Sprintf("learned-%s", p.Name)
+		patternDir := filepath.Join(skillsDir, dirName)
+
+		if err := os.MkdirAll(patternDir, 0755); err != nil {
+			continue
+		}
+
+		skillPath := filepath.Join(patternDir, "SKILL.md")
+		content := patternToSkill(p)
+
+		if err := os.WriteFile(skillPath, []byte(content), 0644); err != nil {
+			continue
+		}
+		synced++
+	}
+
+	return SyncResult{
+		Target:  "Claude Code",
+		Success: true,
+		Message: fmt.Sprintf("synced %d patterns to ~/.claude/skills/", synced),
+	}
+}
+
+// syncToGeminiCLI syncs patterns to ~/.gemini/skills/learned-{name}.md
+func syncToGeminiCLI(home string, patterns []Pattern) SyncResult {
+	skillsDir := filepath.Join(home, ".gemini", "skills")
+
+	// Ensure skills directory exists
+	if err := os.MkdirAll(skillsDir, 0755); err != nil {
+		return SyncResult{
+			Target:  "Gemini CLI",
+			Success: false,
+			Message: fmt.Sprintf("cannot create skills directory: %v", err),
+		}
+	}
+
+	synced := 0
+	for _, p := range patterns {
+		fileName := fmt.Sprintf("learned-%s.md", p.Name)
+		skillPath := filepath.Join(skillsDir, fileName)
+		content := patternToSkill(p)
+
+		if err := os.WriteFile(skillPath, []byte(content), 0644); err != nil {
+			continue
+		}
+		synced++
+	}
+
+	return SyncResult{
+		Target:  "Gemini CLI",
+		Success: true,
+		Message: fmt.Sprintf("synced %d patterns to ~/.gemini/skills/", synced),
+	}
+}
+
+// patternToSkill converts a Pattern to SKILL.md format.
+func patternToSkill(p Pattern) string {
+	var sb strings.Builder
+
+	// Title
+	sb.WriteString(fmt.Sprintf("# %s\n\n", p.Name))
+
+	// Description
+	if p.Description != "" {
+		sb.WriteString(fmt.Sprintf("%s\n\n", p.Description))
+	}
+
+	// Domain and Category
+	sb.WriteString("## Context\n\n")
+	sb.WriteString(fmt.Sprintf("- **Domain:** %s\n", p.Domain))
+	sb.WriteString(fmt.Sprintf("- **Category:** %s\n", p.Category))
+	sb.WriteString(fmt.Sprintf("- **Confidence:** %.0f%%\n\n", p.Confidence*100))
+
+	// Content
+	sb.WriteString("## Content\n\n")
+	sb.WriteString(p.Content)
+	sb.WriteString("\n\n")
+
+	// Footer
+	sb.WriteString("---\n")
+	sb.WriteString("*Synced from murmur-ai*\n")
+
+	return sb.String()
+}
+
+// CleanupSyncedPatterns removes synced patterns that no longer exist in the source.
+func CleanupSyncedPatterns() error {
+	patterns, err := List()
+	if err != nil {
+		return err
+	}
+
+	// Build set of valid pattern names
+	validNames := make(map[string]bool)
+	for _, p := range patterns {
+		validNames[p.Name] = true
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	// Clean up Claude Code
+	claudeSkills := filepath.Join(home, ".claude", "skills")
+	if entries, err := os.ReadDir(claudeSkills); err == nil {
+		for _, entry := range entries {
+			if entry.IsDir() && strings.HasPrefix(entry.Name(), "learned-") {
+				name := strings.TrimPrefix(entry.Name(), "learned-")
+				if !validNames[name] {
+					os.RemoveAll(filepath.Join(claudeSkills, entry.Name()))
+				}
+			}
+		}
+	}
+
+	// Clean up Gemini CLI
+	geminiSkills := filepath.Join(home, ".gemini", "skills")
+	if entries, err := os.ReadDir(geminiSkills); err == nil {
+		for _, entry := range entries {
+			if !entry.IsDir() && strings.HasPrefix(entry.Name(), "learned-") && strings.HasSuffix(entry.Name(), ".md") {
+				name := strings.TrimPrefix(entry.Name(), "learned-")
+				name = strings.TrimSuffix(name, ".md")
+				if !validNames[name] {
+					os.Remove(filepath.Join(geminiSkills, entry.Name()))
+				}
+			}
+		}
+	}
+
+	return nil
+}

@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/karajanchang/murmur-ai/internal/learn"
 	"github.com/karajanchang/murmur-ai/internal/sync"
 	"github.com/spf13/cobra"
 )
@@ -47,6 +48,22 @@ var syncAllCmd = &cobra.Command{
 			fmt.Println()
 			fmt.Println("Hooks:")
 			for _, r := range hooksResults {
+				status := "✓"
+				if !r.Success {
+					status = "✗"
+				}
+				fmt.Printf("  %s %s: %s\n", status, r.Target, r.Message)
+			}
+		}
+
+		// Sync patterns
+		fmt.Println()
+		fmt.Println("Patterns:")
+		patternResults, err := learn.SyncPatterns()
+		if err != nil {
+			fmt.Printf("  ⚠ %v\n", err)
+		} else {
+			for _, r := range patternResults {
 				status := "✓"
 				if !r.Success {
 					status = "✗"
