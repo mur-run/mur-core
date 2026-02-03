@@ -42,6 +42,19 @@ var syncAllCmd = &cobra.Command{
 			}
 		}
 
+		// Print hooks results
+		if hooksResults, ok := results["hooks"]; ok {
+			fmt.Println()
+			fmt.Println("Hooks:")
+			for _, r := range hooksResults {
+				status := "✓"
+				if !r.Success {
+					status = "✗"
+				}
+				fmt.Printf("  %s %s: %s\n", status, r.Target, r.Message)
+			}
+		}
+
 		fmt.Println()
 		fmt.Println("Done.")
 		return nil
@@ -80,7 +93,22 @@ var syncHooksCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		fmt.Println("Syncing hooks configuration...")
 		fmt.Println()
-		fmt.Println("⚠️ Not implemented yet. Coming in a future release.")
+
+		results, err := sync.SyncHooks()
+		if err != nil {
+			return fmt.Errorf("sync failed: %w", err)
+		}
+
+		for _, r := range results {
+			status := "✓"
+			if !r.Success {
+				status = "✗"
+			}
+			fmt.Printf("  %s %s: %s\n", status, r.Target, r.Message)
+		}
+
+		fmt.Println()
+		fmt.Println("Done.")
 		return nil
 	},
 }

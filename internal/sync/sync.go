@@ -132,7 +132,177 @@ func SyncAll() (map[string][]SyncResult, error) {
 	}
 	results["mcp"] = mcpResults
 
-	// Future: add hooks sync here
+	// Sync Hooks
+	hooksResults, err := SyncHooks()
+	if err != nil {
+		return nil, fmt.Errorf("hooks sync failed: %w", err)
+	}
+	results["hooks"] = hooksResults
 
 	return results, nil
+}
+
+// eventMapping defines how murmur events map to CLI-specific events.
+var eventMapping = map[string]map[string]string{
+	"Claude Code": {
+		"UserPromptSubmit": "UserPromptSubmit",
+		"Stop":             "Stop",
+		"BeforeTool":       "PreToolUse",
+		"AfterTool":        "PostToolUse",
+	},
+	"Gemini CLI": {
+		"UserPromptSubmit": "BeforeAgent",
+		"Stop":             "AfterAgent",
+		"BeforeTool":       "BeforeTool",
+		"AfterTool":        "AfterTool",
+	},
+}
+
+// SyncHooks syncs hooks configuration to all CLI tools.
+func SyncHooks() ([]SyncResult, error) {
+	cfg, err := config.Load()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load murmur config: %w", err)
+	}
+
+	// Check if any hooks are configured
+	if !hasHooks(cfg.Hooks) {
+		return nil, fmt.Errorf("no hooks configured in ~/.murmur/config.yaml")
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, fmt.Errorf("cannot determine home directory: %w", err)
+	}
+
+	var results []SyncResult
+	for _, target := range DefaultTargets() {
+		result := syncHooksToTarget(home, target, cfg.Hooks)
+		results = append(results, result)
+	}
+
+	return results, nil
+}
+
+// hasHooks checks if any hooks are configured.
+func hasHooks(h config.HooksConfig) bool {
+	return len(h.UserPromptSubmit) > 0 || len(h.Stop) > 0 ||
+		len(h.BeforeTool) > 0 || len(h.AfterTool) > 0
+}
+
+// syncHooksToTarget syncs hooks config to a single CLI target.
+func syncHooksToTarget(home string, target CLITarget, hooks config.HooksConfig) SyncResult {
+	configPath := filepath.Join(home, target.ConfigPath)
+
+	// Read existing config or create empty object
+	var settings map[string]interface{}
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			settings = make(map[string]interface{})
+		} else {
+			return SyncResult{
+				Target:  target.Name,
+				Success: false,
+				Message: fmt.Sprintf("cannot read config: %v", err),
+			}
+		}
+	} else {
+		if err := json.Unmarshal(data, &settings); err != nil {
+			return SyncResult{
+				Target:  target.Name,
+				Success: false,
+				Message: fmt.Sprintf("cannot parse config: %v", err),
+			}
+		}
+	}
+
+	// Get event mapping for this CLI
+	mapping, ok := eventMapping[target.Name]
+	if !ok {
+		return SyncResult{
+			Target:  target.Name,
+			Success: false,
+			Message: "no event mapping defined for this target",
+		}
+	}
+
+	// Build hooks object for this CLI
+	cliHooks := make(map[string]interface{})
+	hookCount := 0
+
+	// Map each murmur event to the CLI-specific event
+	murmurEvents := map[string][]config.HookGroup{
+		"UserPromptSubmit": hooks.UserPromptSubmit,
+		"Stop":             hooks.Stop,
+		"BeforeTool":       hooks.BeforeTool,
+		"AfterTool":        hooks.AfterTool,
+	}
+
+	for murmurEvent, hookGroups := range murmurEvents {
+		if len(hookGroups) == 0 {
+			continue
+		}
+
+		cliEvent, ok := mapping[murmurEvent]
+		if !ok {
+			continue
+		}
+
+		// Convert hook groups to JSON-compatible format
+		var jsonGroups []map[string]interface{}
+		for _, group := range hookGroups {
+			jsonHooks := make([]map[string]interface{}, len(group.Hooks))
+			for i, h := range group.Hooks {
+				jsonHooks[i] = map[string]interface{}{
+					"type":    h.Type,
+					"command": h.Command,
+				}
+				hookCount++
+			}
+			jsonGroups = append(jsonGroups, map[string]interface{}{
+				"matcher": group.Matcher,
+				"hooks":   jsonHooks,
+			})
+		}
+
+		cliHooks[cliEvent] = jsonGroups
+	}
+
+	// Merge hooks into settings
+	settings["hooks"] = cliHooks
+
+	// Ensure directory exists
+	dir := filepath.Dir(configPath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return SyncResult{
+			Target:  target.Name,
+			Success: false,
+			Message: fmt.Sprintf("cannot create directory: %v", err),
+		}
+	}
+
+	// Write back
+	output, err := json.MarshalIndent(settings, "", "  ")
+	if err != nil {
+		return SyncResult{
+			Target:  target.Name,
+			Success: false,
+			Message: fmt.Sprintf("cannot serialize config: %v", err),
+		}
+	}
+
+	if err := os.WriteFile(configPath, output, 0644); err != nil {
+		return SyncResult{
+			Target:  target.Name,
+			Success: false,
+			Message: fmt.Sprintf("cannot write config: %v", err),
+		}
+	}
+
+	return SyncResult{
+		Target:  target.Name,
+		Success: true,
+		Message: fmt.Sprintf("synced %d hooks", hookCount),
+	}
 }

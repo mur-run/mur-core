@@ -15,6 +15,27 @@ type Config struct {
 	Tools       map[string]Tool `yaml:"tools"`
 	Learning    LearningConfig  `yaml:"learning"`
 	MCP         MCPConfig       `yaml:"mcp"`
+	Hooks       HooksConfig     `yaml:"hooks"`
+}
+
+// HooksConfig represents hooks configuration for sync to AI CLIs.
+type HooksConfig struct {
+	UserPromptSubmit []HookGroup `yaml:"UserPromptSubmit"`
+	Stop             []HookGroup `yaml:"Stop"`
+	BeforeTool       []HookGroup `yaml:"BeforeTool"`
+	AfterTool        []HookGroup `yaml:"AfterTool"`
+}
+
+// HookGroup represents a group of hooks with a matcher pattern.
+type HookGroup struct {
+	Matcher string `yaml:"matcher"`
+	Hooks   []Hook `yaml:"hooks"`
+}
+
+// Hook represents a single hook command.
+type Hook struct {
+	Type    string `yaml:"type"`
+	Command string `yaml:"command"`
 }
 
 // Tool represents configuration for an AI tool.
