@@ -1,0 +1,22 @@
+[
+    {
+        "caption": "Murmur: Sync All",
+        "command": "murmur_sync"
+    },
+    {
+        "caption": "Murmur: Extract Learnings",
+        "command": "murmur_learn_extract"
+    },
+    {
+        "caption": "Murmur: Show Stats",
+        "command": "murmur_stats"
+    },
+    {
+        "caption": "Murmur: List Patterns",
+        "command": "murmur_patterns"
+    },
+    {
+        "caption": "Murmur: Settings",
+        "command": "murmur_open_settings"
+    }
+]

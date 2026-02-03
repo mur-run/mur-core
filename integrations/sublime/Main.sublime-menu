@@ -1,0 +1,34 @@
+[
+    {
+        "id": "tools",
+        "children": [
+            {
+                "caption": "Murmur AI",
+                "children": [
+                    {
+                        "caption": "Sync All",
+                        "command": "murmur_sync"
+                    },
+                    {
+                        "caption": "Extract Learnings",
+                        "command": "murmur_learn_extract"
+                    },
+                    { "caption": "-" },
+                    {
+                        "caption": "Show Stats",
+                        "command": "murmur_stats"
+                    },
+                    {
+                        "caption": "List Patterns",
+                        "command": "murmur_patterns"
+                    },
+                    { "caption": "-" },
+                    {
+                        "caption": "Settings",
+                        "command": "murmur_open_settings"
+                    }
+                ]
+            }
+        ]
+    }
+]

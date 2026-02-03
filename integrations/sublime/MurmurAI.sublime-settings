@@ -1,0 +1,10 @@
+{
+    // Path to mur CLI (leave empty to use PATH)
+    "mur_path": "",
+    
+    // Show output panel automatically after commands
+    "show_output_panel": true,
+    
+    // Clear output panel before each command
+    "clear_output_before_run": true
+}
