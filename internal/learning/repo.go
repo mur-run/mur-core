@@ -355,3 +355,172 @@ func copyFile(src, dst string) error {
 	_, err = io.Copy(dstFile, srcFile)
 	return err
 }
+
+// AutoMergeResult contains the result of an auto-merge operation.
+type AutoMergeResult struct {
+	PatternsChecked int
+	PRsCreated      int
+	PRsFailed       int
+	Patterns        []PatternPRResult
+}
+
+// PatternPRResult contains the result for a single pattern PR.
+type PatternPRResult struct {
+	Pattern learn.Pattern
+	PRURL   string
+	Error   error
+}
+
+// GetHighConfidencePatterns returns patterns with confidence >= threshold.
+func GetHighConfidencePatterns(threshold float64) ([]learn.Pattern, error) {
+	patterns, err := learn.List()
+	if err != nil {
+		return nil, fmt.Errorf("cannot list patterns: %w", err)
+	}
+
+	var highConfidence []learn.Pattern
+	for _, p := range patterns {
+		if p.Confidence >= threshold {
+			highConfidence = append(highConfidence, p)
+		}
+	}
+
+	return highConfidence, nil
+}
+
+// CreatePatternPR creates a GitHub PR for a pattern using gh CLI.
+func CreatePatternPR(pattern learn.Pattern, dryRun bool) (string, error) {
+	if !IsInitialized() {
+		return "", fmt.Errorf("learning repo not initialized")
+	}
+
+	dir, err := RepoDir()
+	if err != nil {
+		return "", err
+	}
+
+	branch, err := GetBranch()
+	if err != nil {
+		return "", err
+	}
+
+	// Build PR title and body
+	title := fmt.Sprintf("Add pattern: %s", pattern.Name)
+	body := fmt.Sprintf(`## Pattern: %s
+
+**Description:** %s
+
+**Domain:** %s  
+**Category:** %s  
+**Confidence:** %.0f%%
+
+### Content Preview
+
+%s
+`,
+		pattern.Name,
+		pattern.Description,
+		pattern.Domain,
+		pattern.Category,
+		pattern.Confidence*100,
+		truncateContent(pattern.Content, 500),
+	)
+
+	if dryRun {
+		return fmt.Sprintf("[dry-run] Would create PR: %s", title), nil
+	}
+
+	// Check if gh CLI is available
+	if _, err := exec.LookPath("gh"); err != nil {
+		return "", fmt.Errorf("gh CLI not found (install: https://cli.github.com/)")
+	}
+
+	// Create PR using gh CLI
+	cmd := exec.Command("gh", "pr", "create",
+		"--title", title,
+		"--body", body,
+		"--base", "main",
+		"--head", branch,
+		"--label", "auto-merge",
+		"--label", "pattern",
+	)
+	cmd.Dir = dir
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		// Check if PR already exists
+		if strings.Contains(string(output), "already exists") {
+			return "", fmt.Errorf("PR already exists for this branch")
+		}
+		return "", fmt.Errorf("gh pr create failed: %s", string(output))
+	}
+
+	// Extract PR URL from output
+	prURL := strings.TrimSpace(string(output))
+	return prURL, nil
+}
+
+// AutoMerge checks patterns and creates PRs for high-confidence ones.
+func AutoMerge(dryRun bool) (*AutoMergeResult, error) {
+	if !IsInitialized() {
+		return nil, fmt.Errorf("learning repo not initialized (run: mur learn init <repo-url>)")
+	}
+
+	// Load config for threshold
+	cfg, err := config.Load()
+	if err != nil {
+		cfg = &config.Config{}
+	}
+
+	threshold := cfg.Learning.MergeThreshold
+	if threshold == 0 {
+		threshold = 0.8 // Default threshold
+	}
+
+	// Get high-confidence patterns
+	patterns, err := GetHighConfidencePatterns(threshold)
+	if err != nil {
+		return nil, err
+	}
+
+	result := &AutoMergeResult{
+		PatternsChecked: len(patterns),
+	}
+
+	if len(patterns) == 0 {
+		return result, nil
+	}
+
+	// Push changes first to ensure branch is up to date
+	if !dryRun {
+		if err := Push(); err != nil {
+			return nil, fmt.Errorf("push failed: %w", err)
+		}
+	}
+
+	// Create PRs for each pattern
+	for _, p := range patterns {
+		prResult := PatternPRResult{Pattern: p}
+
+		prURL, err := CreatePatternPR(p, dryRun)
+		if err != nil {
+			prResult.Error = err
+			result.PRsFailed++
+		} else {
+			prResult.PRURL = prURL
+			result.PRsCreated++
+		}
+
+		result.Patterns = append(result.Patterns, prResult)
+	}
+
+	return result, nil
+}
+
+// truncateContent shortens content for PR body.
+func truncateContent(s string, max int) string {
+	if len(s) <= max {
+		return s
+	}
+	return s[:max-3] + "..."
+}

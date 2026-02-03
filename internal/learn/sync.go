@@ -46,6 +46,18 @@ func SyncPatterns() ([]SyncResult, error) {
 	geminiResult := syncToGeminiCLI(home, patterns)
 	results = append(results, geminiResult)
 
+	// Sync to Auggie
+	auggieResult := syncToAuggie(home, patterns)
+	results = append(results, auggieResult)
+
+	// Sync to Codex (uses instructions.md)
+	codexResult := syncToCodex(home, patterns)
+	results = append(results, codexResult)
+
+	// Sync to OpenCode
+	opencodeResult := syncToOpenCode(home, patterns)
+	results = append(results, opencodeResult)
+
 	// Sync team-shared patterns to team repo
 	if team.IsInitialized() {
 		teamResult := syncToTeamRepo(patterns)
@@ -125,6 +137,124 @@ func syncToGeminiCLI(home string, patterns []Pattern) SyncResult {
 	}
 }
 
+// syncToAuggie syncs patterns to ~/.augment/skills/learned-{name}.md
+func syncToAuggie(home string, patterns []Pattern) SyncResult {
+	skillsDir := filepath.Join(home, ".augment", "skills")
+
+	// Ensure skills directory exists
+	if err := os.MkdirAll(skillsDir, 0755); err != nil {
+		return SyncResult{
+			Target:  "Auggie",
+			Success: false,
+			Message: fmt.Sprintf("cannot create skills directory: %v", err),
+		}
+	}
+
+	synced := 0
+	for _, p := range patterns {
+		fileName := fmt.Sprintf("learned-%s.md", p.Name)
+		skillPath := filepath.Join(skillsDir, fileName)
+		content := patternToSkill(p)
+
+		if err := os.WriteFile(skillPath, []byte(content), 0644); err != nil {
+			continue
+		}
+		synced++
+	}
+
+	return SyncResult{
+		Target:  "Auggie",
+		Success: true,
+		Message: fmt.Sprintf("synced %d patterns to ~/.augment/skills/", synced),
+	}
+}
+
+// syncToCodex syncs patterns to ~/.codex/instructions.md (appends patterns section)
+func syncToCodex(home string, patterns []Pattern) SyncResult {
+	codexDir := filepath.Join(home, ".codex")
+
+	// Ensure directory exists
+	if err := os.MkdirAll(codexDir, 0755); err != nil {
+		return SyncResult{
+			Target:  "Codex",
+			Success: false,
+			Message: fmt.Sprintf("cannot create codex directory: %v", err),
+		}
+	}
+
+	// Build patterns section
+	var sb strings.Builder
+	sb.WriteString("\n\n## Learned Patterns (murmur-ai)\n\n")
+	for _, p := range patterns {
+		sb.WriteString(fmt.Sprintf("### %s\n\n", p.Name))
+		if p.Description != "" {
+			sb.WriteString(fmt.Sprintf("%s\n\n", p.Description))
+		}
+		sb.WriteString(p.Content)
+		sb.WriteString("\n\n")
+	}
+
+	instructionsPath := filepath.Join(codexDir, "instructions.md")
+
+	// Read existing content
+	existing, _ := os.ReadFile(instructionsPath)
+	existingStr := string(existing)
+
+	// Remove old patterns section if present
+	if idx := strings.Index(existingStr, "\n\n## Learned Patterns (murmur-ai)"); idx != -1 {
+		existingStr = existingStr[:idx]
+	}
+
+	// Append new patterns section
+	newContent := existingStr + sb.String()
+
+	if err := os.WriteFile(instructionsPath, []byte(newContent), 0644); err != nil {
+		return SyncResult{
+			Target:  "Codex",
+			Success: false,
+			Message: fmt.Sprintf("cannot write instructions.md: %v", err),
+		}
+	}
+
+	return SyncResult{
+		Target:  "Codex",
+		Success: true,
+		Message: fmt.Sprintf("synced %d patterns to ~/.codex/instructions.md", len(patterns)),
+	}
+}
+
+// syncToOpenCode syncs patterns to ~/.opencode/skills/learned-{name}.md
+func syncToOpenCode(home string, patterns []Pattern) SyncResult {
+	skillsDir := filepath.Join(home, ".opencode", "skills")
+
+	// Ensure skills directory exists
+	if err := os.MkdirAll(skillsDir, 0755); err != nil {
+		return SyncResult{
+			Target:  "OpenCode",
+			Success: false,
+			Message: fmt.Sprintf("cannot create skills directory: %v", err),
+		}
+	}
+
+	synced := 0
+	for _, p := range patterns {
+		fileName := fmt.Sprintf("learned-%s.md", p.Name)
+		skillPath := filepath.Join(skillsDir, fileName)
+		content := patternToSkill(p)
+
+		if err := os.WriteFile(skillPath, []byte(content), 0644); err != nil {
+			continue
+		}
+		synced++
+	}
+
+	return SyncResult{
+		Target:  "OpenCode",
+		Success: true,
+		Message: fmt.Sprintf("synced %d patterns to ~/.opencode/skills/", synced),
+	}
+}
+
 // patternToSkill converts a Pattern to SKILL.md format.
 func patternToSkill(p Pattern) string {
 	var sb strings.Builder
@@ -199,6 +329,37 @@ func CleanupSyncedPatterns() error {
 			}
 		}
 	}
+
+	// Clean up Auggie
+	auggieSkills := filepath.Join(home, ".augment", "skills")
+	if entries, err := os.ReadDir(auggieSkills); err == nil {
+		for _, entry := range entries {
+			if !entry.IsDir() && strings.HasPrefix(entry.Name(), "learned-") && strings.HasSuffix(entry.Name(), ".md") {
+				name := strings.TrimPrefix(entry.Name(), "learned-")
+				name = strings.TrimSuffix(name, ".md")
+				if !validNames[name] {
+					_ = os.Remove(filepath.Join(auggieSkills, entry.Name()))
+				}
+			}
+		}
+	}
+
+	// Clean up OpenCode
+	opencodeSkills := filepath.Join(home, ".opencode", "skills")
+	if entries, err := os.ReadDir(opencodeSkills); err == nil {
+		for _, entry := range entries {
+			if !entry.IsDir() && strings.HasPrefix(entry.Name(), "learned-") && strings.HasSuffix(entry.Name(), ".md") {
+				name := strings.TrimPrefix(entry.Name(), "learned-")
+				name = strings.TrimSuffix(name, ".md")
+				if !validNames[name] {
+					_ = os.Remove(filepath.Join(opencodeSkills, entry.Name()))
+				}
+			}
+		}
+	}
+
+	// Note: Codex uses a single instructions.md file, so we regenerate the whole file
+	// instead of cleaning up individual patterns. This is handled in syncToCodex.
 
 	return nil
 }

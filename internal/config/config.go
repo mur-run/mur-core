@@ -72,6 +72,9 @@ type LearningConfig struct {
 	Branch       string `yaml:"branch"`         // branch name (default: hostname)
 	AutoPush     bool   `yaml:"auto_push"`      // auto push after extract
 	PullFromMain bool   `yaml:"pull_from_main"` // also pull shared patterns from main
+	// Auto-merge settings
+	AutoMerge      bool    `yaml:"auto_merge"`      // enable auto-merge to main
+	MergeThreshold float64 `yaml:"merge_threshold"` // confidence threshold for auto-merge (default: 0.8)
 }
 
 // MCPConfig represents MCP-related settings.
@@ -206,6 +209,20 @@ func defaultConfig() *Config {
 				Flags:        []string{"-p", "-i"},
 				Tier:         "free",
 				Capabilities: []string{"coding", "simple-qa"},
+			},
+			"codex": {
+				Enabled:      true,
+				Binary:       "codex",
+				Flags:        []string{},
+				Tier:         "paid",
+				Capabilities: []string{"coding", "analysis", "tool-use", "architecture"},
+			},
+			"opencode": {
+				Enabled:      true,
+				Binary:       "opencode",
+				Flags:        []string{},
+				Tier:         "free",
+				Capabilities: []string{"coding", "simple-qa", "analysis"},
 			},
 		},
 		Routing: RoutingConfig{

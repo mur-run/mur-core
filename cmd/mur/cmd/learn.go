@@ -324,6 +324,107 @@ has its own set of patterns.`,
 		}
 
 		fmt.Println("✓ Patterns pushed")
+
+		// Check for auto-merge flag
+		autoMerge, _ := cmd.Flags().GetBool("auto-merge")
+		if autoMerge {
+			fmt.Println("")
+			fmt.Println("Checking for high-confidence patterns to merge...")
+
+			dryRun, _ := cmd.Flags().GetBool("dry-run")
+			result, err := learning.AutoMerge(dryRun)
+			if err != nil {
+				return fmt.Errorf("auto-merge failed: %w", err)
+			}
+
+			if result.PatternsChecked == 0 {
+				fmt.Println("  No patterns meet the confidence threshold")
+			} else {
+				for _, pr := range result.Patterns {
+					if pr.Error != nil {
+						fmt.Printf("  ✗ %s: %v\n", pr.Pattern.Name, pr.Error)
+					} else {
+						fmt.Printf("  ✓ %s: %s\n", pr.Pattern.Name, pr.PRURL)
+					}
+				}
+				fmt.Printf("\nPRs created: %d, failed: %d\n", result.PRsCreated, result.PRsFailed)
+			}
+		}
+
+		return nil
+	},
+}
+
+var learnAutoMergeCmd = &cobra.Command{
+	Use:   "auto-merge",
+	Short: "Create PRs for high-confidence patterns",
+	Long: `Check patterns with confidence >= threshold and create PRs to main branch.
+
+The threshold is configured in ~/.murmur/config.yaml under learning.merge_threshold
+(default: 0.8).
+
+Examples:
+  mur learn auto-merge              # Create PRs for patterns >= 80% confidence
+  mur learn auto-merge --dry-run    # Preview without creating PRs
+  mur learn auto-merge --threshold 0.9  # Use custom threshold`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if !learning.IsInitialized() {
+			return fmt.Errorf("learning repo not initialized (run: mur learn init <repo-url>)")
+		}
+
+		dryRun, _ := cmd.Flags().GetBool("dry-run")
+		threshold, _ := cmd.Flags().GetFloat64("threshold")
+
+		// Override threshold in config if specified
+		if threshold > 0 {
+			cfg, err := config.Load()
+			if err != nil {
+				cfg = &config.Config{}
+			}
+			cfg.Learning.MergeThreshold = threshold
+			// Don't save, just use for this run
+		}
+
+		if dryRun {
+			fmt.Println("Checking for high-confidence patterns (dry-run)...")
+		} else {
+			fmt.Println("Checking for high-confidence patterns...")
+		}
+		fmt.Println("")
+
+		result, err := learning.AutoMerge(dryRun)
+		if err != nil {
+			return fmt.Errorf("auto-merge failed: %w", err)
+		}
+
+		if result.PatternsChecked == 0 {
+			fmt.Println("No patterns meet the confidence threshold.")
+			return nil
+		}
+
+		fmt.Printf("Found %d pattern(s) with high confidence:\n\n", result.PatternsChecked)
+
+		for _, pr := range result.Patterns {
+			status := "✓"
+			msg := pr.PRURL
+			if pr.Error != nil {
+				status = "✗"
+				msg = pr.Error.Error()
+			}
+			fmt.Printf("  %s %-20s (%.0f%%) - %s\n",
+				status,
+				pr.Pattern.Name,
+				pr.Pattern.Confidence*100,
+				msg)
+		}
+
+		fmt.Println("")
+		if dryRun {
+			fmt.Println("(dry-run mode, no PRs created)")
+		} else {
+			fmt.Printf("PRs created: %d, failed: %d\n", result.PRsCreated, result.PRsFailed)
+		}
+
 		return nil
 	},
 }
@@ -573,6 +674,7 @@ func init() {
 	learnCmd.AddCommand(learnPushCmd)
 	learnCmd.AddCommand(learnPullCmd)
 	learnCmd.AddCommand(learnSyncRepoCmd)
+	learnCmd.AddCommand(learnAutoMergeCmd)
 
 	learnListCmd.Flags().StringP("domain", "d", "", "Filter by domain")
 	learnListCmd.Flags().StringP("category", "c", "", "Filter by category")
@@ -586,6 +688,12 @@ func init() {
 	learnExtractCmd.Flags().StringP("session", "s", "", "Session ID to extract from")
 	learnExtractCmd.Flags().Bool("auto", false, "Automatically scan recent sessions")
 	learnExtractCmd.Flags().Bool("dry-run", false, "Show what would be extracted without saving")
+
+	learnPushCmd.Flags().Bool("auto-merge", false, "Check and create PRs for high-confidence patterns after push")
+	learnPushCmd.Flags().Bool("dry-run", false, "Preview auto-merge without creating PRs")
+
+	learnAutoMergeCmd.Flags().Bool("dry-run", false, "Preview without creating PRs")
+	learnAutoMergeCmd.Flags().Float64("threshold", 0, "Override confidence threshold (default: from config or 0.8)")
 }
 
 // truncate shortens a string to max length with ellipsis.

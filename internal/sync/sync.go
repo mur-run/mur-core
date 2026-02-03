@@ -22,7 +22,17 @@ func DefaultTargets() []CLITarget {
 		{Name: "Claude Code", ConfigPath: ".claude/settings.json"},
 		{Name: "Gemini CLI", ConfigPath: ".gemini/settings.json"},
 		{Name: "Auggie", ConfigPath: ".augment/settings.json"},
+		{Name: "OpenCode", ConfigPath: ".opencode/settings.json"},
 	}
+}
+
+// CodexInstructionsPath returns the path to Codex instructions file.
+func CodexInstructionsPath() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("cannot determine home directory: %w", err)
+	}
+	return filepath.Join(home, ".codex", "instructions.md"), nil
 }
 
 // SyncResult holds the result of a sync operation for one target.
@@ -167,6 +177,10 @@ var eventMapping = map[string]map[string]string{
 	// Auggie doesn't support hooks natively, but we include it for MCP sync.
 	// Empty mapping means no hooks will be synced.
 	"Auggie": {},
+	// OpenCode doesn't support hooks natively, but we include it for MCP sync.
+	"OpenCode": {},
+	// Codex uses ~/.codex/instructions.md instead of settings.json.
+	// No hooks support, patterns synced separately via SyncPatternsToCodex.
 }
 
 // SyncHooks syncs hooks configuration to all CLI tools.

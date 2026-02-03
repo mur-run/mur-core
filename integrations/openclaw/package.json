@@ -1,0 +1,50 @@
+{
+  "name": "@murmur-ai/openclaw-skill",
+  "version": "0.1.0",
+  "description": "OpenClaw skill for murmur-ai - unified AI CLI management",
+  "keywords": [
+    "openclaw",
+    "skill",
+    "murmur-ai",
+    "ai-cli",
+    "claude",
+    "gemini"
+  ],
+  "author": "karajanchang",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/karajanchang/murmur-ai.git",
+    "directory": "integrations/openclaw"
+  },
+  "openclaw": {
+    "type": "skill",
+    "name": "murmur",
+    "displayName": "Murmur AI",
+    "description": "Unified management for AI CLI tools",
+    "commands": [
+      {
+        "name": "sync",
+        "description": "Sync MCP, hooks, and patterns to all AI tools",
+        "exec": "mur output sync --json"
+      },
+      {
+        "name": "learn",
+        "description": "Extract patterns from recent coding sessions",
+        "exec": "mur learn extract --auto --dry-run"
+      },
+      {
+        "name": "stats",
+        "description": "Show usage statistics",
+        "exec": "mur output stats --json"
+      }
+    ],
+    "requirements": [
+      {
+        "type": "binary",
+        "name": "mur",
+        "installHint": "Install murmur-ai: go install github.com/karajanchang/murmur-ai/cmd/mur@latest"
+      }
+    ]
+  }
+}

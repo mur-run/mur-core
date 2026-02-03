@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Murmur Dashboard</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --bg-card: #161b22;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --text-muted: #8b949e;
+      --accent: #58a6ff;
+      --green: #3fb950;
+      --red: #f85149;
+      --yellow: #d29922;
+      --purple: #a371f7;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 { font-size: 1.75rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; }
+    h2 { font-size: 1.25rem; margin-bottom: 1rem; color: var(--text-muted); }
+    .tabs { display: flex; gap: 1rem; margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem; }
+    .tab { background: none; border: none; color: var(--text-muted); font-size: 1rem; cursor: pointer; padding: 0.5rem 1rem; border-radius: 6px; }
+    .tab:hover { background: var(--bg-card); color: var(--text); }
+    .tab.active { background: var(--accent); color: #fff; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; }
+    .card h3 { font-size: 0.875rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+    .card .value { font-size: 2rem; font-weight: 600; }
+    .card .value.green { color: var(--green); }
+    .card .value.yellow { color: var(--yellow); }
+    .chart-container { height: 200px; display: flex; align-items: flex-end; gap: 4px; padding-top: 1rem; }
+    .bar { background: var(--accent); border-radius: 4px 4px 0 0; min-width: 30px; flex: 1; transition: height 0.3s; }
+    .bar:hover { background: var(--purple); }
+    .bar-label { font-size: 0.75rem; color: var(--text-muted); text-align: center; margin-top: 0.25rem; }
+    .bar-wrapper { display: flex; flex-direction: column; align-items: center; flex: 1; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); }
+    th { color: var(--text-muted); font-weight: 500; font-size: 0.875rem; }
+    .badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; margin-right: 0.25rem; }
+    .badge.dev { background: #1f6feb33; color: var(--accent); }
+    .badge.devops { background: #a371f733; color: var(--purple); }
+    .badge.business { background: #d2992233; color: var(--yellow); }
+    .badge.general { background: #30363d; color: var(--text-muted); }
+    .badge.pattern { background: #3fb95033; color: var(--green); }
+    .badge.decision { background: #f8514933; color: var(--red); }
+    .badge.lesson { background: #d2992233; color: var(--yellow); }
+    .badge.free { background: #3fb95033; color: var(--green); }
+    .badge.paid { background: #f8514933; color: var(--red); }
+    .status { display: inline-flex; align-items: center; gap: 0.5rem; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .status-dot.ok { background: var(--green); }
+    .status-dot.error { background: var(--red); }
+    .pattern-content { background: var(--bg); padding: 1rem; border-radius: 4px; margin-top: 0.5rem; font-family: monospace; font-size: 0.875rem; white-space: pre-wrap; max-height: 200px; overflow-y: auto; display: none; }
+    .pattern-row { cursor: pointer; }
+    .pattern-row:hover { background: var(--bg); }
+    .pattern-row.expanded + tr .pattern-content { display: block; }
+    .btn { background: var(--accent); color: #fff; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.875rem; }
+    .btn:hover { opacity: 0.9; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .section { display: none; }
+    .section.active { display: block; }
+    .empty { color: var(--text-muted); text-align: center; padding: 2rem; }
+    .loading { color: var(--text-muted); }
+    pre { background: var(--bg); padding: 1rem; border-radius: 4px; overflow-x: auto; font-size: 0.875rem; }
+  </style>
+</head>
+<body>
+  <h1>🗣️ Murmur Dashboard</h1>
+  
+  <div class="tabs">
+    <button class="tab active" data-section="overview">Overview</button>
+    <button class="tab" data-section="patterns">Patterns</button>
+    <button class="tab" data-section="tools">Tools</button>
+    <button class="tab" data-section="settings">Settings</button>
+  </div>
+
+  <!-- Overview Section -->
+  <div id="overview" class="section active">
+    <div class="grid">
+      <div class="card">
+        <h3>Total Runs</h3>
+        <div class="value" id="total-runs">-</div>
+      </div>
+      <div class="card">
+        <h3>Estimated Cost</h3>
+        <div class="value" id="total-cost">-</div>
+      </div>
+      <div class="card">
+        <h3>Estimated Saved</h3>
+        <div class="value green" id="total-saved">-</div>
+      </div>
+      <div class="card">
+        <h3>Free Tool Ratio</h3>
+        <div class="value yellow" id="free-ratio">-</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📈 Last 7 Days</h2>
+      <div class="chart-container" id="daily-chart"></div>
+    </div>
+
+    <div class="card" style="margin-top: 1rem;">
+      <h2>📦 Usage by Tool</h2>
+      <table id="tool-stats">
+        <thead>
+          <tr>
+            <th>Tool</th>
+            <th>Runs</th>
+            <th>Avg Time</th>
+            <th>Cost</th>
+            <th>Success</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Patterns Section -->
+  <div id="patterns" class="section">
+    <div class="card">
+      <h2>📚 Learned Patterns</h2>
+      <table id="patterns-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Domain</th>
+            <th>Category</th>
+            <th>Confidence</th>
+            <th>Updated</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tools Section -->
+  <div id="tools" class="section">
+    <div class="card">
+      <h2>🔧 Tool Status</h2>
+      <table id="tools-table">
+        <thead>
+          <tr>
+            <th>Tool</th>
+            <th>Status</th>
+            <th>Binary</th>
+            <th>Tier</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div style="margin-top: 1rem;">
+      <button class="btn" id="sync-btn" onclick="triggerSync()">🔄 Sync to Tools</button>
+      <span id="sync-status" style="margin-left: 1rem;"></span>
+    </div>
+  </div>
+
+  <!-- Settings Section -->
+  <div id="settings" class="section">
+    <div class="card">
+      <h2>⚙️ Current Configuration</h2>
+      <pre id="config-display" class="loading">Loading...</pre>
+    </div>
+    <div class="card" style="margin-top: 1rem;">
+      <h3>Config Location</h3>
+      <code>~/.murmur/config.yaml</code>
+    </div>
+  </div>
+
+  <script>
+    // Tab switching
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.section).classList.add('active');
+      });
+    });
+
+    // Fetch and display stats
+    async function loadStats() {
+      try {
+        const res = await fetch('/api/stats');
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error);
+        
+        const data = json.data;
+        document.getElementById('total-runs').textContent = data.total_runs || 0;
+        document.getElementById('total-cost').textContent = '$' + (data.estimated_cost || 0).toFixed(4);
+        document.getElementById('total-saved').textContent = '$' + (data.estimated_saved || 0).toFixed(4);
+        document.getElementById('free-ratio').textContent = (data.auto_route_stats?.free_ratio || 0).toFixed(0) + '%';
+
+        // Daily chart
+        const chart = document.getElementById('daily-chart');
+        chart.innerHTML = '';
+        const trend = data.daily_trend || [];
+        const maxCount = Math.max(...trend.map(d => d.count), 1);
+        trend.forEach(day => {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'bar-wrapper';
+          const bar = document.createElement('div');
+          bar.className = 'bar';
+          bar.style.height = (day.count / maxCount * 150) + 'px';
+          bar.title = `${day.date}: ${day.count} runs`;
+          const label = document.createElement('div');
+          label.className = 'bar-label';
+          label.textContent = day.date.slice(5); // MM-DD
+          wrapper.appendChild(bar);
+          wrapper.appendChild(label);
+          chart.appendChild(wrapper);
+        });
+
+        // Tool stats table
+        const tbody = document.querySelector('#tool-stats tbody');
+        tbody.innerHTML = '';
+        const tools = data.by_tool || {};
+        Object.entries(tools).forEach(([name, stats]) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><strong>${name}</strong></td>
+            <td>${stats.count}</td>
+            <td>${stats.avg_time_ms}ms</td>
+            <td>$${stats.total_cost.toFixed(4)}</td>
+            <td>${stats.success_rate.toFixed(0)}%</td>
+          `;
+          tbody.appendChild(tr);
+        });
+        if (Object.keys(tools).length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="empty">No usage data yet</td></tr>';
+        }
+      } catch (e) {
+        console.error('Failed to load stats:', e);
+      }
+    }
+
+    // Fetch and display patterns
+    async function loadPatterns() {
+      try {
+        const res = await fetch('/api/patterns');
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error);
+        
+        const tbody = document.querySelector('#patterns-table tbody');
+        tbody.innerHTML = '';
+        const patterns = json.data || [];
+        
+        if (patterns.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="empty">No patterns yet. Use <code>mur learn</code> to extract patterns.</td></tr>';
+          return;
+        }
+
+        patterns.forEach(p => {
+          const tr = document.createElement('tr');
+          tr.className = 'pattern-row';
+          tr.innerHTML = `
+            <td><strong>${p.name}</strong></td>
+            <td><span class="badge ${p.domain}">${p.domain}</span></td>
+            <td><span class="badge ${p.category}">${p.category}</span></td>
+            <td>${(p.confidence * 100).toFixed(0)}%</td>
+            <td>${p.updated_at?.slice(0, 10) || '-'}</td>
+          `;
+          tr.onclick = () => tr.classList.toggle('expanded');
+          tbody.appendChild(tr);
+          
+          // Content row
+          const contentTr = document.createElement('tr');
+          contentTr.innerHTML = `<td colspan="5"><div class="pattern-content">${escapeHtml(p.content || p.description || '')}</div></td>`;
+          tbody.appendChild(contentTr);
+        });
+      } catch (e) {
+        console.error('Failed to load patterns:', e);
+      }
+    }
+
+    // Fetch and display tool health
+    async function loadTools() {
+      try {
+        const res = await fetch('/api/health');
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error);
+        
+        const tbody = document.querySelector('#tools-table tbody');
+        tbody.innerHTML = '';
+        const tools = json.data || [];
+        
+        tools.forEach(t => {
+          const tr = document.createElement('tr');
+          const statusClass = t.installed && t.enabled ? 'ok' : 'error';
+          const statusText = !t.installed ? 'Not installed' : (!t.enabled ? 'Disabled' : 'Ready');
+          tr.innerHTML = `
+            <td><strong>${t.name}</strong></td>
+            <td><span class="status"><span class="status-dot ${statusClass}"></span>${statusText}</span></td>
+            <td><code>${t.binary}</code></td>
+            <td><span class="badge ${t.tier}">${t.tier}</span></td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (e) {
+        console.error('Failed to load tools:', e);
+      }
+    }
+
+    // Fetch and display config
+    async function loadConfig() {
+      try {
+        const res = await fetch('/api/config');
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error);
+        
+        document.getElementById('config-display').textContent = JSON.stringify(json.data, null, 2);
+      } catch (e) {
+        document.getElementById('config-display').textContent = 'Error loading config: ' + e.message;
+      }
+    }
+
+    // Trigger sync
+    async function triggerSync() {
+      const btn = document.getElementById('sync-btn');
+      const status = document.getElementById('sync-status');
+      btn.disabled = true;
+      status.textContent = 'Syncing...';
+      
+      try {
+        const res = await fetch('/api/sync', { method: 'POST' });
+        const json = await res.json();
+        status.textContent = json.data?.message || (json.success ? '✅ Synced!' : '❌ Failed');
+        status.style.color = json.success ? 'var(--green)' : 'var(--red)';
+      } catch (e) {
+        status.textContent = '❌ ' + e.message;
+        status.style.color = 'var(--red)';
+      }
+      
+      setTimeout(() => { btn.disabled = false; }, 2000);
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // Load all data on page load
+    loadStats();
+    loadPatterns();
+    loadTools();
+    loadConfig();
+  </script>
+</body>
+</html>
