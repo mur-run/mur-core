@@ -243,6 +243,27 @@ func defaultConfig() *Config {
 				Tier:         "free",
 				Capabilities: []string{"coding", "simple-qa", "analysis"},
 			},
+			"aider": {
+				Enabled:      true,
+				Binary:       "aider",
+				Flags:        []string{},
+				Tier:         "free", // Can use free models, but also supports paid APIs
+				Capabilities: []string{"coding", "analysis"},
+			},
+			"continue": {
+				Enabled:      true,
+				Binary:       "continue",
+				Flags:        []string{},
+				Tier:         "free", // Open source, bring your own API keys
+				Capabilities: []string{"coding", "analysis", "tool-use"},
+			},
+			"cursor": {
+				Enabled:      true,
+				Binary:       "cursor",
+				Flags:        []string{},
+				Tier:         "paid", // Subscription model
+				Capabilities: []string{"coding", "analysis", "tool-use", "architecture"},
+			},
 		},
 		Routing: RoutingConfig{
 			Mode:                "auto",

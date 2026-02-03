@@ -26,6 +26,9 @@ var healthCmd = &cobra.Command{
 			{"Auggie", "auggie", "--version"},
 			{"Codex", "codex", "--version"},
 			{"OpenCode", "opencode", "--version"},
+			{"Aider", "aider", "--version"},
+			{"Continue", "continue", "--version"},
+			{"Cursor", "cursor", "--version"},
 		}
 
 		available := 0

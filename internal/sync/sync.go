@@ -23,6 +23,7 @@ func DefaultTargets() []CLITarget {
 		{Name: "Gemini CLI", ConfigPath: ".gemini/settings.json"},
 		{Name: "Auggie", ConfigPath: ".augment/settings.json"},
 		{Name: "OpenCode", ConfigPath: ".opencode/settings.json"},
+		{Name: "Continue", ConfigPath: ".continue/config.json"},
 	}
 }
 
@@ -181,6 +182,8 @@ var eventMapping = map[string]map[string]string{
 	"OpenCode": {},
 	// Codex uses ~/.codex/instructions.md instead of settings.json.
 	// No hooks support, patterns synced separately via SyncPatternsToCodex.
+	// Continue supports MCP but uses different format.
+	"Continue": {},
 }
 
 // SyncHooks syncs hooks configuration to all CLI tools.

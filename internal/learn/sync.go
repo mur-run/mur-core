@@ -58,6 +58,18 @@ func SyncPatterns() ([]SyncResult, error) {
 	opencodeResult := syncToOpenCode(home, patterns)
 	results = append(results, opencodeResult)
 
+	// Sync to Aider
+	aiderResult := syncToAider(home, patterns)
+	results = append(results, aiderResult)
+
+	// Sync to Continue
+	continueResult := syncToContinue(home, patterns)
+	results = append(results, continueResult)
+
+	// Sync to Cursor
+	cursorResult := syncToCursor(home, patterns)
+	results = append(results, cursorResult)
+
 	// Sync team-shared patterns to team repo
 	if team.IsInitialized() {
 		teamResult := syncToTeamRepo(patterns)
