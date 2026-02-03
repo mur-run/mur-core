@@ -1,0 +1,14 @@
+# Gradle
+.gradle/
+build/
+gradle/
+gradlew
+gradlew.bat
+
+# IntelliJ
+.idea/
+*.iml
+out/
+
+# OS
+.DS_Store

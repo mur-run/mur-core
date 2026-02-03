@@ -1,0 +1,89 @@
+<!-- Plugin Configuration File -->
+<idea-plugin>
+    <id>com.murmurai.plugin</id>
+    <name>Murmur AI</name>
+    <vendor email="support@murmur-ai.dev" url="https://github.com/karajanchang/murmur-ai">karajanchang</vendor>
+
+    <description><![CDATA[
+    <p>Integrate Murmur AI into your JetBrains IDE.</p>
+    
+    <p>Murmur AI learns your coding patterns and helps AI assistants understand your style.</p>
+    
+    <h3>Features:</h3>
+    <ul>
+        <li><b>Sync</b> - Sync all learning data</li>
+        <li><b>Extract</b> - Extract patterns from your code</li>
+        <li><b>Stats</b> - View statistics about learned patterns</li>
+        <li><b>Patterns</b> - List all learned patterns</li>
+    </ul>
+    
+    <h3>Requirements:</h3>
+    <p>The <code>mur</code> CLI must be installed and available in your PATH.</p>
+    <pre>brew install karajanchang/tap/mur</pre>
+    
+    <p>Find us on <a href="https://github.com/karajanchang/murmur-ai">GitHub</a>.</p>
+    ]]></description>
+
+    <change-notes><![CDATA[
+    <h3>0.1.0</h3>
+    <ul>
+        <li>Initial release</li>
+        <li>Basic actions: Sync, Extract, Stats, Patterns</li>
+        <li>Tool window for output display</li>
+    </ul>
+    ]]></change-notes>
+
+    <!-- Product and platform compatibility -->
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Notification group for displaying command results -->
+        <notificationGroup id="Murmur AI Notifications" 
+                          displayType="BALLOON" 
+                          toolWindowId="Murmur AI"/>
+        
+        <!-- Tool window for output -->
+        <toolWindow id="Murmur AI" 
+                    secondary="true" 
+                    icon="AllIcons.Actions.Lightning" 
+                    anchor="bottom"
+                    factoryClass="com.murmurai.plugin.MurmurToolWindowFactory"/>
+    </extensions>
+
+    <actions>
+        <!-- Murmur AI action group in Tools menu -->
+        <group id="MurmurAI.Menu" 
+               text="Murmur AI" 
+               description="Murmur AI commands"
+               popup="true">
+            
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            
+            <action id="MurmurAI.Sync"
+                    class="com.murmurai.plugin.MurmurSyncAction"
+                    text="Sync"
+                    description="Sync all learning data (mur sync all)"
+                    icon="AllIcons.Actions.Refresh"/>
+            
+            <action id="MurmurAI.Extract"
+                    class="com.murmurai.plugin.MurmurExtractAction"
+                    text="Extract"
+                    description="Extract patterns from code (mur learn extract --auto)"
+                    icon="AllIcons.Actions.Download"/>
+            
+            <separator/>
+            
+            <action id="MurmurAI.Stats"
+                    class="com.murmurai.plugin.MurmurStatsAction"
+                    text="Stats"
+                    description="Show statistics (mur stats)"
+                    icon="AllIcons.Actions.GroupByFile"/>
+            
+            <action id="MurmurAI.Patterns"
+                    class="com.murmurai.plugin.MurmurPatternsAction"
+                    text="Patterns"
+                    description="List learned patterns (mur patterns)"
+                    icon="AllIcons.Actions.ListFiles"/>
+        </group>
+    </actions>
+</idea-plugin>
