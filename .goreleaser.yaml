@@ -1,0 +1,116 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+
+project_name: mur
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  - id: mur
+    main: ./cmd/mur
+    binary: mur
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+
+archives:
+  - id: default
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
+    files:
+      - README.md
+      - LICENSE*
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - Merge pull request
+      - Merge branch
+  groups:
+    - title: "🚀 Features"
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: "🐛 Bug Fixes"
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: "📚 Documentation"
+      regexp: '^.*?docs(\([[:word:]]+\))??!?:.+$'
+      order: 2
+    - title: "🔧 Other"
+      order: 999
+
+release:
+  github:
+    owner: karajanchang
+    name: murmur-ai
+  draft: false
+  prerelease: auto
+  name_template: "v{{.Version}}"
+  footer: |
+    ## Installation
+    
+    ```bash
+    # macOS (Apple Silicon)
+    curl -L https://github.com/karajanchang/murmur-ai/releases/download/{{ .Tag }}/mur-darwin-arm64.tar.gz | tar xz
+    sudo mv mur /usr/local/bin/
+    
+    # macOS (Intel)
+    curl -L https://github.com/karajanchang/murmur-ai/releases/download/{{ .Tag }}/mur-darwin-amd64.tar.gz | tar xz
+    sudo mv mur /usr/local/bin/
+    
+    # Linux (amd64)
+    curl -L https://github.com/karajanchang/murmur-ai/releases/download/{{ .Tag }}/mur-linux-amd64.tar.gz | tar xz
+    sudo mv mur /usr/local/bin/
+    
+    # Or via Go
+    go install github.com/karajanchang/murmur-ai/cmd/mur@{{ .Tag }}
+    ```
+
+brews:
+  - name: mur
+    repository:
+      owner: karajanchang
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    skip_upload: auto
+    directory: Formula
+    homepage: "https://github.com/karajanchang/murmur-ai"
+    description: "Unified Multi-AI CLI Management + Cross-Tool Learning System"
+    license: "MIT"
+    test: |
+      system "#{bin}/mur", "--version"
+    install: |
+      bin.install "mur"

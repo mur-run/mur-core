@@ -1,5 +1,9 @@
 # Murmur 🔊
 
+[![CI](https://github.com/karajanchang/murmur-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/karajanchang/murmur-ai/actions/workflows/ci.yml)
+[![Release](https://github.com/karajanchang/murmur-ai/actions/workflows/release.yml/badge.svg)](https://github.com/karajanchang/murmur-ai/releases)
+[![Go Report Card](https://goreportcard.com/badge/github.com/karajanchang/murmur-ai)](https://goreportcard.com/report/github.com/karajanchang/murmur-ai)
+
 **Unified Multi-AI CLI Management + Cross-Tool Learning System**
 
 Every AI CLI tool is an isolated island. Murmur unifies them.
@@ -14,12 +18,40 @@ Every AI CLI tool is an isolated island. Murmur unifies them.
 
 ## Installation
 
-```bash
-# Go install
-go install github.com/karajanchang/murmur-ai/cmd/mur@latest
+### Go Install (Recommended)
 
-# Or download binary from releases
+```bash
+go install github.com/karajanchang/murmur-ai/cmd/mur@latest
+```
+
+### Download from Releases
+
+```bash
+# macOS (Apple Silicon)
 curl -L https://github.com/karajanchang/murmur-ai/releases/latest/download/mur-darwin-arm64.tar.gz | tar xz
+sudo mv mur /usr/local/bin/
+
+# macOS (Intel)
+curl -L https://github.com/karajanchang/murmur-ai/releases/latest/download/mur-darwin-amd64.tar.gz | tar xz
+sudo mv mur /usr/local/bin/
+
+# Linux (amd64)
+curl -L https://github.com/karajanchang/murmur-ai/releases/latest/download/mur-linux-amd64.tar.gz | tar xz
+sudo mv mur /usr/local/bin/
+
+# Linux (arm64)
+curl -L https://github.com/karajanchang/murmur-ai/releases/latest/download/mur-linux-arm64.tar.gz | tar xz
+sudo mv mur /usr/local/bin/
+
+# Windows (amd64) - download and extract mur-windows-amd64.zip from releases
+```
+
+### Build from Source
+
+```bash
+git clone https://github.com/karajanchang/murmur-ai.git
+cd murmur-ai
+go build -o mur ./cmd/mur
 sudo mv mur /usr/local/bin/
 ```
 
