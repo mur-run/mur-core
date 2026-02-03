@@ -1,0 +1,25 @@
+# Binaries
+mur
+mur.exe
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Build output
+dist/
+build/
+
+# Go
+vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Test
+*.test
+coverage.out
