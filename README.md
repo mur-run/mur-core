@@ -1,6 +1,6 @@
 # murmur-ai
 
-A Clawdbot skill for driving the local [Claude Code](https://code.claude.com/) CLI in headless mode, with **continuous learning** via Claude Code Hooks.
+A OpenClaw skill for driving the local [Claude Code](https://code.claude.com/) CLI in headless mode, with **continuous learning** via Claude Code Hooks.
 
 ## What it does
 
@@ -265,8 +265,8 @@ echo "conversation text" | ./scripts/extract_patterns.sh
 
 Cron setup:
 ```bash
-# Via Clawdbot
-clawdbot cron add --schedule "0 3 * * *" --command "cd ~/clawd/skills/murmur-ai && ./scripts/auto_learn.sh"
+# Via OpenClaw
+openclaw cron add --schedule "0 3 * * *" --command "cd ~/clawd/skills/murmur-ai && ./scripts/auto_learn.sh"
 ```
 
 ## Team Collaboration (Hub + Spoke)

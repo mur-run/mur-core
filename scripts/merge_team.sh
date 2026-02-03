@@ -179,7 +179,7 @@ if [ "$DRY_RUN" = false ] && [ $MERGED_COUNT -gt 0 ]; then
     echo "📤 Pushed to main"
 fi
 
-# 輸出摘要（可被 Clawdbot 讀取）
+# 輸出摘要（可被 OpenClaw 讀取）
 if [ -n "$NEW_PATTERNS" ]; then
     echo ""
     echo "📋 New patterns:"

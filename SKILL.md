@@ -5,7 +5,7 @@ description: "Drive the locally installed Claude Code CLI in headless mode (`cla
 
 # Claude Code Learner
 
-Run the local **Claude Code** CLI from Clawdbot in headless (non-interactive) mode, with **continuous learning** that captures non-obvious patterns in real time.
+Run the local **Claude Code** CLI from OpenClaw in headless (non-interactive) mode, with **continuous learning** that captures non-obvious patterns in real time.
 
 ## Prerequisites
 
@@ -349,5 +349,5 @@ In `.learned-config.yaml`, the `integrations` section controls:
 
 1. Use `--permission-mode plan` for any read-only / analysis task.
 2. Keep `--allowedTools` as narrow as possible.
-3. Never run Claude Code inside the Clawdbot workspace (`~/clawd/`).
+3. Never run Claude Code inside the OpenClaw workspace (`~/clawd/`).
 4. For long-running tasks, prefer background mode with progress monitoring.

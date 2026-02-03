@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# auto_learn.sh — Automated learning pipeline for Clawdbot cron
+# auto_learn.sh — Automated learning pipeline for OpenClaw cron
 # Usage:
 #   ./scripts/auto_learn.sh              # Review + merge + sync + commit
 #   ./scripts/auto_learn.sh --days 7     # Include extraction from memory (legacy)
