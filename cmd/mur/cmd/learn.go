@@ -244,6 +244,205 @@ var learnSyncCmd = &cobra.Command{
 	},
 }
 
+var learnExtractCmd = &cobra.Command{
+	Use:   "extract",
+	Short: "Extract patterns from coding sessions",
+	Long: `Extract patterns from Claude Code session transcripts.
+
+Examples:
+  mur learn extract                      # Interactive: choose session
+  mur learn extract --session abc123     # From specific session
+  mur learn extract --auto               # Scan recent sessions
+  mur learn extract --auto --dry-run     # Preview without saving`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		sessionID, _ := cmd.Flags().GetString("session")
+		auto, _ := cmd.Flags().GetBool("auto")
+		dryRun, _ := cmd.Flags().GetBool("dry-run")
+
+		if auto {
+			return runExtractAuto(dryRun)
+		}
+
+		if sessionID != "" {
+			return runExtractSession(sessionID, dryRun)
+		}
+
+		// Interactive mode: list sessions and let user choose
+		return runExtractInteractive(dryRun)
+	},
+}
+
+func runExtractAuto(dryRun bool) error {
+	fmt.Println("Scanning recent sessions...")
+	fmt.Println("")
+
+	sessions, err := learn.RecentSessions(7)
+	if err != nil {
+		return fmt.Errorf("failed to list sessions: %w", err)
+	}
+
+	if len(sessions) == 0 {
+		fmt.Println("No recent sessions found.")
+		return nil
+	}
+
+	totalExtracted := 0
+	for _, session := range sessions {
+		patterns, err := learn.ExtractFromSession(session.Path)
+		if err != nil {
+			continue
+		}
+
+		if len(patterns) == 0 {
+			continue
+		}
+
+		fmt.Printf("Session: %s (%s)\n", session.ShortID(), session.Project)
+		fmt.Println(strings.Repeat("-", 40))
+
+		for _, ep := range patterns {
+			displayExtractedPattern(ep)
+			totalExtracted++
+
+			if !dryRun {
+				if confirmSave(ep.Pattern.Name) {
+					if err := learn.Add(ep.Pattern); err != nil {
+						fmt.Printf("  ✗ Failed to save: %v\n", err)
+					} else {
+						fmt.Printf("  ✓ Saved as '%s'\n", ep.Pattern.Name)
+					}
+				}
+			}
+			fmt.Println("")
+		}
+	}
+
+	if totalExtracted == 0 {
+		fmt.Println("No patterns found in recent sessions.")
+	} else if dryRun {
+		fmt.Printf("\nFound %d potential patterns (dry-run, not saved)\n", totalExtracted)
+	}
+
+	return nil
+}
+
+func runExtractSession(sessionID string, dryRun bool) error {
+	session, err := learn.LoadSession(sessionID)
+	if err != nil {
+		return fmt.Errorf("failed to load session: %w", err)
+	}
+
+	fmt.Printf("Extracting from session: %s\n", session.ShortID())
+	fmt.Printf("Project: %s\n", session.Project)
+	fmt.Printf("Messages: %d\n", len(session.Messages))
+	fmt.Println("")
+
+	patterns, err := learn.ExtractFromSession(session.Path)
+	if err != nil {
+		return fmt.Errorf("extraction failed: %w", err)
+	}
+
+	if len(patterns) == 0 {
+		fmt.Println("No patterns found in this session.")
+		return nil
+	}
+
+	fmt.Printf("Found %d potential patterns:\n\n", len(patterns))
+
+	for i, ep := range patterns {
+		fmt.Printf("%d. ", i+1)
+		displayExtractedPattern(ep)
+
+		if !dryRun {
+			if confirmSave(ep.Pattern.Name) {
+				if err := learn.Add(ep.Pattern); err != nil {
+					fmt.Printf("  ✗ Failed to save: %v\n", err)
+				} else {
+					fmt.Printf("  ✓ Saved as '%s'\n", ep.Pattern.Name)
+				}
+			}
+		}
+		fmt.Println("")
+	}
+
+	if dryRun {
+		fmt.Println("(dry-run mode, patterns not saved)")
+	}
+
+	return nil
+}
+
+func runExtractInteractive(dryRun bool) error {
+	sessions, err := learn.ListSessions()
+	if err != nil {
+		return fmt.Errorf("failed to list sessions: %w", err)
+	}
+
+	if len(sessions) == 0 {
+		fmt.Println("No sessions found in ~/.claude/projects/")
+		return nil
+	}
+
+	// Show recent sessions
+	fmt.Println("Recent Sessions")
+	fmt.Println("===============")
+	fmt.Println("")
+
+	limit := 10
+	if len(sessions) < limit {
+		limit = len(sessions)
+	}
+
+	for i, s := range sessions[:limit] {
+		fmt.Printf("  %d. %s  (%s)  %s\n",
+			i+1,
+			s.ShortID(),
+			s.Project,
+			s.CreatedAt.Format("2006-01-02 15:04"))
+	}
+
+	fmt.Println("")
+	fmt.Print("Select session (1-10) or 'q' to quit: ")
+
+	reader := bufio.NewReader(os.Stdin)
+	input, _ := reader.ReadString('\n')
+	input = strings.TrimSpace(input)
+
+	if input == "q" || input == "" {
+		return nil
+	}
+
+	idx, err := strconv.Atoi(input)
+	if err != nil || idx < 1 || idx > limit {
+		return fmt.Errorf("invalid selection")
+	}
+
+	selected := sessions[idx-1]
+	fmt.Println("")
+
+	return runExtractSession(selected.ID, dryRun)
+}
+
+func displayExtractedPattern(ep learn.ExtractedPattern) {
+	fmt.Printf("[%s] %s (confidence: %.0f%%)\n",
+		ep.Pattern.Category,
+		ep.Pattern.Name,
+		ep.Confidence*100)
+	fmt.Printf("   Source: session %s\n", ep.Source)
+	fmt.Printf("   Domain: %s\n", ep.Pattern.Domain)
+	if len(ep.Evidence) > 0 {
+		fmt.Printf("   Preview: %s\n", truncate(ep.Evidence[0], 80))
+	}
+}
+
+func confirmSave(name string) bool {
+	fmt.Printf("   Save pattern '%s'? [y/N/e(dit)] ", name)
+	reader := bufio.NewReader(os.Stdin)
+	input, _ := reader.ReadString('\n')
+	input = strings.TrimSpace(strings.ToLower(input))
+	return input == "y" || input == "yes"
+}
+
 func init() {
 	rootCmd.AddCommand(learnCmd)
 	learnCmd.AddCommand(learnListCmd)
@@ -251,6 +450,7 @@ func init() {
 	learnCmd.AddCommand(learnGetCmd)
 	learnCmd.AddCommand(learnDeleteCmd)
 	learnCmd.AddCommand(learnSyncCmd)
+	learnCmd.AddCommand(learnExtractCmd)
 
 	learnListCmd.Flags().StringP("domain", "d", "", "Filter by domain")
 	learnListCmd.Flags().StringP("category", "c", "", "Filter by category")
@@ -260,6 +460,10 @@ func init() {
 	learnDeleteCmd.Flags().BoolP("force", "f", false, "Skip confirmation")
 
 	learnSyncCmd.Flags().Bool("cleanup", false, "Remove orphaned synced patterns")
+
+	learnExtractCmd.Flags().StringP("session", "s", "", "Session ID to extract from")
+	learnExtractCmd.Flags().Bool("auto", false, "Automatically scan recent sessions")
+	learnExtractCmd.Flags().Bool("dry-run", false, "Show what would be extracted without saving")
 }
 
 // truncate shortens a string to max length with ellipsis.
