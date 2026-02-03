@@ -55,6 +55,27 @@ go build -o mur ./cmd/mur
 sudo mv mur /usr/local/bin/
 ```
 
+### Shell Completion
+
+Enable tab completion for mur commands:
+
+```bash
+# Bash
+mur completion bash > /etc/bash_completion.d/mur
+
+# Bash (macOS with Homebrew)
+mur completion bash > $(brew --prefix)/etc/bash_completion.d/mur
+
+# Zsh (add to fpath)
+mur completion zsh > "${fpath[1]}/_mur"
+
+# Fish
+mur completion fish > ~/.config/fish/completions/mur.fish
+
+# PowerShell
+mur completion powershell | Out-String | Invoke-Expression
+```
+
 ## Quick Start
 
 ```bash
