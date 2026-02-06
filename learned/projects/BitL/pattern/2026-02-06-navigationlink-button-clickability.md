@@ -1,13 +1,13 @@
 ---
 name: navigationlink-button-clickability
-confidence: MEDIUM
+confidence: HIGH
 score: 0.7
 category: pattern
 domain: mobile
 project: BitL
 first_seen: 2026-02-06
 last_seen: 2026-02-06
-times_seen: 2
+times_seen: 3
 ---
 
 # NavigationLink Background Pattern for Button Clickability
