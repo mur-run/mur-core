@@ -7,7 +7,7 @@ domain: devops
 project: BitL
 first_seen: 2026-02-06
 last_seen: 2026-02-06
-times_seen: 1
+times_seen: 2
 ---
 
 # nginx fastcgi_pass unix: Directive Cannot Have Quoted Paths
