@@ -7,7 +7,7 @@ domain: _global
 project: BitL
 first_seen: 2026-02-06
 last_seen: 2026-02-06
-times_seen: 1
+times_seen: 2
 ---
 
 # macOS /etc/resolver Files Ignore Custom Port on 127.0.0.1
