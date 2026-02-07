@@ -42,8 +42,22 @@ func (s *Store) EnsureDir() error {
 }
 
 // patternPath returns the file path for a pattern.
+// Checks both baseDir and nested patterns/ subdirectory.
 func (s *Store) patternPath(name string) string {
-	return filepath.Join(s.baseDir, name+".yaml")
+	// First check baseDir
+	path := filepath.Join(s.baseDir, name+".yaml")
+	if _, err := os.Stat(path); err == nil {
+		return path
+	}
+
+	// Check nested patterns/ subdirectory
+	nestedPath := filepath.Join(s.baseDir, "patterns", name+".yaml")
+	if _, err := os.Stat(nestedPath); err == nil {
+		return nestedPath
+	}
+
+	// Default to baseDir
+	return path
 }
 
 // validateName checks if a pattern name is valid.
@@ -67,9 +81,25 @@ func (s *Store) List() ([]Pattern, error) {
 		return []Pattern{}, nil
 	}
 
-	entries, err := os.ReadDir(s.baseDir)
+	var patterns []Pattern
+
+	// Check for patterns in baseDir
+	patterns = append(patterns, s.listFromDir(s.baseDir)...)
+
+	// Also check nested patterns/ subdirectory (for repos with patterns/ folder)
+	nestedDir := filepath.Join(s.baseDir, "patterns")
+	if info, err := os.Stat(nestedDir); err == nil && info.IsDir() {
+		patterns = append(patterns, s.listFromDir(nestedDir)...)
+	}
+
+	return patterns, nil
+}
+
+// listFromDir reads patterns from a specific directory.
+func (s *Store) listFromDir(dir string) []Pattern {
+	entries, err := os.ReadDir(dir)
 	if err != nil {
-		return nil, fmt.Errorf("cannot read patterns directory: %w", err)
+		return nil
 	}
 
 	var patterns []Pattern
@@ -78,15 +108,20 @@ func (s *Store) List() ([]Pattern, error) {
 			continue
 		}
 
-		name := strings.TrimSuffix(entry.Name(), ".yaml")
-		p, err := s.Get(name)
+		path := filepath.Join(dir, entry.Name())
+		data, err := os.ReadFile(path)
 		if err != nil {
-			continue // Skip invalid files
+			continue
 		}
-		patterns = append(patterns, *p)
+
+		var p Pattern
+		if err := yaml.Unmarshal(data, &p); err != nil {
+			continue
+		}
+		patterns = append(patterns, p)
 	}
 
-	return patterns, nil
+	return patterns
 }
 
 // Get returns a pattern by name.
