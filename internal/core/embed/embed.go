@@ -145,7 +145,7 @@ func (e *OpenAIEmbedder) EmbedBatch(texts []string) ([]Vector, error) {
 	if err != nil {
 		return nil, fmt.Errorf("embedding request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, _ := io.ReadAll(resp.Body)
 	var result openAIResponse
@@ -215,7 +215,7 @@ func (e *OllamaEmbedder) Embed(text string) (Vector, error) {
 	if err != nil {
 		return nil, fmt.Errorf("embedding request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, _ := io.ReadAll(resp.Body)
 	var result ollamaResponse
@@ -224,7 +224,7 @@ func (e *OllamaEmbedder) Embed(text string) (Vector, error) {
 	}
 
 	if result.Error != "" {
-		return nil, fmt.Errorf("Ollama error: %s", result.Error)
+		return nil, fmt.Errorf("ollama error: %s", result.Error)
 	}
 
 	return result.Embedding, nil

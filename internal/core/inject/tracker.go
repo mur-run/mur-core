@@ -110,7 +110,7 @@ func (t *Tracker) RecordUsage(patterns []*pattern.Pattern, ctx *ProjectContext, 
 	if err != nil {
 		return fmt.Errorf("cannot open usage file: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	// Truncate prompt for storage
 	promptPreview := prompt
@@ -361,7 +361,7 @@ func (t *Tracker) writeUsageRecords(records []UsageRecord) error {
 	if err != nil {
 		return fmt.Errorf("cannot create usage file: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	encoder := json.NewEncoder(f)
 	for _, r := range records {

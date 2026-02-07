@@ -464,7 +464,7 @@ func (p *ClaudeParser) Parse(path string) ([]SessionEntry, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	var entries []SessionEntry
 	scanner := bufio.NewScanner(file)
@@ -580,7 +580,7 @@ func (p *CodexParser) Parse(path string) ([]SessionEntry, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	var entries []SessionEntry
 	scanner := bufio.NewScanner(file)

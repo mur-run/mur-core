@@ -201,9 +201,10 @@ func (m *LifecycleManager) Apply(report *LifecycleReport) error {
 		}
 
 		p.Lifecycle.Status = action.NewStatus
-		if action.Action == ActionDeprecate || action.Action == ActionArchive {
+		switch action.Action {
+		case ActionDeprecate, ActionArchive:
 			p.Lifecycle.DeprecationReason = action.Reason
-		} else if action.Action == ActionReactivate {
+		case ActionReactivate:
 			p.Lifecycle.DeprecationReason = ""
 		}
 
