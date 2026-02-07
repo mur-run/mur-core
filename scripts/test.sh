@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test.sh — Smoke tests for murmur-ai
+# test.sh — Smoke tests for mur-core
 # Usage: ./scripts/test.sh
 set -euo pipefail
 

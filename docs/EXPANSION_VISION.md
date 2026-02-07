@@ -1,4 +1,4 @@
-# murmur-ai 擴展願景：從 CLI Hooks 到通用學習系統
+# mur-core 擴展願景：從 CLI Hooks 到通用學習系統
 
 **Created:** 2026-02-03  
 **Status:** 願景規劃
@@ -7,7 +7,7 @@
 
 ## 核心概念
 
-murmur-ai 的核心其實不是「開發工具」，是**「持續學習系統」** — 從工作過程中提取 patterns，存起來，同步到各種 AI 工具。
+mur-core 的核心其實不是「開發工具」，是**「持續學習系統」** — 從工作過程中提取 patterns，存起來，同步到各種 AI 工具。
 
 **現在的架構：**
 ```
@@ -116,7 +116,7 @@ category: pattern
 
 ---
 
-## 更大的願景：murmur-ai 不只是 CLI hooks
+## 更大的願景：mur-core 不只是 CLI hooks
 
 **現在：**
 ```

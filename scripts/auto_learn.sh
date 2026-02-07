@@ -212,9 +212,9 @@ echo "" >&2
 echo "📦 Step 4: Git commit..." >&2
 
 if [[ "$DO_COMMIT" == "true" && "$DRY_RUN" != "true" ]]; then
-  CHANGES=$(git -C "$HOME/clawd" status --porcelain -- "skills/murmur-ai/learned/" 2>/dev/null || true)
+  CHANGES=$(git -C "$HOME/clawd" status --porcelain -- "skills/mur-core/learned/" 2>/dev/null || true)
   if [[ -n "$CHANGES" ]]; then
-    git -C "$HOME/clawd" add "skills/murmur-ai/learned/" 2>/dev/null
+    git -C "$HOME/clawd" add "skills/mur-core/learned/" 2>/dev/null
     git -C "$HOME/clawd" commit -m "auto-learn: review + sync patterns
 
 Patterns: $PATTERNS_AFTER

@@ -1,6 +1,8 @@
-# murmur-ai
+# mur-core
 
-A OpenClaw skill for driving the local [Claude Code](https://code.claude.com/) CLI in headless mode, with **continuous learning** via Claude Code Hooks.
+Continuous learning system for AI assistants. Learn once, remember forever.
+
+Currently supports [Claude Code](https://code.claude.com/) CLI with real-time pattern extraction via Hooks.
 
 ## What it does
 
@@ -12,7 +14,7 @@ A OpenClaw skill for driving the local [Claude Code](https://code.claude.com/) C
 ## File Structure
 
 ```
-skills/murmur-ai/
+skills/mur-core/
 ├── SKILL.md                        # Skill definition (triggers, docs, examples)
 ├── README.md                       # This file
 ├── hooks/
@@ -96,7 +98,7 @@ The installer is idempotent — already-installed steps are skipped. Running `--
 View the hooks config and merge manually:
 
 ```bash
-cat ~/clawd/skills/murmur-ai/hooks/claude-code-hooks.json
+cat ~/clawd/skills/mur-core/hooks/claude-code-hooks.json
 # Then add the "hooks" section to ~/.claude/settings.json
 ```
 
@@ -266,7 +268,7 @@ echo "conversation text" | ./scripts/extract_patterns.sh
 Cron setup:
 ```bash
 # Via OpenClaw
-openclaw cron add --schedule "0 3 * * *" --command "cd ~/clawd/skills/murmur-ai && ./scripts/auto_learn.sh"
+openclaw cron add --schedule "0 3 * * *" --command "cd ~/clawd/skills/mur-core && ./scripts/auto_learn.sh"
 ```
 
 ## Team Collaboration (Hub + Spoke)
@@ -289,7 +291,7 @@ This skill supports multi-person collaboration using a Hub + Spoke branching mod
 ### Quick Start (Each Team Member)
 
 ```bash
-cd ~/clawd/skills/murmur-ai
+cd ~/clawd/skills/mur-core
 ./setup/install.sh
 ```
 

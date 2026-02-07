@@ -8,6 +8,9 @@
 #   ./scripts/review_learnings.sh --project twdd-api       # Filter by project
 set -euo pipefail
 
+# Claude CLI path (not in PATH by default)
+CLAUDE_BIN="${CLAUDE_BIN:-/Users/david/.npm-global/bin/claude}"
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 LEARNED_DIR="$SKILL_DIR/learned"
@@ -199,10 +202,29 @@ PATTERNS:
 echo "" >&2
 echo "🤖 Running deep analysis with Claude..." >&2
 
-RESULT=$(printf '%s\n%s' "$REVIEW_PROMPT" "$ALL_PATTERNS" | claude -p --output-format json 2>/dev/null) || {
+RAW_RESULT=$(printf '%s\n%s' "$REVIEW_PROMPT" "$ALL_PATTERNS" | "$CLAUDE_BIN" -p --output-format json 2>/dev/null) || {
   echo "Error: claude -p failed." >&2
   exit 1
 }
+
+# Extract result field from JSON envelope
+RESULT=$(echo "$RAW_RESULT" | python3 -c "
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    text = d.get('result', '')
+    # Strip markdown code block markers
+    text = text.strip()
+    if text.startswith('\`\`\`json'):
+        text = text[7:]
+    if text.startswith('\`\`\`'):
+        text = text[3:]
+    if text.endswith('\`\`\`'):
+        text = text[:-3]
+    print(text.strip())
+except Exception as e:
+    print('[]')
+" 2>/dev/null) || RESULT="[]"
 
 REC_COUNT=$(echo "$RESULT" | python3 -c "
 import json, sys

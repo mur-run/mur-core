@@ -3,7 +3,7 @@
 # Detects new pattern files and stages them for git.
 # MUST complete in < 100ms. No claude -p calls.
 
-LEARNED_DIR="$HOME/clawd/skills/murmur-ai/learned"
+LEARNED_DIR="$HOME/clawd/skills/mur-core/learned"
 LAST_CHECK="$LEARNED_DIR/.last_check"
 
 # Ensure .last_check exists

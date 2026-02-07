@@ -1,4 +1,4 @@
-# murmur-ai 跨 CLI 切換計劃
+# mur-core 跨 CLI 切換計劃
 
 **Created:** 2026-02-03  
 **Status:** 規劃中
@@ -11,15 +11,15 @@
 | Superpowers      | ✅ native   | ❌         | ❌     | ⚠️手動 | ⚠️手動   |
 | MCP              | ✅          | ✅         | ✅     | ❌    | ✅       |
 | Native Skills    | ✅          | ✅         | ✅     | ❌    | ❌       |
-| murmur-ai hooks  | ✅ 已完成   | 🔜 可做    | 🔜 可做 | ❌    | ❌       |
-| murmur-ai skills | ✅ 已完成   | 🔜 可做    | 🔜 可做 | ⚠️注入 | ⚠️注入   |
+| mur-core hooks  | ✅ 已完成   | 🔜 可做    | 🔜 可做 | ❌    | ❌       |
+| mur-core skills | ✅ 已完成   | 🔜 可做    | 🔜 可做 | ⚠️注入 | ⚠️注入   |
 | 價格             | Anthropic   | 免費       | 免費   | OpenAI | 任意LLM  |
 
 ---
 
 ## 切換計劃：讓任何 CLI 都有完整體驗
 
-### Phase 1：統一 hooks 設定（murmur-ai 跨 CLI）
+### Phase 1：統一 hooks 設定（mur-core 跨 CLI）
 
 **新增:** `scripts/hooks_sync.sh`
 
@@ -39,7 +39,7 @@ settings    settings    settings
 
 **Event mapping:**
 
-| murmur-ai         | Gemini       | Auggie       |
+| mur-core         | Gemini       | Auggie       |
 |-------------------|--------------|--------------|
 | UserPromptSubmit  | BeforeAgent  | SessionStart |
 | Stop              | AfterAgent   | Stop         |
@@ -53,7 +53,7 @@ settings    settings    settings
 learned patterns → 各 CLI 的 skills 目錄：
 
 ```
-~/clawd/skills/murmur-ai/learned/**/*.md
+~/clawd/skills/mur-core/learned/**/*.md
     │
     ├──→ ~/.claude/skills/learned-*/SKILL.md    (已完成)
     ├──→ ~/.gemini/skills/learned-*.md          (新增)

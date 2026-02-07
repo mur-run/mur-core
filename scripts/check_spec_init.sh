@@ -9,8 +9,8 @@ git rev-parse --is-inside-work-tree &>/dev/null || exit 0
 # Get project root
 PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
 
-# Skip if this IS the murmur-ai repo itself
-if [[ -f "$PROJECT_ROOT/SKILL.md" ]] && grep -q "murmur-ai" "$PROJECT_ROOT/SKILL.md" 2>/dev/null; then
+# Skip if this IS the mur-core repo itself
+if [[ -f "$PROJECT_ROOT/SKILL.md" ]] && grep -q "mur-core" "$PROJECT_ROOT/SKILL.md" 2>/dev/null; then
     exit 0
 fi
 

@@ -1,9 +1,9 @@
 ---
-name: murmur-ai
-description: "Drive the locally installed Claude Code CLI in headless mode (`claude -p`) for codebase analysis, refactoring, bug fixing, test generation, code review, and structured output. Includes continuous learning with Hook-based real-time pattern extraction, 3D categorization (Domain/Category/Project), and auto-sync to Claude Code native skills."
+name: mur-core
+description: "Continuous learning system for AI assistants. Includes Hook-based real-time pattern extraction, 3D categorization (Domain/Category/Project), and auto-sync to native skills. Currently supports Claude Code CLI in headless mode."
 ---
 
-# Claude Code Learner
+# mur-core
 
 Run the local **Claude Code** CLI from OpenClaw in headless (non-interactive) mode, with **continuous learning** that captures non-obvious patterns in real time.
 
@@ -24,12 +24,12 @@ claude --version   # verify Claude Code is installed
 
 ```bash
 # Simple prompt (read-only plan mode)
-./skills/murmur-ai/scripts/claude_code_run.sh \
+./skills/mur-core/scripts/claude_code_run.sh \
   -p "Summarize this project." \
   --permission-mode plan
 
 # With a working directory
-./skills/murmur-ai/scripts/claude_code_run.sh \
+./skills/mur-core/scripts/claude_code_run.sh \
   -p "Find and fix the null pointer bug in src/." \
   --workdir ~/Projects/myapp \
   --permission-mode acceptEdits \

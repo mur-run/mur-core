@@ -133,7 +133,7 @@ ${P_SOLUTION}
 - Category: ${P_CATEGORY:-pattern}
 - Confidence: HIGH
 - Times seen: ${P_TIMES}
-- Source: murmur-ai
+- Source: mur-core
 EOF
 
   echo "  ✅ Synced: $P_NAME → $SKILL_OUT" >&2

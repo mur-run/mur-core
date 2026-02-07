@@ -7,6 +7,9 @@
 #   ./scripts/extract_patterns.sh -f transcript.txt --project twdd-api --category security
 set -euo pipefail
 
+# Claude CLI path (not in PATH by default)
+CLAUDE_BIN="${CLAUDE_BIN:-/Users/david/.npm-global/bin/claude}"
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 LEARNED_DIR="$SKILL_DIR/learned"
@@ -127,12 +130,23 @@ TRANSCRIPT:
 # --- Call claude -p for analysis ---
 echo "🔍 Analysing input for learnable patterns..." >&2
 
-RESULT=$(printf '%s\n%s' "$ANALYSIS_PROMPT" "$INPUT" | claude -p --output-format json 2>/dev/null) || {
+RESULT=$(printf '%s\n%s' "$ANALYSIS_PROMPT" "$INPUT" | "$CLAUDE_BIN" -p --output-format json 2>/dev/null) || {
   echo "Error: claude -p failed. Is Claude Code installed and authenticated?" >&2
   exit 1
 }
 
 # --- Parse JSON result ---
+# claude -p --output-format json wraps output in {"result": "..."} envelope
+# Extract the result field first, then parse the JSON array
+if echo "$RESULT" | grep -q '"result"'; then
+  # Extract result field using python (handles escaping properly)
+  RESULT=$(echo "$RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('result',''))" 2>/dev/null) || RESULT=""
+fi
+
+# Strip markdown code block markers if present
+RESULT=$(echo "$RESULT" | sed 's/^```json//; s/^```//; s/```$//')
+
+# Try to find JSON array in the output
 if ! echo "$RESULT" | grep -q '^\['; then
   RESULT=$(echo "$RESULT" | sed -n '/^\[/,/^\]/p')
   if [[ -z "$RESULT" ]]; then
