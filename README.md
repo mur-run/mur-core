@@ -229,6 +229,39 @@ mur learn extract --llm openai   # Override with OpenAI
 mur learn extract --llm gemini   # Override with Gemini
 ```
 
+### Remote Ollama (LAN Setup)
+
+Run Ollama on a powerful server and access it from other machines:
+
+**On the server (e.g., Mac mini):**
+```bash
+# Make Ollama listen on all interfaces
+launchctl setenv OLLAMA_HOST "0.0.0.0"
+brew services restart ollama
+```
+
+**On client machines:**
+```yaml
+# ~/.mur/config.yaml
+learning:
+  llm:
+    provider: ollama
+    model: deepseek-r1:8b
+    ollama_url: http://192.168.1.100:11434  # Server IP
+```
+
+This way, laptops can use LLM extraction without running models locally.
+
+### Recommended Models
+
+| Provider | Model | Notes |
+|----------|-------|-------|
+| Ollama | `deepseek-r1:8b` | Best for extraction, 5GB |
+| Ollama | `qwen2.5:14b` | Good for code, 9GB |
+| OpenAI | `gpt-4o-mini` | Cheap & fast |
+| Gemini | `gemini-2.0-flash` | Free tier available |
+| Claude | `claude-sonnet-4-20250514` | Best quality |
+
 ## 📊 Dashboard
 
 ```bash
