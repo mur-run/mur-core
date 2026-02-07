@@ -1,210 +1,265 @@
-# Murmur 🔊
+# mur 🔊
 
 [![CI](https://github.com/mur-run/mur-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/mur-run/mur-cli/actions/workflows/ci.yml)
 [![Release](https://github.com/mur-run/mur-cli/actions/workflows/release.yml/badge.svg)](https://github.com/mur-run/mur-cli/releases)
 [![Go Report Card](https://goreportcard.com/badge/github.com/mur-run/mur-cli)](https://goreportcard.com/report/github.com/mur-run/mur-cli)
 
-**Unified Multi-AI CLI Management + Cross-Tool Learning System**
+**Unified AI CLI with Continuous Learning**
 
-Every AI CLI tool is an isolated island. Murmur unifies them.
+Every AI CLI is an isolated island. **mur** unifies them with a learning engine that makes your patterns smarter over time.
 
-## Features
+## ✨ What's New in v0.4.0
 
-- **Multi-tool runner** — One command to run any AI, no need to remember each tool's flags
-- **Unified MCP management** — Configure once, sync everywhere
-- **Cross-tool learning** — What Claude learns, Gemini knows too
-- **Team knowledge base** — Share patterns across team, new members inherit experience automatically
-- **Smart cost routing** — Simple tasks auto-route to free tools, complex ones go to Claude
-- **Web Dashboard** — Visualize stats, patterns, and tool health
-- **Notifications** — Slack/Discord alerts when patterns are learned
-- **Editor Plugins** — VS Code, Sublime, JetBrains, Neovim integrations
+- **Auto Pattern Injection** — Relevant patterns injected automatically based on context
+- **Effectiveness Tracking** — Patterns learn from your feedback and usage
+- **Semantic Search** — Find patterns by meaning, not just keywords
+- **Lifecycle Management** — Auto-deprecate underperforming patterns
+- **Cross-CLI Learning** — Learn from Claude, Gemini, Codex sessions together
+- **Pattern Suggestions** — Extract patterns from your session histories
 
-## Installation
+## 🚀 Quick Start
 
-### Go Install (Recommended)
+```bash
+# Install
+go install github.com/mur-run/mur-cli/cmd/mur@latest
+
+# Initialize
+mur init
+
+# Run with auto pattern injection
+mur run -p "fix the login bug"
+→ claude (auto: complexity 0.65) [3 patterns]
+
+# Give feedback
+mur feedback helpful swift-error-handling
+```
+
+## 📦 Installation
+
+### Homebrew (macOS)
+
+```bash
+brew install mur-run/tap/mur
+```
+
+### Go Install
 
 ```bash
 go install github.com/mur-run/mur-cli/cmd/mur@latest
 ```
 
-### Download from Releases
+### Download Binary
 
 ```bash
 # macOS (Apple Silicon)
-curl -L https://github.com/mur-run/mur-cli/releases/latest/download/mur-darwin-arm64.tar.gz | tar xz
+curl -L https://github.com/mur-run/mur-cli/releases/latest/download/mur_Darwin_arm64.tar.gz | tar xz
 sudo mv mur /usr/local/bin/
 
 # macOS (Intel)
-curl -L https://github.com/mur-run/mur-cli/releases/latest/download/mur-darwin-amd64.tar.gz | tar xz
+curl -L https://github.com/mur-run/mur-cli/releases/latest/download/mur_Darwin_x86_64.tar.gz | tar xz
 sudo mv mur /usr/local/bin/
 
-# Linux (amd64)
-curl -L https://github.com/mur-run/mur-cli/releases/latest/download/mur-linux-amd64.tar.gz | tar xz
-sudo mv mur /usr/local/bin/
-```
-
-### Build from Source
-
-```bash
-git clone https://github.com/mur-run/mur-cli.git
-cd murmur-ai
-go build -o mur ./cmd/mur
+# Linux
+curl -L https://github.com/mur-run/mur-cli/releases/latest/download/mur_Linux_x86_64.tar.gz | tar xz
 sudo mv mur /usr/local/bin/
 ```
 
-### Shell Completion
+## 🎯 Core Features
+
+### Smart Routing
 
 ```bash
-# Bash
-mur completion bash > /etc/bash_completion.d/mur
-
-# Zsh
-mur completion zsh > "${fpath[1]}/_mur"
-
-# Fish
-mur completion fish > ~/.config/fish/completions/mur.fish
+mur run -p "what is git?"           # → Free tool (simple question)
+mur run -p "refactor this module"   # → Paid tool (complex task)
+mur run -p "fix bug" -t claude      # Force specific tool
+mur run -p "test" --explain         # Show routing decision
 ```
 
-## Quick Start
+### Pattern Auto-Injection
+
+Patterns are automatically injected based on your project context:
 
 ```bash
-# Initialize
-mur init
+cd ~/Projects/MySwiftApp
+mur run -p "fix the auth error"
 
-# Check available AI tools
-mur health
-
-# Run a prompt (auto-routes to best tool)
-mur run -p "explain this code"
-
-# See routing decision without running
-mur run -p "refactor this" --explain
-
-# Sync settings to all AI tools
-mur sync all
-
-# Extract patterns from recent sessions
-mur learn extract --auto
-
-# Start web dashboard
-mur serve
+# mur detects: Swift project, error-handling context
+# Auto-injects: swift-error-handling, auth-patterns
+→ claude [2 patterns]
 ```
 
-## Commands
+Disable with `--no-inject`, see details with `--verbose`.
 
-### Core
+### Effectiveness Tracking
+
+```bash
+# After using mur run, give feedback
+mur feedback helpful swift-error-handling
+mur feedback unhelpful debugging-tips -c "too generic"
+
+# View pattern stats
+mur pattern-stats
+swift-error-handling        █████████░ 90%
+  Uses: 12   Success: 92% | 👍 8 😐 2 👎 0
+```
+
+### Semantic Search
+
+```bash
+# Index patterns for semantic search
+mur embed index
+
+# Search by meaning
+mur embed search "handle errors in network requests"
+1. network-error-handling  ██████████ 95%
+2. retry-logic            ████████░░ 78%
+```
+
+Supports local (Ollama) or cloud (OpenAI) embeddings.
+
+### Lifecycle Management
+
+```bash
+# Check for low-performing patterns
+mur lifecycle evaluate
+⚠️ debugging-tips: active → deprecated
+   Reason: low effectiveness: 25% (threshold: 30%)
+
+# Apply changes
+mur lifecycle apply
+```
+
+### Pattern Suggestion
+
+```bash
+# Extract patterns from session files
+mur suggest scan ~/sessions/
+Found 8 suggestions
+
+1. swift-error-handling  ████████░░ 80%
+   Handle Result types with proper error propagation
+
+# Interactive review
+mur suggest scan --interactive
+```
+
+### Cross-CLI Learning
+
+```bash
+# Learn from all your AI CLI histories
+mur cross-learn status
+Claude Code:    ✓ 42 session files
+Gemini CLI:     ✓ 18 session files
+
+mur cross-learn scan
+📚 Claude Code: 8 suggestions
+📚 Gemini CLI: 3 suggestions
+```
+
+### Sync to All CLIs
+
+```bash
+mur sync patterns
+✓ Claude Code: synced 12 patterns
+✓ Gemini CLI: synced 12 patterns
+✓ Codex: synced 12 patterns
+✓ Aider: synced 12 patterns
+```
+
+## 📋 Command Reference
+
+### Run & Route
 
 | Command | Description |
 |---------|-------------|
-| `mur init` | Initialize configuration |
-| `mur health` | Check AI tool availability |
-| `mur run -p "prompt"` | Run prompt with smart routing |
-| `mur run -t claude -p "prompt"` | Run with specific tool |
+| `mur run -p "prompt"` | Run with smart routing + pattern injection |
+| `mur run -t claude -p "..."` | Force specific tool |
 | `mur run --explain` | Show routing decision |
+| `mur run --no-inject` | Disable pattern injection |
+| `mur run -v` | Verbose (show injected patterns) |
+
+### Patterns
+
+| Command | Description |
+|---------|-------------|
+| `mur learn list` | List all patterns |
+| `mur learn add <name>` | Add pattern interactively |
+| `mur learn get <name>` | Show pattern details |
+| `mur lint` | Validate all patterns |
+| `mur migrate` | Migrate to Schema v2 |
+
+### Feedback & Stats
+
+| Command | Description |
+|---------|-------------|
+| `mur feedback helpful <pattern>` | Rate pattern as helpful |
+| `mur feedback unhelpful <pattern>` | Rate as unhelpful |
+| `mur pattern-stats` | View effectiveness stats |
+| `mur pattern-stats --update` | Refresh effectiveness scores |
+
+### Semantic Search
+
+| Command | Description |
+|---------|-------------|
+| `mur embed index` | Index patterns for search |
+| `mur embed search "query"` | Semantic search |
+| `mur embed status` | Show index status |
+| `mur embed rehash` | Rebuild index |
+
+### Lifecycle
+
+| Command | Description |
+|---------|-------------|
+| `mur lifecycle evaluate` | Check for deprecation |
+| `mur lifecycle apply` | Apply recommendations |
+| `mur lifecycle deprecate <name>` | Manually deprecate |
+| `mur lifecycle reactivate <name>` | Reactivate pattern |
+| `mur lifecycle cleanup` | Delete old archived |
+
+### Suggestions
+
+| Command | Description |
+|---------|-------------|
+| `mur suggest scan <dir>` | Scan for pattern suggestions |
+| `mur suggest scan -i` | Interactive review |
+| `mur suggest accept <name>` | Accept suggestion |
+| `mur suggest list` | List pending suggestions |
+
+### Cross-CLI Learning
+
+| Command | Description |
+|---------|-------------|
+| `mur cross-learn status` | Show available CLI sources |
+| `mur cross-learn scan` | Learn from all CLIs |
+| `mur cross-learn scan -s claude` | Learn from specific CLI |
 
 ### Sync
 
 | Command | Description |
 |---------|-------------|
-| `mur sync all` | Sync everything (MCP, hooks, patterns, skills) |
-| `mur sync mcp` | Sync MCP configuration |
-| `mur sync hooks` | Sync hooks configuration |
-| `mur sync patterns` | Sync learned patterns |
-| `mur sync skills` | Sync skills |
+| `mur sync all` | Sync everything |
+| `mur sync patterns` | Sync patterns to all CLIs |
+| `mur sync mcp` | Sync MCP config |
+| `mur sync hooks` | Sync hooks |
 
-### Learn
-
-| Command | Description |
-|---------|-------------|
-| `mur learn list` | List learned patterns |
-| `mur learn add <name>` | Add a new pattern |
-| `mur learn get <name>` | Show pattern details |
-| `mur learn delete <name>` | Delete a pattern |
-| `mur learn extract --auto` | Auto-extract patterns from sessions |
-| `mur learn sync` | Sync patterns to AI tools |
-| `mur learn init <repo>` | Initialize learning repo for cross-machine sync |
-| `mur learn push` | Push patterns to your branch |
-| `mur learn pull` | Pull shared patterns from main |
-| `mur learn auto-merge` | Auto-create PRs for high-confidence patterns |
-
-### Team (Git-based)
+### Other
 
 | Command | Description |
 |---------|-------------|
-| `mur team init <repo>` | Initialize team repo |
-| `mur team pull` | Pull team changes |
-| `mur team push` | Push changes to team |
-| `mur team sync` | Bidirectional sync |
-| `mur team status` | Show team repo status |
+| `mur init` | Initialize config |
+| `mur health` | Check tool availability |
+| `mur stats` | Usage statistics |
+| `mur serve` | Start web dashboard |
 
-### Stats & Dashboard
+## 🔧 Configuration
 
-| Command | Description |
-|---------|-------------|
-| `mur stats` | Show usage statistics |
-| `mur stats --tool claude` | Stats for specific tool |
-| `mur stats --period week` | Stats for time period |
-| `mur stats --json` | JSON output |
-| `mur serve` | Start web dashboard (localhost:8383) |
-| `mur serve --port 9000` | Custom port |
-
-### Config
-
-| Command | Description |
-|---------|-------------|
-| `mur config show` | Show configuration |
-| `mur config default <tool>` | Set default tool |
-| `mur config routing <mode>` | Set routing mode |
-| `mur config notifications` | Configure Slack/Discord |
-
-### Notifications
-
-| Command | Description |
-|---------|-------------|
-| `mur notify test` | Test notification webhooks |
-| `mur notify test --slack` | Test Slack only |
-| `mur notify test --discord` | Test Discord only |
-
-### Skills
-
-| Command | Description |
-|---------|-------------|
-| `mur skills list` | List available skills |
-| `mur skills show <name>` | Show skill details |
-| `mur skills import <path>` | Import skill file |
-| `mur skills import --superpowers` | Import from Superpowers plugin |
-
-## Supported AI Tools
-
-| Tool | Status | Tier | Sync Support |
-|------|--------|------|--------------|
-| Claude Code | ✅ | Paid | MCP, Hooks, Patterns, Skills |
-| Gemini CLI | ✅ | Free | MCP, Hooks, Patterns, Skills |
-| Auggie | ✅ | Free | MCP, Patterns, Skills |
-| Codex | ✅ | Paid | Patterns (instructions.md) |
-| OpenCode | ✅ | Free | MCP, Patterns, Skills |
-| Aider | ✅ | Free/Paid | Patterns (conventions) |
-| Continue | ✅ | Free | MCP, Patterns, Skills |
-| Cursor | ✅ | Paid | Patterns, Skills |
-
-## Editor Integrations
-
-| Editor | Location | Installation |
-|--------|----------|--------------|
-| VS Code | `integrations/vscode/` | Copy to extensions or F5 to debug |
-| Sublime Text | `integrations/sublime/` | Copy to `Packages/MurmurAI/` |
-| JetBrains | `integrations/jetbrains/` | `./gradlew buildPlugin` |
-| Neovim | `integrations/neovim/` | Use lazy.nvim or packer |
-
-## Configuration
-
-Config file: `~/.murmur/config.yaml`
+`~/.murmur/config.yaml`:
 
 ```yaml
 default_tool: claude
 
 routing:
-  mode: auto  # auto | manual | cost-first | quality-first
+  mode: auto  # auto | manual | cost-first
   complexity_threshold: 0.5
 
 tools:
@@ -216,60 +271,86 @@ tools:
     enabled: true
     binary: gemini
     tier: free
-  # ... more tools
+
+# Embedding provider for semantic search
+embedding:
+  provider: ollama  # ollama | openai
+  model: nomic-embed-text
+
+# Lifecycle thresholds
+lifecycle:
+  deprecate_threshold: 0.3
+  archive_threshold: 0.1
+  stale_after_days: 90
+```
+
+## 🤖 Supported AI CLIs
+
+| CLI | Sync Support | Learning |
+|-----|--------------|----------|
+| Claude Code | MCP, Hooks, Patterns | ✅ Sessions |
+| Gemini CLI | MCP, Hooks, Patterns | ✅ Sessions |
+| Codex | instructions.md | ✅ Sessions |
+| Aider | conventions/ | ✅ Sessions |
+| Continue | MCP, Patterns | ✅ Sessions |
+| Cursor | Patterns | - |
+| OpenCode | MCP, Patterns | - |
+| Auggie | MCP, Patterns | - |
+
+## 🏗️ Architecture
+
+```
+~/.murmur/
+├── config.yaml           # Main configuration
+├── patterns/             # Pattern storage (Schema v2)
+│   ├── swift-error.yaml
+│   └── debugging.yaml
+├── tracking/             # Usage & effectiveness data
+│   └── usage.jsonl
+├── embeddings/           # Semantic search cache
+│   └── embeddings.json
+└── suggestions/          # Pending suggestions
+```
+
+## 📖 Pattern Schema v2
+
+```yaml
+id: uuid
+name: swift-error-handling
+description: Handle Swift errors with Result types
+content: |
+  When handling errors in Swift...
+
+tags:
+  confirmed: [swift, error-handling]
+  inferred:
+    - tag: ios
+      confidence: 0.92
+
+applies:
+  languages: [swift]
+  frameworks: [swiftui]
+  keywords: [error, Result, throw]
+
+security:
+  trust_level: owner
+  reviewed: true
 
 learning:
-  repo: "git@github.com:yourorg/murmur-learnings.git"
-  branch: "your-machine-name"
-  auto_push: true
-  pull_from_main: true
+  effectiveness: 0.85
+  usage_count: 42
 
-notifications:
-  enabled: true
-  slack:
-    webhook_url: "https://hooks.slack.com/services/..."
-  discord:
-    webhook_url: "https://discord.com/api/webhooks/..."
+lifecycle:
+  status: active
 ```
 
-## How Smart Routing Works
+## 🔗 Links
 
-Murmur analyzes your prompt and routes to the best tool:
+- **Website**: [mur.run](https://mur.run)
+- **Documentation**: [docs/](./docs/)
+- **Issues**: [GitHub Issues](https://github.com/mur-run/mur-cli/issues)
+- **Releases**: [GitHub Releases](https://github.com/mur-run/mur-cli/releases)
 
-| Prompt Type | Routed To | Reason |
-|-------------|-----------|--------|
-| "what is git?" | Gemini (free) | Simple Q&A |
-| "explain this error" | Gemini (free) | Basic explanation |
-| "refactor this architecture" | Claude (paid) | Complex analysis |
-| "debug this race condition" | Claude (paid) | Advanced debugging |
-
-Override with `-t <tool>` or set `routing.mode: manual` to disable.
-
-## Cross-Machine Learning Sync
-
-Share patterns across your machines:
-
-```bash
-# First machine
-mur learn init git@github.com:you/murmur-learnings.git
-mur learn extract --auto
-mur learn push
-
-# Second machine
-mur learn init git@github.com:you/murmur-learnings.git
-mur learn pull  # Get patterns from main branch
-```
-
-Each machine gets its own branch (auto-detected from hostname). Merge to `main` via PR to share with everyone.
-
-## Documentation
-
-Full documentation available at `docs/` or after running:
-
-```bash
-cd docs && mkdocs serve
-```
-
-## License
+## 📄 License
 
 MIT
