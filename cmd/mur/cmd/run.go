@@ -196,6 +196,14 @@ func runExecute(cmd *cobra.Command, args []string) error {
 		Success:      runErr == nil,
 	})
 
+	// Track pattern usage for effectiveness learning
+	if injectionResult != nil && len(injectionResult.Patterns) > 0 {
+		trackingDir := filepath.Join(os.Getenv("HOME"), ".murmur", "tracking")
+		patternsDir := filepath.Join(os.Getenv("HOME"), ".murmur", "patterns")
+		tracker := inject.NewTracker(pattern.NewStore(patternsDir), trackingDir)
+		_ = tracker.RecordUsage(injectionResult.Patterns, injectionResult.Context, prompt, runErr == nil)
+	}
+
 	return runErr
 }
 
