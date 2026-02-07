@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/mur-run/mur-core/internal/config"
+	"github.com/mur-run/mur-core/internal/core/embed"
 	"github.com/mur-run/mur-core/internal/core/inject"
 	"github.com/mur-run/mur-core/internal/core/pattern"
 	"github.com/mur-run/mur-core/internal/router"
@@ -68,6 +69,16 @@ func runExecute(cmd *cobra.Command, args []string) error {
 
 		// Create injector and inject patterns
 		injector := inject.NewInjector(store)
+
+		// Try to enable semantic search (non-fatal if it fails)
+		embedCfg := embed.DefaultConfig()
+		if err := injector.WithSemanticSearch(embedCfg); err != nil {
+			if verbose {
+				fmt.Fprintf(os.Stderr, "⚠ Semantic search unavailable: %v\n", err)
+			}
+			// Fall back to keyword matching (built-in)
+		}
+
 		injectionResult, err = injector.Inject(prompt, workDir)
 		if err != nil {
 			// Non-fatal: warn but continue

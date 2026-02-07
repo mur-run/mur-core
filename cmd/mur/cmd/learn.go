@@ -269,14 +269,19 @@ Examples:
   mur learn extract                      # Interactive: choose session
   mur learn extract --session abc123     # From specific session
   mur learn extract --auto               # Scan recent sessions
-  mur learn extract --auto --dry-run     # Preview without saving`,
+  mur learn extract --auto --dry-run     # Preview without saving
+  mur learn extract --auto --accept-all  # Auto-save high-confidence patterns
+  mur learn extract --auto --quiet       # Silent mode for hooks`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		sessionID, _ := cmd.Flags().GetString("session")
 		auto, _ := cmd.Flags().GetBool("auto")
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
+		acceptAll, _ := cmd.Flags().GetBool("accept-all")
+		quiet, _ := cmd.Flags().GetBool("quiet")
+		minConfidence, _ := cmd.Flags().GetFloat64("min-confidence")
 
 		if auto {
-			return runExtractAuto(dryRun)
+			return runExtractAuto(dryRun, acceptAll, quiet, minConfidence)
 		}
 
 		if sessionID != "" {
@@ -505,9 +510,15 @@ shared patterns from main (if pull_from_main is enabled).`,
 	},
 }
 
-func runExtractAuto(dryRun bool) error {
-	fmt.Println("Scanning recent sessions...")
-	fmt.Println("")
+func runExtractAuto(dryRun, acceptAll, quiet bool, minConfidence float64) error {
+	if minConfidence == 0 {
+		minConfidence = 0.6 // Default threshold for auto-accept
+	}
+
+	if !quiet {
+		fmt.Println("Scanning recent sessions...")
+		fmt.Println("")
+	}
 
 	sessions, err := learn.RecentSessions(7)
 	if err != nil {
@@ -515,12 +526,16 @@ func runExtractAuto(dryRun bool) error {
 	}
 
 	if len(sessions) == 0 {
-		fmt.Println("No recent sessions found.")
+		if !quiet {
+			fmt.Println("No recent sessions found.")
+		}
 		return nil
 	}
 
 	totalExtracted := 0
 	savedCount := 0
+	skippedCount := 0
+
 	for _, session := range sessions {
 		patterns, err := learn.ExtractFromSession(session.Path)
 		if err != nil {
@@ -531,14 +546,46 @@ func runExtractAuto(dryRun bool) error {
 			continue
 		}
 
-		fmt.Printf("Session: %s (%s)\n", session.ShortID(), session.Project)
-		fmt.Println(strings.Repeat("-", 40))
+		if !quiet {
+			fmt.Printf("Session: %s (%s)\n", session.ShortID(), session.Project)
+			fmt.Println(strings.Repeat("-", 40))
+		}
 
 		for _, ep := range patterns {
-			displayExtractedPattern(ep)
 			totalExtracted++
 
-			if !dryRun {
+			if !quiet {
+				displayExtractedPattern(ep)
+			}
+
+			if dryRun {
+				if !quiet {
+					fmt.Println("")
+				}
+				continue
+			}
+
+			// Accept all mode: auto-save if confidence >= threshold
+			if acceptAll {
+				if ep.Confidence >= minConfidence {
+					if err := learn.Add(ep.Pattern); err != nil {
+						if !quiet {
+							fmt.Printf("  ✗ Failed to save: %v\n", err)
+						}
+					} else {
+						if !quiet {
+							fmt.Printf("  ✓ Auto-saved '%s' (%.0f%% confidence)\n", ep.Pattern.Name, ep.Confidence*100)
+						}
+						savedCount++
+					}
+				} else {
+					skippedCount++
+					if !quiet {
+						fmt.Printf("  ⊘ Skipped (%.0f%% < %.0f%% threshold)\n", ep.Confidence*100, minConfidence*100)
+					}
+				}
+			} else {
+				// Interactive mode
 				if confirmSave(ep.Pattern.Name) {
 					if err := learn.Add(ep.Pattern); err != nil {
 						fmt.Printf("  ✗ Failed to save: %v\n", err)
@@ -548,25 +595,36 @@ func runExtractAuto(dryRun bool) error {
 					}
 				}
 			}
-			fmt.Println("")
+
+			if !quiet {
+				fmt.Println("")
+			}
 		}
 	}
 
-	if totalExtracted == 0 {
-		fmt.Println("No patterns found in recent sessions.")
-	} else if dryRun {
-		fmt.Printf("\nFound %d potential patterns (dry-run, not saved)\n", totalExtracted)
+	if !quiet {
+		if totalExtracted == 0 {
+			fmt.Println("No patterns found in recent sessions.")
+		} else if dryRun {
+			fmt.Printf("\nFound %d potential patterns (dry-run, not saved)\n", totalExtracted)
+		} else if acceptAll {
+			fmt.Printf("\nProcessed %d patterns: %d saved, %d skipped\n", totalExtracted, savedCount, skippedCount)
+		}
 	}
 
 	// Auto-push if enabled and patterns were saved
 	if !dryRun && savedCount > 0 {
 		cfg, err := config.Load()
 		if err == nil && cfg.Learning.AutoPush && learning.IsInitialized() {
-			fmt.Println("")
-			fmt.Println("Auto-pushing to learning repo...")
+			if !quiet {
+				fmt.Println("")
+				fmt.Println("Auto-pushing to learning repo...")
+			}
 			if err := learning.Push(); err != nil {
-				fmt.Printf("  ⚠ auto-push failed: %v\n", err)
-			} else {
+				if !quiet {
+					fmt.Printf("  ⚠ auto-push failed: %v\n", err)
+				}
+			} else if !quiet {
 				fmt.Println("  ✓ Patterns pushed to learning repo")
 			}
 		}
@@ -576,7 +634,7 @@ func runExtractAuto(dryRun bool) error {
 			opts := notify.Options{
 				Count: savedCount,
 			}
-			if err := notify.Notify(notify.EventPatternsExtracted, opts); err != nil {
+			if err := notify.Notify(notify.EventPatternsExtracted, opts); err != nil && !quiet {
 				fmt.Printf("  ⚠ Notification failed: %v\n", err)
 			}
 		}
@@ -728,6 +786,9 @@ func init() {
 	learnExtractCmd.Flags().StringP("session", "s", "", "Session ID to extract from")
 	learnExtractCmd.Flags().Bool("auto", false, "Automatically scan recent sessions")
 	learnExtractCmd.Flags().Bool("dry-run", false, "Show what would be extracted without saving")
+	learnExtractCmd.Flags().Bool("accept-all", false, "Auto-save patterns above confidence threshold")
+	learnExtractCmd.Flags().Bool("quiet", false, "Silent mode (for hooks, minimal output)")
+	learnExtractCmd.Flags().Float64("min-confidence", 0.6, "Minimum confidence for auto-accept (default: 0.6)")
 
 	learnPushCmd.Flags().Bool("auto-merge", false, "Check and create PRs for high-confidence patterns after push")
 	learnPushCmd.Flags().Bool("dry-run", false, "Preview auto-merge without creating PRs")

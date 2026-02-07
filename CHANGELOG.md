@@ -2,6 +2,30 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [0.7.0] - 2026-02-07
+
+### Added
+
+#### Automatic Pattern Extraction
+- `mur learn extract --accept-all` - Auto-save patterns above confidence threshold
+- `mur learn extract --quiet` - Silent mode for hooks
+- `mur learn extract --min-confidence 0.7` - Set custom threshold
+- Session-end hook now auto-extracts high-confidence patterns
+- Patterns are automatically synced to CLIs after extraction
+
+#### Improved Pattern Recommendation
+- `mur run` now uses semantic search when available
+- Auto-indexes patterns in background when cache is stale
+- Better context-aware pattern matching
+
+#### Silent Mode
+- `mur sync --quiet` - Silent mode for hooks
+
+### Changed
+- Session-end hook now runs `mur learn extract --auto --accept-all --quiet`
+- Semantic search auto-initializes when embeddings are available
+- `mur init` now suggests setting up semantic search
+
 ## [0.6.0] - 2026-02-07
 
 ### Added

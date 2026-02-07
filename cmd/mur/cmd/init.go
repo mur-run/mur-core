@@ -194,6 +194,10 @@ func runInteractiveInit(home, murDir string) error {
 	}
 	fmt.Println("  mur stats                          # see your progress")
 	fmt.Println()
+	fmt.Println("Optional: Enable semantic search for smarter pattern matching:")
+	fmt.Println("  ollama pull nomic-embed-text       # install local embeddings")
+	fmt.Println("  mur embed index                    # index your patterns")
+	fmt.Println()
 
 	return nil
 }
@@ -315,8 +319,11 @@ Only save if: it required discovery, it helps future tasks, and it's verified.
 	// Create on-stop.sh
 	stopScriptPath := filepath.Join(murDir, "hooks", "on-stop.sh")
 	stopScript := `#!/bin/bash
-# Sync patterns after session
-mur sync patterns --quiet 2>/dev/null || true
+# Extract patterns from session (auto-save high confidence ones)
+mur learn extract --auto --accept-all --quiet 2>/dev/null || true
+
+# Sync patterns to all CLIs
+mur sync --quiet 2>/dev/null || true
 `
 	if err := os.WriteFile(stopScriptPath, []byte(stopScript), 0755); err != nil {
 		return err

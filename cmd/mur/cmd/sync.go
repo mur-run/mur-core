@@ -11,7 +11,8 @@ import (
 )
 
 var (
-	syncPush bool
+	syncPush  bool
+	syncQuiet bool
 )
 
 var syncCmd = &cobra.Command{
@@ -25,13 +26,15 @@ This command:
 
 Examples:
   mur sync          # Pull + sync to CLIs
-  mur sync --push   # Also push local changes to remote`,
+  mur sync --push   # Also push local changes to remote
+  mur sync --quiet  # Silent mode (for hooks)`,
 	RunE: runSync,
 }
 
 func init() {
 	rootCmd.AddCommand(syncCmd)
 	syncCmd.Flags().BoolVar(&syncPush, "push", false, "Push local changes to remote repo")
+	syncCmd.Flags().BoolVar(&syncQuiet, "quiet", false, "Silent mode (minimal output)")
 }
 
 func runSync(cmd *cobra.Command, args []string) error {
@@ -51,37 +54,51 @@ func runSync(cmd *cobra.Command, args []string) error {
 
 	// Pull from remote if repo is configured
 	if hasRepo {
-		fmt.Println("Pulling from remote...")
+		if !syncQuiet {
+			fmt.Println("Pulling from remote...")
+		}
 		pullCmd := exec.Command("git", "-C", patternsDir, "pull", "--rebase")
-		pullCmd.Stdout = os.Stdout
-		pullCmd.Stderr = os.Stderr
+		if !syncQuiet {
+			pullCmd.Stdout = os.Stdout
+			pullCmd.Stderr = os.Stderr
+		}
 		if err := pullCmd.Run(); err != nil {
-			fmt.Printf("  ⚠ Pull failed (continuing with local patterns): %v\n", err)
-		} else {
+			if !syncQuiet {
+				fmt.Printf("  ⚠ Pull failed (continuing with local patterns): %v\n", err)
+			}
+		} else if !syncQuiet {
 			fmt.Println("  ✓ Pulled latest patterns")
 		}
-		fmt.Println()
+		if !syncQuiet {
+			fmt.Println()
+		}
 	}
 
 	// Sync patterns to all CLIs
-	fmt.Println("Syncing patterns to CLIs...")
+	if !syncQuiet {
+		fmt.Println("Syncing patterns to CLIs...")
+	}
 	results, err := sync.SyncPatternsToAllCLIs()
 	if err != nil {
 		return fmt.Errorf("sync failed: %w", err)
 	}
 
-	for _, r := range results {
-		status := "✓"
-		if !r.Success {
-			status = "✗"
+	if !syncQuiet {
+		for _, r := range results {
+			status := "✓"
+			if !r.Success {
+				status = "✗"
+			}
+			fmt.Printf("  %s %s: %s\n", status, r.Target, r.Message)
 		}
-		fmt.Printf("  %s %s: %s\n", status, r.Target, r.Message)
 	}
 
 	// Push if requested
 	if syncPush && hasRepo {
-		fmt.Println()
-		fmt.Println("Pushing to remote...")
+		if !syncQuiet {
+			fmt.Println()
+			fmt.Println("Pushing to remote...")
+		}
 
 		// Add all changes
 		addCmd := exec.Command("git", "-C", patternsDir, "add", "-A")
@@ -97,17 +114,23 @@ func runSync(cmd *cobra.Command, args []string) error {
 
 		// Push
 		pushCmd := exec.Command("git", "-C", patternsDir, "push")
-		pushCmd.Stdout = os.Stdout
-		pushCmd.Stderr = os.Stderr
+		if !syncQuiet {
+			pushCmd.Stdout = os.Stdout
+			pushCmd.Stderr = os.Stderr
+		}
 		if err := pushCmd.Run(); err != nil {
-			fmt.Printf("  ⚠ Push failed: %v\n", err)
-		} else {
+			if !syncQuiet {
+				fmt.Printf("  ⚠ Push failed: %v\n", err)
+			}
+		} else if !syncQuiet {
 			fmt.Println("  ✓ Pushed to remote")
 		}
 	}
 
-	fmt.Println()
-	fmt.Println("Done.")
+	if !syncQuiet {
+		fmt.Println()
+		fmt.Println("Done.")
+	}
 
 	return nil
 }

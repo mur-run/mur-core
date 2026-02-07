@@ -37,11 +37,29 @@ func NewPatternSearcher(store *pattern.Store, cfg Config) (*PatternSearcher, err
 	// Load existing cache
 	_ = cache.Load()
 
-	return &PatternSearcher{
+	searcher := &PatternSearcher{
 		store:    store,
 		cache:    cache,
 		embedder: embedder,
-	}, nil
+	}
+
+	// Auto-index if cache is empty or stale
+	patterns, _ := store.List()
+	indexed := 0
+	for _, p := range patterns {
+		if _, ok := cache.Get(p.ID); ok {
+			indexed++
+		}
+	}
+
+	// If less than half patterns are indexed, do a background index
+	if len(patterns) > 0 && indexed < len(patterns)/2 {
+		go func() {
+			_ = searcher.IndexPatterns()
+		}()
+	}
+
+	return searcher, nil
 }
 
 // IndexPatterns indexes all patterns for semantic search.
