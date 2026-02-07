@@ -2,11 +2,14 @@ package cmd
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"github.com/mur-run/mur-core/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -249,28 +252,55 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 		})
 	}
 
-	// Check 7: Ollama (for embeddings)
+	// Check 7: Ollama (for embeddings and LLM extraction)
+	ollamaRunning := false
 	if _, err := exec.LookPath("ollama"); err == nil {
 		// Check if running
-		cmd := exec.Command("ollama", "list")
-		if err := cmd.Run(); err == nil {
+		client := &http.Client{Timeout: 2 * time.Second}
+		resp, err := client.Get("http://localhost:11434/api/tags")
+		if err == nil {
+			resp.Body.Close()
+			ollamaRunning = true
 			checks = append(checks, checkResult{
 				name:    "Ollama",
 				status:  "ok",
-				message: "Available for semantic search",
+				message: "Running (available for LLM extraction)",
 			})
 		} else {
 			checks = append(checks, checkResult{
 				name:    "Ollama",
 				status:  "warn",
-				message: "Installed but not running",
+				message: "Installed but not running (start with: ollama serve)",
 			})
 		}
 	} else {
 		checks = append(checks, checkResult{
 			name:    "Ollama",
 			status:  "info",
-			message: "Not installed (optional, for semantic search)",
+			message: "Not installed (optional, for local LLM)",
+		})
+	}
+
+	// Check 8: LLM configuration for extraction
+	cfg, _ := config.Load()
+	llmConfigured := cfg != nil && cfg.Learning.LLM.Provider != ""
+	if llmConfigured {
+		checks = append(checks, checkResult{
+			name:    "LLM extraction",
+			status:  "ok",
+			message: fmt.Sprintf("Configured: %s", cfg.Learning.LLM.Provider),
+		})
+	} else if ollamaRunning {
+		checks = append(checks, checkResult{
+			name:    "LLM extraction",
+			status:  "ok",
+			message: "Will use Ollama (auto-detected)",
+		})
+	} else {
+		checks = append(checks, checkResult{
+			name:    "LLM extraction",
+			status:  "warn",
+			message: "Not configured (extraction quality limited)",
 		})
 	}
 

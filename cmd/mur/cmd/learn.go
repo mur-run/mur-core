@@ -658,10 +658,12 @@ func runExtractAuto(dryRun, acceptAll, quiet bool, minConfidence float64) error 
 func runExtractLLM(sessionID, provider, model string, dryRun, acceptAll, quiet bool, minConfidence float64) error {
 	// Setup LLM options
 	opts := learn.DefaultLLMOptions()
+	configuredProvider := false
 
 	// Load config for defaults
 	cfg, _ := config.Load()
 	if cfg != nil && cfg.Learning.LLM.Provider != "" {
+		configuredProvider = true
 		// Use config defaults
 		switch strings.ToLower(cfg.Learning.LLM.Provider) {
 		case "ollama":
@@ -702,14 +704,18 @@ func runExtractLLM(sessionID, provider, model string, dryRun, acceptAll, quiet b
 	switch strings.ToLower(provider) {
 	case "ollama":
 		opts.Provider = learn.LLMOllama
+		configuredProvider = true
 	case "claude":
 		opts.Provider = learn.LLMClaude
+		configuredProvider = true
 	case "openai":
 		opts.Provider = learn.LLMOpenAI
+		configuredProvider = true
 	case "gemini":
 		opts.Provider = learn.LLMGemini
+		configuredProvider = true
 	case "", "default":
-		// Use config default (already set above)
+		// Use config default (already set above), or auto-detect
 	default:
 		return fmt.Errorf("unknown LLM provider: %s (use 'ollama', 'claude', 'openai', or 'gemini')", provider)
 	}
@@ -718,11 +724,36 @@ func runExtractLLM(sessionID, provider, model string, dryRun, acceptAll, quiet b
 		opts.Model = model
 	}
 
+	// Auto-detect: if no provider configured, try Ollama
+	if !configuredProvider {
+		if learn.CheckOllamaAvailable(opts.OllamaURL) {
+			opts.Provider = learn.LLMOllama
+			if !quiet {
+				fmt.Println("💡 No LLM configured, using local Ollama")
+				fmt.Println("   Tip: Configure in ~/.mur/config.yaml for better control")
+				fmt.Println()
+			}
+		} else {
+			// No LLM available - fall back to keyword extraction with warning
+			if !quiet {
+				fmt.Println("⚠️  No LLM available (Ollama not running, no API keys)")
+				fmt.Println("   Falling back to keyword extraction (lower quality)")
+				fmt.Println("   Tip: Start Ollama or configure an LLM in ~/.mur/config.yaml")
+				fmt.Println()
+			}
+			// Call keyword-based extraction instead
+			return runExtractAuto(dryRun, acceptAll, quiet, minConfidence)
+		}
+	}
+
 	// Validate provider setup
 	switch opts.Provider {
 	case learn.LLMOllama:
 		if !learn.CheckOllamaAvailable(opts.OllamaURL) {
-			return fmt.Errorf("Ollama not available at %s. Start it with: ollama serve", opts.OllamaURL)
+			if !quiet {
+				fmt.Println("⚠️  Ollama not available, falling back to keyword extraction")
+			}
+			return runExtractAuto(dryRun, acceptAll, quiet, minConfidence)
 		}
 	case learn.LLMClaude:
 		if opts.ClaudeKey == "" {
