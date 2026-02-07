@@ -3,291 +3,360 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
-	"strings"
 
-	"github.com/mur-run/mur-core/internal/config"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 )
 
 var configCmd = &cobra.Command{
 	Use:   "config",
-	Short: "Manage murmur configuration",
-	Long:  `View and edit murmur configuration.`,
+	Short: "View or edit mur configuration",
+	Long: `View or edit mur configuration.
+
+Examples:
+  mur config              # Show current config
+  mur config edit         # Edit in $EDITOR
+  mur config path         # Show config file path
+  mur config get <key>    # Get a specific value
+  mur config set <k> <v>  # Set a value`,
+	RunE: runConfigShow,
 }
 
-var configShowCmd = &cobra.Command{
-	Use:   "show",
-	Short: "Show current configuration",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		home, _ := os.UserHomeDir()
-		configPath := filepath.Join(home, ".mur", "config.yaml")
+var configEditCmd = &cobra.Command{
+	Use:   "edit",
+	Short: "Edit config in $EDITOR",
+	RunE:  runConfigEdit,
+}
 
-		data, err := os.ReadFile(configPath)
-		if err != nil {
-			return fmt.Errorf("config not found. Run 'mur init' first")
-		}
+var configPathCmd = &cobra.Command{
+	Use:   "path",
+	Short: "Show config file path",
+	RunE:  runConfigPath,
+}
 
-		fmt.Println(string(data))
-		return nil
-	},
+var configGetCmd = &cobra.Command{
+	Use:   "get <key>",
+	Short: "Get a config value",
+	Args:  cobra.ExactArgs(1),
+	RunE:  runConfigGet,
 }
 
 var configSetCmd = &cobra.Command{
-	Use:   "set [key] [value]",
-	Short: "Set a configuration value",
-	Long: `Set a configuration value.
-
-Supported keys:
-  default_tool    - The default AI tool to use
-
-Examples:
-  mur config set default_tool gemini`,
-	Args: cobra.ExactArgs(2),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		key := args[0]
-		value := args[1]
-
-		cfg, err := config.Load()
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
-
-		switch key {
-		case "default_tool":
-			if err := cfg.SetDefaultTool(value); err != nil {
-				// List available tools
-				var tools []string
-				for name := range cfg.Tools {
-					tools = append(tools, name)
-				}
-				return fmt.Errorf("%w. Available: %s", err, strings.Join(tools, ", "))
-			}
-		default:
-			return fmt.Errorf("unknown key: %s. Supported: default_tool", key)
-		}
-
-		if err := cfg.Save(); err != nil {
-			return fmt.Errorf("failed to save config: %w", err)
-		}
-
-		fmt.Printf("✓ Set %s = %s\n", key, value)
-		return nil
-	},
+	Use:   "set <key> <value>",
+	Short: "Set a config value",
+	Args:  cobra.ExactArgs(2),
+	RunE:  runConfigSet,
 }
 
-var configDefaultCmd = &cobra.Command{
-	Use:   "default [tool]",
-	Short: "Set the default AI tool",
-	Long: `Set the default AI tool to use with 'mur run'.
-
-Available tools depend on your config. Common options:
-  claude, gemini, auggie, codex
-
-Examples:
-  mur config default gemini
-  mur config default claude`,
-	Args: cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		tool := args[0]
-
-		cfg, err := config.Load()
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
-
-		if err := cfg.SetDefaultTool(tool); err != nil {
-			// List available tools
-			var tools []string
-			for name := range cfg.Tools {
-				tools = append(tools, name)
-			}
-			return fmt.Errorf("%w. Available: %s", err, strings.Join(tools, ", "))
-		}
-
-		if err := cfg.Save(); err != nil {
-			return fmt.Errorf("failed to save config: %w", err)
-		}
-
-		fmt.Printf("✓ Default tool set to: %s\n", tool)
-		return nil
-	},
-}
-
-var configRoutingCmd = &cobra.Command{
-	Use:   "routing [mode]",
-	Short: "Set routing mode",
-	Long: `Set the automatic routing mode for tool selection.
-
-Modes:
-  auto          Smart routing based on complexity (default)
-  manual        Always use default_tool
-  cost-first    Prefer free tools unless very complex
-  quality-first Prefer paid tools unless very simple
-
-Examples:
-  mur config routing auto
-  mur config routing cost-first
-  mur config routing manual`,
-	Args: cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		mode := args[0]
-		validModes := []string{"auto", "manual", "cost-first", "quality-first"}
-
-		valid := false
-		for _, m := range validModes {
-			if mode == m {
-				valid = true
-				break
-			}
-		}
-		if !valid {
-			return fmt.Errorf("invalid mode: %s. Valid modes: %v", mode, validModes)
-		}
-
-		cfg, err := config.Load()
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
-
-		cfg.Routing.Mode = mode
-		if err := cfg.Save(); err != nil {
-			return fmt.Errorf("failed to save config: %w", err)
-		}
-
-		fmt.Printf("✓ Routing mode set to: %s\n", mode)
-		return nil
-	},
-}
-
-var configNotificationsCmd = &cobra.Command{
-	Use:   "notifications [slack|discord] [webhook-url]",
-	Short: "Configure notifications",
-	Long: `Configure Slack and Discord webhook notifications.
-
-Examples:
-  mur config notifications                      # Show current settings
-  mur config notifications --enable             # Enable notifications
-  mur config notifications --disable            # Disable notifications
-  mur config notifications slack <webhook-url>  # Set Slack webhook
-  mur config notifications discord <webhook-url> # Set Discord webhook`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.Load()
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
-
-		enable, _ := cmd.Flags().GetBool("enable")
-		disable, _ := cmd.Flags().GetBool("disable")
-
-		// Handle enable/disable flags
-		if enable {
-			cfg.Notifications.Enabled = true
-			if err := cfg.Save(); err != nil {
-				return fmt.Errorf("failed to save config: %w", err)
-			}
-			fmt.Println("✓ Notifications enabled")
-			return nil
-		}
-
-		if disable {
-			cfg.Notifications.Enabled = false
-			if err := cfg.Save(); err != nil {
-				return fmt.Errorf("failed to save config: %w", err)
-			}
-			fmt.Println("✓ Notifications disabled")
-			return nil
-		}
-
-		// Handle webhook configuration
-		if len(args) >= 2 {
-			service := args[0]
-			webhookURL := args[1]
-
-			switch service {
-			case "slack":
-				cfg.Notifications.Slack.WebhookURL = webhookURL
-				if err := cfg.Save(); err != nil {
-					return fmt.Errorf("failed to save config: %w", err)
-				}
-				fmt.Println("✓ Slack webhook configured")
-				fmt.Println("  Run 'mur notify test --slack' to test")
-				return nil
-			case "discord":
-				cfg.Notifications.Discord.WebhookURL = webhookURL
-				if err := cfg.Save(); err != nil {
-					return fmt.Errorf("failed to save config: %w", err)
-				}
-				fmt.Println("✓ Discord webhook configured")
-				fmt.Println("  Run 'mur notify test --discord' to test")
-				return nil
-			default:
-				return fmt.Errorf("unknown service: %s. Use 'slack' or 'discord'", service)
-			}
-		}
-
-		// Show current settings
-		fmt.Println("Notification Settings")
-		fmt.Println("=====================")
-		fmt.Println("")
-
-		status := "disabled"
-		if cfg.Notifications.Enabled {
-			status = "enabled"
-		}
-		fmt.Printf("  Status: %s\n", status)
-		fmt.Println("")
-
-		fmt.Println("  Slack:")
-		if cfg.Notifications.Slack.WebhookURL != "" {
-			// Mask webhook URL for security
-			masked := maskWebhook(cfg.Notifications.Slack.WebhookURL)
-			fmt.Printf("    Webhook: %s\n", masked)
-		} else {
-			fmt.Println("    Webhook: (not configured)")
-		}
-		if cfg.Notifications.Slack.Channel != "" {
-			fmt.Printf("    Channel: %s\n", cfg.Notifications.Slack.Channel)
-		}
-		fmt.Println("")
-
-		fmt.Println("  Discord:")
-		if cfg.Notifications.Discord.WebhookURL != "" {
-			masked := maskWebhook(cfg.Notifications.Discord.WebhookURL)
-			fmt.Printf("    Webhook: %s\n", masked)
-		} else {
-			fmt.Println("    Webhook: (not configured)")
-		}
-		fmt.Println("")
-
-		fmt.Println("Commands:")
-		fmt.Println("  mur config notifications --enable")
-		fmt.Println("  mur config notifications --disable")
-		fmt.Println("  mur config notifications slack <webhook-url>")
-		fmt.Println("  mur config notifications discord <webhook-url>")
-		fmt.Println("  mur notify test")
-
-		return nil
-	},
-}
-
-// maskWebhook hides most of a webhook URL for security.
-func maskWebhook(url string) string {
-	if len(url) < 20 {
-		return "***"
-	}
-	return url[:20] + "..." + url[len(url)-8:]
+var configResetCmd = &cobra.Command{
+	Use:   "reset",
+	Short: "Reset config to defaults",
+	RunE:  runConfigReset,
 }
 
 func init() {
-	configCmd.Hidden = true
 	rootCmd.AddCommand(configCmd)
-	configCmd.AddCommand(configShowCmd)
+	configCmd.AddCommand(configEditCmd)
+	configCmd.AddCommand(configPathCmd)
+	configCmd.AddCommand(configGetCmd)
 	configCmd.AddCommand(configSetCmd)
-	configCmd.AddCommand(configDefaultCmd)
-	configCmd.AddCommand(configRoutingCmd)
-	configCmd.AddCommand(configNotificationsCmd)
+	configCmd.AddCommand(configResetCmd)
+}
 
-	configNotificationsCmd.Flags().Bool("enable", false, "Enable notifications")
-	configNotificationsCmd.Flags().Bool("disable", false, "Disable notifications")
+func configPath() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, ".mur", "config.yaml"), nil
+}
+
+func runConfigShow(cmd *cobra.Command, args []string) error {
+	path, err := configPath()
+	if err != nil {
+		return err
+	}
+
+	content, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			fmt.Println("No config file found.")
+			fmt.Println("Run 'mur init' to create one.")
+			return nil
+		}
+		return err
+	}
+
+	fmt.Printf("# %s\n", path)
+	fmt.Println()
+	fmt.Print(string(content))
+
+	return nil
+}
+
+func runConfigEdit(cmd *cobra.Command, args []string) error {
+	path, err := configPath()
+	if err != nil {
+		return err
+	}
+
+	// Create default config if doesn't exist
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		if err := createDefaultConfig(path); err != nil {
+			return err
+		}
+	}
+
+	editor := os.Getenv("EDITOR")
+	if editor == "" {
+		editor = os.Getenv("VISUAL")
+	}
+	if editor == "" {
+		for _, e := range []string{"vim", "nano", "vi"} {
+			if _, err := exec.LookPath(e); err == nil {
+				editor = e
+				break
+			}
+		}
+	}
+	if editor == "" {
+		return fmt.Errorf("no editor found. Set $EDITOR")
+	}
+
+	editorCmd := exec.Command(editor, path)
+	editorCmd.Stdin = os.Stdin
+	editorCmd.Stdout = os.Stdout
+	editorCmd.Stderr = os.Stderr
+
+	return editorCmd.Run()
+}
+
+func runConfigPath(cmd *cobra.Command, args []string) error {
+	path, err := configPath()
+	if err != nil {
+		return err
+	}
+	fmt.Println(path)
+	return nil
+}
+
+func runConfigGet(cmd *cobra.Command, args []string) error {
+	key := args[0]
+
+	path, err := configPath()
+	if err != nil {
+		return err
+	}
+
+	content, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("no config file found")
+		}
+		return err
+	}
+
+	var config map[string]interface{}
+	if err := yaml.Unmarshal(content, &config); err != nil {
+		return fmt.Errorf("invalid config: %w", err)
+	}
+
+	// Simple dot notation support
+	value := getNestedValue(config, key)
+	if value == nil {
+		return fmt.Errorf("key not found: %s", key)
+	}
+
+	// Pretty print
+	out, err := yaml.Marshal(value)
+	if err != nil {
+		fmt.Println(value)
+	} else {
+		fmt.Print(string(out))
+	}
+
+	return nil
+}
+
+func runConfigSet(cmd *cobra.Command, args []string) error {
+	key := args[0]
+	value := args[1]
+
+	path, err := configPath()
+	if err != nil {
+		return err
+	}
+
+	// Read existing config
+	var config map[string]interface{}
+	content, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			config = make(map[string]interface{})
+		} else {
+			return err
+		}
+	} else {
+		if err := yaml.Unmarshal(content, &config); err != nil {
+			return fmt.Errorf("invalid config: %w", err)
+		}
+	}
+
+	// Set value
+	setNestedValue(config, key, value)
+
+	// Write back
+	out, err := yaml.Marshal(config)
+	if err != nil {
+		return err
+	}
+
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+
+	if err := os.WriteFile(path, out, 0644); err != nil {
+		return err
+	}
+
+	fmt.Printf("Set %s = %s\n", key, value)
+	return nil
+}
+
+func runConfigReset(cmd *cobra.Command, args []string) error {
+	path, err := configPath()
+	if err != nil {
+		return err
+	}
+
+	// Backup existing
+	if _, err := os.Stat(path); err == nil {
+		backup := path + ".backup"
+		if err := os.Rename(path, backup); err != nil {
+			return fmt.Errorf("failed to backup: %w", err)
+		}
+		fmt.Printf("Backed up to: %s\n", backup)
+	}
+
+	if err := createDefaultConfig(path); err != nil {
+		return err
+	}
+
+	fmt.Println("Config reset to defaults.")
+	return nil
+}
+
+func createDefaultConfig(path string) error {
+	defaultConfig := `# mur configuration
+# See: https://github.com/mur-run/mur-core
+
+default_tool: claude
+
+tools:
+  claude:
+    enabled: true
+    binary: claude
+    tier: paid
+  gemini:
+    enabled: true
+    binary: gemini
+    tier: free
+  codex:
+    enabled: false
+    binary: codex
+    tier: paid
+  auggie:
+    enabled: false
+    binary: auggie
+    tier: free
+  aider:
+    enabled: false
+    binary: aider
+    tier: free
+
+routing:
+  mode: auto  # auto | cost-first | quality-first | manual
+  complexity_threshold: 0.5
+
+learning:
+  repo: ""
+  auto_extract: true
+  min_confidence: 0.6
+`
+
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+
+	return os.WriteFile(path, []byte(defaultConfig), 0644)
+}
+
+func getNestedValue(m map[string]interface{}, key string) interface{} {
+	// Simple implementation - supports "tools.claude.enabled"
+	parts := splitKey(key)
+	current := interface{}(m)
+
+	for _, part := range parts {
+		switch v := current.(type) {
+		case map[string]interface{}:
+			current = v[part]
+		default:
+			return nil
+		}
+	}
+
+	return current
+}
+
+func setNestedValue(m map[string]interface{}, key string, value string) {
+	parts := splitKey(key)
+	current := m
+
+	for i, part := range parts {
+		if i == len(parts)-1 {
+			// Last part - set value
+			// Try to parse as bool/int
+			if value == "true" {
+				current[part] = true
+			} else if value == "false" {
+				current[part] = false
+			} else {
+				current[part] = value
+			}
+		} else {
+			// Create nested map if needed
+			if _, ok := current[part]; !ok {
+				current[part] = make(map[string]interface{})
+			}
+			if next, ok := current[part].(map[string]interface{}); ok {
+				current = next
+			} else {
+				// Can't go deeper
+				return
+			}
+		}
+	}
+}
+
+func splitKey(key string) []string {
+	var parts []string
+	current := ""
+	for _, c := range key {
+		if c == '.' {
+			if current != "" {
+				parts = append(parts, current)
+				current = ""
+			}
+		} else {
+			current += string(c)
+		}
+	}
+	if current != "" {
+		parts = append(parts, current)
+	}
+	return parts
 }
