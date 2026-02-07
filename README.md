@@ -8,7 +8,14 @@
 
 Every AI CLI is an isolated island. **mur** unifies them with a learning engine that makes your patterns smarter over time.
 
-## ✨ What's New in v0.4.0
+## ✨ What's New in v0.5.0
+
+- **Renamed to mur-core** — Unified naming across the ecosystem
+- **`mur init --hooks`** — One-command Claude Code hooks installation
+- **`mur export`** — Export patterns to YAML/JSON/Markdown
+- **`mur inject`** — Inject patterns into project CLAUDE.md/AGENTS.md
+
+### v0.4.0
 
 - **Auto Pattern Injection** — Relevant patterns injected automatically based on context
 - **Effectiveness Tracking** — Patterns learn from your feedback and usage
@@ -23,8 +30,8 @@ Every AI CLI is an isolated island. **mur** unifies them with a learning engine 
 # Install
 go install github.com/mur-run/mur-core/cmd/mur@latest
 
-# Initialize
-mur init
+# Initialize with Claude Code hooks
+mur init --hooks
 
 # Run with auto pattern injection
 mur run -p "fix the login bug"
@@ -32,6 +39,12 @@ mur run -p "fix the login bug"
 
 # Give feedback
 mur feedback helpful swift-error-handling
+
+# Export patterns
+mur export --format md -o patterns.md
+
+# Inject into project
+mur inject ~/Projects/myapp
 ```
 
 ## 📦 Installation
@@ -242,11 +255,25 @@ mur sync patterns
 | `mur sync mcp` | Sync MCP config |
 | `mur sync hooks` | Sync hooks |
 
+### Export & Inject
+
+| Command | Description |
+|---------|-------------|
+| `mur export` | Export patterns as YAML (default) |
+| `mur export --format json` | Export as JSON |
+| `mur export --format md` | Export as Markdown |
+| `mur export --tag backend` | Filter by tag |
+| `mur export -o file.json` | Output to file |
+| `mur inject .` | Inject patterns into CLAUDE.md |
+| `mur inject --file AGENTS.md` | Use different file |
+| `mur inject --dry-run` | Preview without writing |
+
 ### Other
 
 | Command | Description |
 |---------|-------------|
 | `mur init` | Initialize config |
+| `mur init --hooks` | Initialize + install Claude Code hooks |
 | `mur health` | Check tool availability |
 | `mur stats` | Usage statistics |
 | `mur serve` | Start web dashboard |

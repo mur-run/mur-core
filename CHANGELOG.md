@@ -2,6 +2,29 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [0.5.0] - 2026-02-07
+
+### Added
+
+#### Export & Inject Commands
+- `mur export` - Export patterns to YAML, JSON, or Markdown format
+- `mur export --format json/md` - Choose output format
+- `mur export --tag <tag>` - Filter by tag
+- `mur export --min-effectiveness <score>` - Filter by effectiveness
+- `mur inject <dir>` - Inject patterns into project CLAUDE.md/AGENTS.md
+- `mur inject --file AGENTS.md` - Use different target file
+- `mur inject --dry-run` - Preview without writing
+
+#### Claude Code Hooks
+- `mur init --hooks` - One-command Claude Code hooks installation
+- Automatically creates `~/.murmur/hooks/` with learning prompts
+- Merges hooks into `~/.claude/settings.json`
+- Backs up existing settings before modification
+
+### Changed
+- **Renamed from mur-cli to mur-core** - Unified naming across the ecosystem
+- Updated all import paths and documentation
+
 ## [0.4.0] - 2026-02-07
 
 ### Added
