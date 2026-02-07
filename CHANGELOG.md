@@ -2,6 +2,14 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [0.9.4] - 2026-02-08
+
+### Added
+- **Remote Ollama docs** - LAN setup for running Ollama on a server
+- **Recommended models table** - Best models for each provider
+
+---
+
 ## [0.9.3] - 2026-02-08
 
 ### Added
