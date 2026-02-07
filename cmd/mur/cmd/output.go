@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/mur-run/mur-cli/internal/learn"
-	"github.com/mur-run/mur-cli/internal/stats"
-	"github.com/mur-run/mur-cli/internal/sync"
+	"github.com/mur-run/mur-core/internal/learn"
+	"github.com/mur-run/mur-core/internal/stats"
+	"github.com/mur-run/mur-core/internal/sync"
 	"github.com/spf13/cobra"
 )
 

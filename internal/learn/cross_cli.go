@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mur-run/mur-cli/internal/core/pattern"
-	"github.com/mur-run/mur-cli/internal/core/suggest"
+	"github.com/mur-run/mur-core/internal/core/pattern"
+	"github.com/mur-run/mur-core/internal/core/suggest"
 )
 
 // CLISource represents an AI CLI tool as a learning source.

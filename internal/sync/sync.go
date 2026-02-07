@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/mur-run/mur-cli/internal/config"
+	"github.com/mur-run/mur-core/internal/config"
 )
 
 // CLITarget represents an AI CLI tool that can receive synced config.

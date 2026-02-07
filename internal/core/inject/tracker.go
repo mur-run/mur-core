@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mur-run/mur-cli/internal/core/pattern"
+	"github.com/mur-run/mur-core/internal/core/pattern"
 )
 
 // UsageRecord tracks a single pattern usage.

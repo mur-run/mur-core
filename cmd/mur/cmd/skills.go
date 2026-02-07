@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/mur-run/mur-cli/internal/sync"
+	"github.com/mur-run/mur-core/internal/sync"
 	"github.com/spf13/cobra"
 )
 

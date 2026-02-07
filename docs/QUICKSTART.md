@@ -9,10 +9,10 @@ Get started with mur in 5 minutes.
 brew install mur-run/tap/mur
 
 # Option 2: Go install
-go install github.com/mur-run/mur-cli/cmd/mur@latest
+go install github.com/mur-run/mur-core/cmd/mur@latest
 
 # Option 3: Download binary
-curl -L https://github.com/mur-run/mur-cli/releases/latest/download/mur_$(uname -s)_$(uname -m).tar.gz | tar xz
+curl -L https://github.com/mur-run/mur-core/releases/latest/download/mur_$(uname -s)_$(uname -m).tar.gz | tar xz
 sudo mv mur /usr/local/bin/
 ```
 

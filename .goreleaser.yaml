@@ -72,7 +72,7 @@ changelog:
 release:
   github:
     owner: mur-run
-    name: mur-cli
+    name: mur-core
   draft: false
   prerelease: auto
   name_template: "v{{.Version}}"
@@ -81,19 +81,19 @@ release:
     
     ```bash
     # macOS (Apple Silicon)
-    curl -L https://github.com/mur-run/mur-cli/releases/download/{{ .Tag }}/mur-darwin-arm64.tar.gz | tar xz
+    curl -L https://github.com/mur-run/mur-core/releases/download/{{ .Tag }}/mur-darwin-arm64.tar.gz | tar xz
     sudo mv mur /usr/local/bin/
     
     # macOS (Intel)
-    curl -L https://github.com/mur-run/mur-cli/releases/download/{{ .Tag }}/mur-darwin-amd64.tar.gz | tar xz
+    curl -L https://github.com/mur-run/mur-core/releases/download/{{ .Tag }}/mur-darwin-amd64.tar.gz | tar xz
     sudo mv mur /usr/local/bin/
     
     # Linux (amd64)
-    curl -L https://github.com/mur-run/mur-cli/releases/download/{{ .Tag }}/mur-linux-amd64.tar.gz | tar xz
+    curl -L https://github.com/mur-run/mur-core/releases/download/{{ .Tag }}/mur-linux-amd64.tar.gz | tar xz
     sudo mv mur /usr/local/bin/
     
     # Or via Go
-    go install github.com/mur-run/mur-cli/cmd/mur@{{ .Tag }}
+    go install github.com/mur-run/mur-core/cmd/mur@{{ .Tag }}
     ```
 
 # Homebrew tap (disabled - requires homebrew-tap repo)

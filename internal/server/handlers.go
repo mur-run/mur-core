@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mur-run/mur-cli/internal/config"
-	"github.com/mur-run/mur-cli/internal/learn"
-	"github.com/mur-run/mur-cli/internal/stats"
+	"github.com/mur-run/mur-core/internal/config"
+	"github.com/mur-run/mur-core/internal/learn"
+	"github.com/mur-run/mur-core/internal/stats"
 )
 
 // APIResponse is the standard API response format.

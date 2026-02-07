@@ -3,7 +3,7 @@ package pattern
 import (
 	"fmt"
 
-	"github.com/mur-run/mur-cli/internal/core/security"
+	"github.com/mur-run/mur-core/internal/core/security"
 )
 
 // LintSeverity represents the severity of a lint issue.

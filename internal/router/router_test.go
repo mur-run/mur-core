@@ -3,7 +3,7 @@ package router
 import (
 	"testing"
 
-	"github.com/mur-run/mur-cli/internal/config"
+	"github.com/mur-run/mur-core/internal/config"
 )
 
 func TestAnalyzePrompt(t *testing.T) {

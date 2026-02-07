@@ -4,7 +4,7 @@ package notify
 import (
 	"fmt"
 
-	"github.com/mur-run/mur-cli/internal/config"
+	"github.com/mur-run/mur-core/internal/config"
 )
 
 // Options contains notification options.

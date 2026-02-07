@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to mur-cli will be documented in this file.
+All notable changes to mur-core will be documented in this file.
 
 ## [0.4.0] - 2026-02-07
 

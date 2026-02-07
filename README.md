@@ -1,8 +1,8 @@
 # mur 🔊
 
-[![CI](https://github.com/mur-run/mur-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/mur-run/mur-cli/actions/workflows/ci.yml)
-[![Release](https://github.com/mur-run/mur-cli/actions/workflows/release.yml/badge.svg)](https://github.com/mur-run/mur-cli/releases)
-[![Go Report Card](https://goreportcard.com/badge/github.com/mur-run/mur-cli)](https://goreportcard.com/report/github.com/mur-run/mur-cli)
+[![CI](https://github.com/mur-run/mur-core/actions/workflows/ci.yml/badge.svg)](https://github.com/mur-run/mur-core/actions/workflows/ci.yml)
+[![Release](https://github.com/mur-run/mur-core/actions/workflows/release.yml/badge.svg)](https://github.com/mur-run/mur-core/releases)
+[![Go Report Card](https://goreportcard.com/badge/github.com/mur-run/mur-core)](https://goreportcard.com/report/github.com/mur-run/mur-core)
 
 **Unified AI CLI with Continuous Learning**
 
@@ -21,7 +21,7 @@ Every AI CLI is an isolated island. **mur** unifies them with a learning engine 
 
 ```bash
 # Install
-go install github.com/mur-run/mur-cli/cmd/mur@latest
+go install github.com/mur-run/mur-core/cmd/mur@latest
 
 # Initialize
 mur init
@@ -45,22 +45,22 @@ brew install mur-run/tap/mur
 ### Go Install
 
 ```bash
-go install github.com/mur-run/mur-cli/cmd/mur@latest
+go install github.com/mur-run/mur-core/cmd/mur@latest
 ```
 
 ### Download Binary
 
 ```bash
 # macOS (Apple Silicon)
-curl -L https://github.com/mur-run/mur-cli/releases/latest/download/mur_Darwin_arm64.tar.gz | tar xz
+curl -L https://github.com/mur-run/mur-core/releases/latest/download/mur_Darwin_arm64.tar.gz | tar xz
 sudo mv mur /usr/local/bin/
 
 # macOS (Intel)
-curl -L https://github.com/mur-run/mur-cli/releases/latest/download/mur_Darwin_x86_64.tar.gz | tar xz
+curl -L https://github.com/mur-run/mur-core/releases/latest/download/mur_Darwin_x86_64.tar.gz | tar xz
 sudo mv mur /usr/local/bin/
 
 # Linux
-curl -L https://github.com/mur-run/mur-cli/releases/latest/download/mur_Linux_x86_64.tar.gz | tar xz
+curl -L https://github.com/mur-run/mur-core/releases/latest/download/mur_Linux_x86_64.tar.gz | tar xz
 sudo mv mur /usr/local/bin/
 ```
 
@@ -348,8 +348,8 @@ lifecycle:
 
 - **Website**: [mur.run](https://mur.run)
 - **Documentation**: [docs/](./docs/)
-- **Issues**: [GitHub Issues](https://github.com/mur-run/mur-cli/issues)
-- **Releases**: [GitHub Releases](https://github.com/mur-run/mur-cli/releases)
+- **Issues**: [GitHub Issues](https://github.com/mur-run/mur-core/issues)
+- **Releases**: [GitHub Releases](https://github.com/mur-run/mur-core/releases)
 
 ## 📄 License
 

@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/mur-run/mur-cli/internal/core/pattern"
+	"github.com/mur-run/mur-core/internal/core/pattern"
 )
 
 // PatternSearcher provides semantic search over patterns.

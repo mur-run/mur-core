@@ -3,7 +3,7 @@ package router
 import (
 	"fmt"
 
-	"github.com/mur-run/mur-cli/internal/config"
+	"github.com/mur-run/mur-core/internal/config"
 )
 
 // ToolSelection represents the routing decision.

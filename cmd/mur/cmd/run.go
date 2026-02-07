@@ -7,11 +7,11 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/mur-run/mur-cli/internal/config"
-	"github.com/mur-run/mur-cli/internal/core/inject"
-	"github.com/mur-run/mur-cli/internal/core/pattern"
-	"github.com/mur-run/mur-cli/internal/router"
-	"github.com/mur-run/mur-cli/internal/stats"
+	"github.com/mur-run/mur-core/internal/config"
+	"github.com/mur-run/mur-core/internal/core/inject"
+	"github.com/mur-run/mur-core/internal/core/pattern"
+	"github.com/mur-run/mur-core/internal/router"
+	"github.com/mur-run/mur-core/internal/stats"
 	"github.com/spf13/cobra"
 )
 

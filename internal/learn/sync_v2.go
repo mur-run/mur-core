@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mur-run/mur-cli/internal/core/pattern"
-	"github.com/mur-run/mur-cli/internal/team"
+	"github.com/mur-run/mur-core/internal/core/pattern"
+	"github.com/mur-run/mur-core/internal/team"
 )
 
 // SyncPatternsV2 syncs all patterns (Schema v2) to CLI tools and team repo.

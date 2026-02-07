@@ -8,10 +8,10 @@ This directory contains the OpenClaw skill wrapper for murmur-ai, enabling OpenC
 
 ```bash
 # Using go install
-go install github.com/mur-run/mur-cli/cmd/mur@latest
+go install github.com/mur-run/mur-core/cmd/mur@latest
 
 # Or build from source
-git clone https://github.com/mur-run/mur-cli.git
+git clone https://github.com/mur-run/mur-core.git
 cd murmur-ai
 go build -o mur ./cmd/mur
 mv mur /usr/local/bin/
@@ -92,4 +92,4 @@ Ensure the AI CLI tools are installed and their config paths are correct.
 
 ## Contributing
 
-Issues and PRs welcome at [murmur-ai](https://github.com/mur-run/mur-cli).
+Issues and PRs welcome at [murmur-ai](https://github.com/mur-run/mur-core).

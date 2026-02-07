@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mur-run/mur-cli/internal/team"
+	"github.com/mur-run/mur-core/internal/team"
 )
 
 // SyncResult holds the result of a pattern sync operation.

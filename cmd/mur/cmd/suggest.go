@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mur-run/mur-cli/internal/core/pattern"
-	"github.com/mur-run/mur-cli/internal/core/suggest"
+	"github.com/mur-run/mur-core/internal/core/pattern"
+	"github.com/mur-run/mur-core/internal/core/suggest"
 	"github.com/spf13/cobra"
 )
 

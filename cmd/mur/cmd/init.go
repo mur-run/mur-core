@@ -44,7 +44,7 @@ var initCmd = &cobra.Command{
 		configPath := filepath.Join(murDir, "config.yaml")
 		if _, err := os.Stat(configPath); os.IsNotExist(err) {
 			defaultConfig := `# Murmur Configuration
-# https://github.com/mur-run/mur-cli
+# https://github.com/mur-run/mur-core
 
 # Default AI tool to use
 default_tool: claude

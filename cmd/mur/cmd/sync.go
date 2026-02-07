@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/mur-run/mur-cli/internal/learn"
-	"github.com/mur-run/mur-cli/internal/sync"
+	"github.com/mur-run/mur-core/internal/learn"
+	"github.com/mur-run/mur-core/internal/sync"
 	"github.com/spf13/cobra"
 )
 

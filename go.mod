@@ -1,4 +1,4 @@
-module github.com/mur-run/mur-cli
+module github.com/mur-run/mur-core
 
 go 1.21
 
