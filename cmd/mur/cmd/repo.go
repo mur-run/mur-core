@@ -72,7 +72,7 @@ func runRepoSet(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("repo URL is required")
 	}
 
-	patternsDir := filepath.Join(home, ".mur", "patterns")
+	patternsDir := filepath.Join(home, ".mur", "repo")
 
 	// Check if patterns dir exists and has content
 	if entries, err := os.ReadDir(patternsDir); err == nil && len(entries) > 0 {
@@ -136,7 +136,7 @@ func runRepoStatus(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	patternsDir := filepath.Join(home, ".mur", "patterns")
+	patternsDir := filepath.Join(home, ".mur", "repo")
 	gitDir := filepath.Join(patternsDir, ".git")
 
 	// Check if it's a git repo
@@ -190,7 +190,7 @@ func runRepoRemove(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	patternsDir := filepath.Join(home, ".mur", "patterns")
+	patternsDir := filepath.Join(home, ".mur", "repo")
 	gitDir := filepath.Join(patternsDir, ".git")
 
 	if _, err := os.Stat(gitDir); os.IsNotExist(err) {
@@ -291,7 +291,7 @@ func SetupLearningRepo(home string) error {
 	}
 
 	// Clone the repo
-	patternsDir := filepath.Join(home, ".mur", "patterns")
+	patternsDir := filepath.Join(home, ".mur", "repo")
 	os.MkdirAll(filepath.Dir(patternsDir), 0755)
 
 	fmt.Println("  Cloning repository...")

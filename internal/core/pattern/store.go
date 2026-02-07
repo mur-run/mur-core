@@ -42,18 +42,19 @@ func (s *Store) EnsureDir() error {
 }
 
 // patternPath returns the file path for a pattern.
-// Checks both baseDir and nested patterns/ subdirectory.
+// Checks baseDir and repo/patterns/.
 func (s *Store) patternPath(name string) string {
-	// First check baseDir
+	// First check baseDir (~/.mur/patterns/)
 	path := filepath.Join(s.baseDir, name+".yaml")
 	if _, err := os.Stat(path); err == nil {
 		return path
 	}
 
-	// Check nested patterns/ subdirectory
-	nestedPath := filepath.Join(s.baseDir, "patterns", name+".yaml")
-	if _, err := os.Stat(nestedPath); err == nil {
-		return nestedPath
+	// Check repo patterns (~/.mur/repo/patterns/)
+	home, _ := os.UserHomeDir()
+	repoPath := filepath.Join(home, ".mur", "repo", "patterns", name+".yaml")
+	if _, err := os.Stat(repoPath); err == nil {
+		return repoPath
 	}
 
 	// Default to baseDir
@@ -77,19 +78,18 @@ func validateName(name string) error {
 
 // List returns all patterns.
 func (s *Store) List() ([]Pattern, error) {
-	if _, err := os.Stat(s.baseDir); os.IsNotExist(err) {
-		return []Pattern{}, nil
-	}
-
 	var patterns []Pattern
 
-	// Check for patterns in baseDir
-	patterns = append(patterns, s.listFromDir(s.baseDir)...)
+	// Check for patterns in baseDir (~/.mur/patterns/)
+	if _, err := os.Stat(s.baseDir); err == nil {
+		patterns = append(patterns, s.listFromDir(s.baseDir)...)
+	}
 
-	// Also check nested patterns/ subdirectory (for repos with patterns/ folder)
-	nestedDir := filepath.Join(s.baseDir, "patterns")
-	if info, err := os.Stat(nestedDir); err == nil && info.IsDir() {
-		patterns = append(patterns, s.listFromDir(nestedDir)...)
+	// Also check repo patterns (~/.mur/repo/patterns/)
+	home, _ := os.UserHomeDir()
+	repoDir := filepath.Join(home, ".mur", "repo", "patterns")
+	if info, err := os.Stat(repoDir); err == nil && info.IsDir() {
+		patterns = append(patterns, s.listFromDir(repoDir)...)
 	}
 
 	return patterns, nil

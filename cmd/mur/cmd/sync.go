@@ -43,7 +43,7 @@ func runSync(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	patternsDir := filepath.Join(home, ".mur", "patterns")
+	patternsDir := filepath.Join(home, ".mur", "repo")
 	gitDir := filepath.Join(patternsDir, ".git")
 
 	// Check if we have a git repo configured
