@@ -2,6 +2,7 @@ package learn
 
 import (
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
@@ -87,6 +88,181 @@ func ExtractFromSession(sessionPath string) ([]ExtractedPattern, error) {
 	return ExtractFromMessages(session.AssistantMessages(), session.ShortID())
 }
 
+// JSONPattern represents a pattern in JSON format from Claude's response.
+type JSONPattern struct {
+	Name         string  `json:"name"`
+	Title        string  `json:"title"`
+	Confidence   string  `json:"confidence"`
+	Score        float64 `json:"score"`
+	Category     string  `json:"category"`
+	Domain       string  `json:"domain"`
+	Project      string  `json:"project"`
+	Problem      string  `json:"problem"`
+	Solution     string  `json:"solution"`
+	Verification string  `json:"verification"`
+	WhyNonObvious string `json:"why_non_obvious"`
+	Description  string  `json:"description"` // Alternative field
+	Content      string  `json:"content"`     // Alternative field
+}
+
+// extractJSONPatterns attempts to parse JSON pattern arrays from text.
+func extractJSONPatterns(text string, sourceID string) []ExtractedPattern {
+	var extracted []ExtractedPattern
+
+	// Find JSON arrays in code blocks or raw text
+	jsonArrayRe := regexp.MustCompile("(?s)```(?:json)?\\s*\\n?(\\[.*?\\])\\s*```|^(\\[\\s*\\{.*?\\}\\s*\\])$")
+	matches := jsonArrayRe.FindAllStringSubmatch(text, -1)
+
+	for _, match := range matches {
+		jsonStr := match[1]
+		if jsonStr == "" {
+			jsonStr = match[2]
+		}
+		if jsonStr == "" {
+			continue
+		}
+
+		var jsonPatterns []JSONPattern
+		if err := json.Unmarshal([]byte(jsonStr), &jsonPatterns); err != nil {
+			continue
+		}
+
+		for _, jp := range jsonPatterns {
+			// Skip patterns with invalid or empty names
+			if jp.Name == "" || !isValidPatternName(jp.Name) {
+				continue
+			}
+
+			// Build content from JSON fields
+			var contentParts []string
+			if jp.Title != "" {
+				contentParts = append(contentParts, "# "+jp.Title)
+			}
+			if jp.Problem != "" {
+				contentParts = append(contentParts, "\n## Problem\n"+jp.Problem)
+			}
+			if jp.Solution != "" {
+				contentParts = append(contentParts, "\n## Solution\n"+jp.Solution)
+			}
+			if jp.Verification != "" {
+				contentParts = append(contentParts, "\n## Verification\n"+jp.Verification)
+			}
+			if jp.WhyNonObvious != "" {
+				contentParts = append(contentParts, "\n## Why This Is Non-Obvious\n"+jp.WhyNonObvious)
+			}
+
+			content := strings.Join(contentParts, "\n")
+			if content == "" {
+				// Fallback to description or content field
+				if jp.Description != "" {
+					content = jp.Description
+				} else if jp.Content != "" {
+					content = jp.Content
+				}
+			}
+
+			// Skip if no meaningful content
+			if content == "" {
+				continue
+			}
+
+			// Map confidence string to float
+			confidence := jp.Score
+			if confidence == 0 {
+				switch strings.ToUpper(jp.Confidence) {
+				case "HIGH":
+					confidence = 0.85
+				case "MEDIUM":
+					confidence = 0.65
+				case "LOW":
+					confidence = 0.45
+				default:
+					confidence = 0.5
+				}
+			}
+
+			// Map domain
+			domain := jp.Domain
+			if domain == "" || domain == "mobile" {
+				domain = "dev"
+			}
+
+			// Map category
+			category := jp.Category
+			if category == "" {
+				category = "pattern"
+			}
+
+			// Build description from title
+			description := jp.Title
+			if description == "" && jp.Problem != "" {
+				description = truncateText(jp.Problem, 100)
+			}
+
+			pattern := Pattern{
+				Name:        jp.Name,
+				Description: description,
+				Content:     content,
+				Domain:      domain,
+				Category:    category,
+				Confidence:  confidence,
+				CreatedAt:   time.Now().Format(time.RFC3339),
+				UpdatedAt:   time.Now().Format(time.RFC3339),
+			}
+
+			extracted = append(extracted, ExtractedPattern{
+				Pattern:    pattern,
+				Source:     sourceID,
+				Evidence:   []string{truncateText(content, 200)},
+				Confidence: confidence,
+			})
+		}
+	}
+
+	return extracted
+}
+
+// isValidPatternName checks if a pattern name is meaningful.
+func isValidPatternName(name string) bool {
+	// Skip very short names
+	if len(name) < 5 {
+		return false
+	}
+
+	// Skip names that look like code comments or thinking
+	invalidPrefixes := []string{
+		"now-", "wait-", "need-", "also-", "then-",
+		"first-", "next-", "just-", "see-", "let-",
+	}
+	lower := strings.ToLower(name)
+	for _, prefix := range invalidPrefixes {
+		if strings.HasPrefix(lower, prefix) {
+			return false
+		}
+	}
+
+	// Skip names that are mostly stop words
+	invalidPatterns := []string{
+		"now-need-update", "wait-changed-line", "now-also-need",
+		"see-unloadplist-calls", "install-already-complete",
+	}
+	for _, invalid := range invalidPatterns {
+		if lower == invalid {
+			return false
+		}
+	}
+
+	return true
+}
+
+// truncateText shortens text to max length.
+func truncateText(s string, max int) string {
+	if len(s) <= max {
+		return s
+	}
+	return s[:max-3] + "..."
+}
+
 // ExtractFromMessages performs extraction from a list of messages.
 func ExtractFromMessages(messages []SessionMessage, sourceID string) ([]ExtractedPattern, error) {
 	var extracted []ExtractedPattern
@@ -94,6 +270,21 @@ func ExtractFromMessages(messages []SessionMessage, sourceID string) ([]Extracte
 
 	for _, msg := range messages {
 		if msg.Content == "" {
+			continue
+		}
+
+		// First, try to extract JSON patterns
+		jsonPatterns := extractJSONPatterns(msg.Content, sourceID)
+		for _, ep := range jsonPatterns {
+			hash := hashContent(ep.Pattern.Content)
+			if !seen[hash] {
+				seen[hash] = true
+				extracted = append(extracted, ep)
+			}
+		}
+
+		// If we found JSON patterns, skip keyword-based extraction for this message
+		if len(jsonPatterns) > 0 {
 			continue
 		}
 
@@ -115,6 +306,11 @@ func ExtractFromMessages(messages []SessionMessage, sourceID string) ([]Extracte
 
 				// Generate a unique name
 				name := generatePatternName(para, matcher)
+
+				// Skip invalid pattern names
+				if !isValidPatternName(name) {
+					continue
+				}
 
 				// Check for duplicates
 				hash := hashContent(para)
