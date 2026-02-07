@@ -56,10 +56,10 @@ var syncAllCmd = &cobra.Command{
 			}
 		}
 
-		// Sync patterns
+		// Sync patterns (using Schema v2)
 		fmt.Println()
-		fmt.Println("Patterns:")
-		patternResults, err := learn.SyncPatterns()
+		fmt.Println("Patterns (v2):")
+		patternResults, err := learn.SyncPatternsV2()
 		if err != nil {
 			fmt.Printf("  ⚠ %v\n", err)
 		} else {
@@ -169,10 +169,37 @@ var syncSkillsCmd = &cobra.Command{
 	},
 }
 
+var syncPatternsCmd = &cobra.Command{
+	Use:   "patterns",
+	Short: "Sync patterns to all CLI tools",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		fmt.Println("Syncing patterns (Schema v2)...")
+		fmt.Println()
+
+		results, err := learn.SyncPatternsV2()
+		if err != nil {
+			return fmt.Errorf("sync failed: %w", err)
+		}
+
+		for _, r := range results {
+			status := "✓"
+			if !r.Success {
+				status = "✗"
+			}
+			fmt.Printf("  %s %s: %s\n", status, r.Target, r.Message)
+		}
+
+		fmt.Println()
+		fmt.Println("Done.")
+		return nil
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(syncCmd)
 	syncCmd.AddCommand(syncAllCmd)
 	syncCmd.AddCommand(syncMcpCmd)
 	syncCmd.AddCommand(syncHooksCmd)
 	syncCmd.AddCommand(syncSkillsCmd)
+	syncCmd.AddCommand(syncPatternsCmd)
 }
