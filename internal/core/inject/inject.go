@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/mur-run/mur-cli/internal/core/classifier"
+	"github.com/mur-run/mur-cli/internal/core/embed"
 	"github.com/mur-run/mur-cli/internal/core/pattern"
 )
 
@@ -44,6 +45,7 @@ type ProjectContext struct {
 type Injector struct {
 	store      *pattern.Store
 	classifier *classifier.HybridClassifier
+	searcher   *embed.PatternSearcher // Optional semantic search
 }
 
 // NewInjector creates a new pattern injector.
@@ -52,6 +54,16 @@ func NewInjector(store *pattern.Store) *Injector {
 		store:      store,
 		classifier: classifier.NewHybridClassifier(),
 	}
+}
+
+// WithSemanticSearch enables semantic search for pattern matching.
+func (inj *Injector) WithSemanticSearch(cfg embed.Config) error {
+	searcher, err := embed.NewPatternSearcher(inj.store, cfg)
+	if err != nil {
+		return err
+	}
+	inj.searcher = searcher
+	return nil
 }
 
 // Inject finds and formats relevant patterns for a prompt.
@@ -136,7 +148,35 @@ func (inj *Injector) detectContext(workDir string) *ProjectContext {
 
 // findMatchingPatterns finds patterns that match the context and classifications.
 func (inj *Injector) findMatchingPatterns(ctx *ProjectContext, classes []classifier.DomainScore, prompt string) ([]*pattern.Pattern, error) {
-	// Get all active patterns
+	maxPatterns := 5
+
+	// Try semantic search first if available
+	if inj.searcher != nil {
+		searchCtx := &embed.SearchContext{
+			ProjectType: ctx.ProjectType,
+			ProjectName: ctx.ProjectName,
+			Languages:   ctx.Languages,
+			Frameworks:  ctx.Frameworks,
+			CurrentFile: ctx.CurrentFile,
+		}
+
+		matches, err := inj.searcher.SearchWithContext(prompt, searchCtx, maxPatterns)
+		if err == nil && len(matches) > 0 {
+			// Use semantic results
+			result := make([]*pattern.Pattern, 0, len(matches))
+			for _, m := range matches {
+				if m.Confidence > 0.3 { // Minimum semantic threshold
+					result = append(result, m.Pattern)
+				}
+			}
+			if len(result) > 0 {
+				return result, nil
+			}
+		}
+		// Fall through to keyword matching if semantic fails
+	}
+
+	// Fallback: keyword-based matching
 	allPatterns, err := inj.store.List()
 	if err != nil {
 		return nil, err
@@ -167,8 +207,7 @@ func (inj *Injector) findMatchingPatterns(ctx *ProjectContext, classes []classif
 		return scored[i].score > scored[j].score
 	})
 
-	// Take top N patterns (max 5 to avoid context bloat)
-	maxPatterns := 5
+	// Take top N patterns
 	if len(scored) < maxPatterns {
 		maxPatterns = len(scored)
 	}
