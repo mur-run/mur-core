@@ -271,7 +271,9 @@ Examples:
   mur learn extract --auto               # Scan recent sessions
   mur learn extract --auto --dry-run     # Preview without saving
   mur learn extract --auto --accept-all  # Auto-save high-confidence patterns
-  mur learn extract --auto --quiet       # Silent mode for hooks`,
+  mur learn extract --auto --quiet       # Silent mode for hooks
+  mur learn extract --llm                # Use Ollama for smart extraction
+  mur learn extract --llm claude         # Use Claude API for extraction`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		sessionID, _ := cmd.Flags().GetString("session")
 		auto, _ := cmd.Flags().GetBool("auto")
@@ -279,6 +281,13 @@ Examples:
 		acceptAll, _ := cmd.Flags().GetBool("accept-all")
 		quiet, _ := cmd.Flags().GetBool("quiet")
 		minConfidence, _ := cmd.Flags().GetFloat64("min-confidence")
+		llm, _ := cmd.Flags().GetString("llm")
+		llmModel, _ := cmd.Flags().GetString("llm-model")
+
+		// LLM mode
+		if llm != "" {
+			return runExtractLLM(sessionID, llm, llmModel, dryRun, acceptAll, quiet, minConfidence)
+		}
 
 		if auto {
 			return runExtractAuto(dryRun, acceptAll, quiet, minConfidence)
@@ -643,6 +652,156 @@ func runExtractAuto(dryRun, acceptAll, quiet bool, minConfidence float64) error 
 	return nil
 }
 
+func runExtractLLM(sessionID, provider, model string, dryRun, acceptAll, quiet bool, minConfidence float64) error {
+	// Setup LLM options
+	opts := learn.DefaultLLMOptions()
+
+	switch strings.ToLower(provider) {
+	case "ollama", "":
+		opts.Provider = learn.LLMOllama
+		if model != "" {
+			opts.Model = model
+		}
+		// Check if Ollama is available
+		if !learn.CheckOllamaAvailable(opts.OllamaURL) {
+			return fmt.Errorf("Ollama not available at %s. Start it with: ollama serve", opts.OllamaURL)
+		}
+	case "claude":
+		opts.Provider = learn.LLMClaude
+		if model != "" {
+			opts.Model = model
+		}
+		if opts.ClaudeKey == "" {
+			return fmt.Errorf("ANTHROPIC_API_KEY not set. Export it or use --llm ollama")
+		}
+	default:
+		return fmt.Errorf("unknown LLM provider: %s (use 'ollama' or 'claude')", provider)
+	}
+
+	if minConfidence == 0 {
+		minConfidence = 0.6
+	}
+
+	// Get sessions to process
+	var sessions []*learn.Session
+
+	if sessionID != "" {
+		// Single session
+		session, err := learn.LoadSession(sessionID)
+		if err != nil {
+			return fmt.Errorf("failed to load session: %w", err)
+		}
+		sessions = append(sessions, session)
+	} else {
+		// Recent sessions
+		if !quiet {
+			fmt.Println("Scanning recent sessions...")
+		}
+		recentSessions, err := learn.RecentSessions(7)
+		if err != nil {
+			return fmt.Errorf("failed to list sessions: %w", err)
+		}
+		for _, s := range recentSessions {
+			sess, err := learn.LoadSession(s.Path)
+			if err != nil {
+				continue
+			}
+			sessions = append(sessions, sess)
+		}
+	}
+
+	if len(sessions) == 0 {
+		if !quiet {
+			fmt.Println("No sessions found.")
+		}
+		return nil
+	}
+
+	if !quiet {
+		fmt.Printf("Using %s for extraction...\n", opts.Provider)
+		fmt.Println()
+	}
+
+	totalExtracted := 0
+	savedCount := 0
+
+	for _, session := range sessions {
+		if !quiet {
+			fmt.Printf("📝 Session: %s (%s)\n", session.ShortID(), session.Project)
+		}
+
+		patterns, err := learn.ExtractWithLLM(session, opts)
+		if err != nil {
+			if !quiet {
+				fmt.Printf("   ⚠ Extraction failed: %v\n", err)
+			}
+			continue
+		}
+
+		if len(patterns) == 0 {
+			if !quiet {
+				fmt.Println("   No patterns found")
+			}
+			continue
+		}
+
+		if !quiet {
+			fmt.Printf("   Found %d patterns:\n", len(patterns))
+		}
+
+		for _, ep := range patterns {
+			totalExtracted++
+
+			if !quiet {
+				fmt.Printf("   • [%s] %s (%.0f%%)\n", ep.Pattern.Category, ep.Pattern.Name, ep.Confidence*100)
+			}
+
+			if dryRun {
+				continue
+			}
+
+			if acceptAll {
+				if ep.Confidence >= minConfidence {
+					if err := learn.Add(ep.Pattern); err != nil {
+						if !quiet {
+							fmt.Printf("     ✗ Failed to save: %v\n", err)
+						}
+					} else {
+						if !quiet {
+							fmt.Printf("     ✓ Saved\n")
+						}
+						savedCount++
+					}
+				}
+			} else {
+				// Interactive mode
+				if confirmSave(ep.Pattern.Name) {
+					if err := learn.Add(ep.Pattern); err != nil {
+						fmt.Printf("     ✗ Failed to save: %v\n", err)
+					} else {
+						fmt.Printf("     ✓ Saved\n")
+						savedCount++
+					}
+				}
+			}
+		}
+
+		if !quiet {
+			fmt.Println()
+		}
+	}
+
+	if !quiet {
+		if dryRun {
+			fmt.Printf("Found %d patterns (dry-run, not saved)\n", totalExtracted)
+		} else {
+			fmt.Printf("Extracted %d patterns, saved %d\n", totalExtracted, savedCount)
+		}
+	}
+
+	return nil
+}
+
 func runExtractSession(sessionID string, dryRun bool) error {
 	session, err := learn.LoadSession(sessionID)
 	if err != nil {
@@ -789,6 +948,8 @@ func init() {
 	learnExtractCmd.Flags().Bool("accept-all", false, "Auto-save patterns above confidence threshold")
 	learnExtractCmd.Flags().Bool("quiet", false, "Silent mode (for hooks, minimal output)")
 	learnExtractCmd.Flags().Float64("min-confidence", 0.6, "Minimum confidence for auto-accept (default: 0.6)")
+	learnExtractCmd.Flags().String("llm", "", "Use LLM for extraction: 'ollama' (default) or 'claude'")
+	learnExtractCmd.Flags().String("llm-model", "", "LLM model (default: llama3.2 for ollama, claude-sonnet-4-20250514 for claude)")
 
 	learnPushCmd.Flags().Bool("auto-merge", false, "Check and create PRs for high-confidence patterns after push")
 	learnPushCmd.Flags().Bool("dry-run", false, "Preview auto-merge without creating PRs")
