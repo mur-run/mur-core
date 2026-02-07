@@ -33,3 +33,6 @@ coverage.out
 
 # MkDocs
 site/
+
+# Docs (private)
+docs/
