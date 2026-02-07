@@ -273,7 +273,7 @@ func buildDashboardData(patterns []pattern.Pattern) DashboardData {
 	data := DashboardData{
 		Patterns:    make([]PatternView, 0, len(patterns)),
 		GeneratedAt: time.Now().Format("2006-01-02 15:04:05"),
-		Version:     "0.7.0",
+		Version:     Version,
 	}
 
 	var totalEffectiveness float64

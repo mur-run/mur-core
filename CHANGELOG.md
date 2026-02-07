@@ -2,6 +2,47 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [0.8.0] - 2026-02-07
+
+### Added
+
+#### Dashboard & Visualization
+- `mur serve` - Enhanced web dashboard with charts, sync status, modals
+- `mur dashboard` - Generate static HTML report
+- `mur dashboard -o file.html` - Save to file
+- `mur dashboard --open` - Generate and open in browser
+
+#### Status & Diagnostics
+- `mur status` - Quick terminal overview of patterns, sync, stats, hooks
+- `mur status --verbose` - Detailed breakdown
+- `mur doctor` - Diagnose setup issues and common problems
+- `mur doctor --fix` - Auto-fix issues where possible
+
+#### Pattern Management
+- `mur new <name>` - Create pattern from template with auto-inferred tags
+- `mur edit <name>` - Open pattern in $EDITOR
+- `mur search <query>` - Search patterns by name, description, tags
+- `mur search --tag backend` - Filter by tag
+- `mur transcripts` - Browse Claude Code session transcripts
+- `mur transcripts --project X` - Filter by project
+- `mur transcripts show <id>` - View session content
+
+#### Import/Export
+- `mur import file.yaml` - Import patterns from local files
+- `mur import https://...` - Import from URLs
+- `mur import *.yaml` - Glob pattern support
+- `mur import --dry-run` - Preview without saving
+- `mur import --force` - Overwrite existing patterns
+
+#### Version
+- `mur version` - Show version, commit, build info
+- Version now displayed in dashboard
+
+### Changed
+- Dashboard shows all 8 sync targets with status
+- Dashboard includes tool usage breakdown and cost savings
+- README updated with all new commands
+
 ## [0.7.0] - 2026-02-07
 
 ### Added
