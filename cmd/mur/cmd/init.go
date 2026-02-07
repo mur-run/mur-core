@@ -322,23 +322,23 @@ learning:
     # provider: openai
     # model: gpt-4o-mini
     # openai_url: https://api.openai.com/v1
-    # api_key_env: OPENAI_API_KEY
+    # api_key_env: OPENAI_API_KEY    # env var NAME (not the key!)
     
     # --- Google Gemini ---
     # provider: gemini
     # model: gemini-2.0-flash
-    # api_key_env: GEMINI_API_KEY
+    # api_key_env: GEMINI_API_KEY    # env var NAME (not the key!)
     
     # --- Anthropic Claude ---
     # provider: claude
     # model: claude-sonnet-4-20250514
-    # api_key_env: ANTHROPIC_API_KEY
+    # api_key_env: ANTHROPIC_API_KEY  # env var NAME (not the key!)
     
     # --- Premium model for important sessions ---
     # premium:
     #   provider: claude
     #   model: claude-sonnet-4-20250514
-    #   api_key_env: ANTHROPIC_API_KEY
+    #   api_key_env: ANTHROPIC_API_KEY  # env var NAME (not the key!)
     
     # --- When to use premium model ---
     # routing:

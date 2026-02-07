@@ -229,6 +229,29 @@ mur learn extract --llm openai   # Override with OpenAI
 mur learn extract --llm gemini   # Override with Gemini
 ```
 
+### API Keys
+
+API keys are configured via environment variables (not in config file for security):
+
+```bash
+# Add to ~/.zshrc or ~/.bashrc
+export ANTHROPIC_API_KEY="sk-ant-..."     # For Claude
+export OPENAI_API_KEY="sk-..."            # For OpenAI
+export GEMINI_API_KEY="..."               # For Gemini
+```
+
+Then reference in config by variable name:
+
+```yaml
+learning:
+  llm:
+    provider: claude
+    model: claude-sonnet-4-20250514
+    api_key_env: ANTHROPIC_API_KEY    # ← Variable NAME, not the key itself
+```
+
+This keeps your API keys secure and out of config files.
+
 ### Remote Ollama (LAN Setup)
 
 Run Ollama on a powerful server and access it from other machines:
