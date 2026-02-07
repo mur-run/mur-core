@@ -399,6 +399,75 @@ mur sync --quiet 2>/dev/null || true
 	}
 
 	fmt.Println("✓ Installed Claude Code hooks")
+
+	// Install Gemini CLI hooks (v0.26.0+)
+	if err := installGeminiHooks(home, promptScriptPath, stopScriptPath); err != nil {
+		// Non-fatal, Gemini might not be installed
+		fmt.Printf("  ⚠ Gemini hooks: %v\n", err)
+	}
+
+	return nil
+}
+
+func installGeminiHooks(home, promptScriptPath, stopScriptPath string) error {
+	geminiSettingsPath := filepath.Join(home, ".gemini", "settings.json")
+
+	// Gemini uses different event names
+	hooks := map[string]interface{}{
+		"BeforeAgent": []map[string]interface{}{
+			{
+				"matcher": "",
+				"hooks": []map[string]interface{}{
+					// Inject context-aware patterns
+					{"type": "command", "command": fmt.Sprintf("bash %s", promptScriptPath)},
+				},
+			},
+		},
+		"SessionEnd": []map[string]interface{}{
+			{
+				"matcher": "",
+				"hooks": []map[string]interface{}{
+					{"type": "command", "command": fmt.Sprintf("bash %s", stopScriptPath)},
+				},
+			},
+		},
+	}
+
+	var settings map[string]interface{}
+	if data, err := os.ReadFile(geminiSettingsPath); err == nil {
+		json.Unmarshal(data, &settings)
+	} else {
+		os.MkdirAll(filepath.Join(home, ".gemini"), 0755)
+		settings = make(map[string]interface{})
+	}
+
+	// Backup
+	if _, err := os.Stat(geminiSettingsPath); err == nil {
+		backupPath := geminiSettingsPath + ".backup"
+		if data, err := os.ReadFile(geminiSettingsPath); err == nil {
+			os.WriteFile(backupPath, data, 0644)
+		}
+	}
+
+	// Merge hooks
+	existingHooks, _ := settings["hooks"].(map[string]interface{})
+	if existingHooks == nil {
+		existingHooks = make(map[string]interface{})
+	}
+
+	for event, eventHooks := range hooks {
+		if _, exists := existingHooks[event]; !exists {
+			existingHooks[event] = eventHooks
+		}
+	}
+	settings["hooks"] = existingHooks
+
+	data, _ := json.MarshalIndent(settings, "", "  ")
+	if err := os.WriteFile(geminiSettingsPath, data, 0644); err != nil {
+		return err
+	}
+
+	fmt.Println("✓ Installed Gemini CLI hooks")
 	return nil
 }
 
