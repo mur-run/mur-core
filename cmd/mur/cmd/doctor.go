@@ -112,14 +112,52 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 		{"Aider", "aider"},
 	}
 
+	// Common installation paths to check (beyond PATH)
+	extraPaths := []string{
+		filepath.Join(home, ".npm-global", "bin"),
+		filepath.Join(home, "go", "bin"),
+		filepath.Join(home, ".local", "bin"),
+		filepath.Join(home, ".cargo", "bin"),
+		"/usr/local/bin",
+		"/opt/homebrew/bin",
+	}
+
 	installedCLIs := 0
 	for _, cli := range clis {
-		if _, err := exec.LookPath(cli.binary); err == nil {
+		found := false
+		foundPath := ""
+
+		// First check PATH
+		if path, err := exec.LookPath(cli.binary); err == nil {
+			found = true
+			foundPath = path
+		} else {
+			// Check extra paths
+			for _, dir := range extraPaths {
+				path := filepath.Join(dir, cli.binary)
+				if _, err := os.Stat(path); err == nil {
+					found = true
+					foundPath = path
+					break
+				}
+			}
+		}
+
+		if found {
 			installedCLIs++
-			checks = append(checks, checkResult{
-				name:   cli.name,
-				status: "ok",
-			})
+			// Check if in PATH
+			if _, err := exec.LookPath(cli.binary); err != nil {
+				checks = append(checks, checkResult{
+					name:    cli.name,
+					status:  "ok",
+					message: fmt.Sprintf("Found at %s (not in PATH)", foundPath),
+				})
+			} else {
+				checks = append(checks, checkResult{
+					name:   cli.name,
+					status: "ok",
+				})
+			}
 		} else {
 			checks = append(checks, checkResult{
 				name:    cli.name,

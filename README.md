@@ -1,196 +1,209 @@
 # mur 🔊
 
-**Continuous learning for AI assistants.**
+[![Go Version](https://img.shields.io/github/go-mod/go-version/mur-run/mur-core)](https://go.dev)
+[![Release](https://img.shields.io/github/v/release/mur-run/mur-core)](https://github.com/mur-run/mur-core/releases)
+[![License](https://img.shields.io/github/license/mur-run/mur-core)](./LICENSE)
 
-mur makes your AI CLIs smarter over time. Learn once, remember forever.
+**Your AI assistant's memory.**
+
+mur captures patterns from your coding sessions and injects them back into your AI tools. Learn once, remember forever. Works invisibly — just use your CLI as normal.
+
+## ✨ Features
+
+- **🧠 Continuous Learning** — Extract patterns from Claude Code, Gemini CLI sessions
+- **🔄 Universal Sync** — Patterns sync to 8+ AI tools (Claude, Gemini, Codex, Cursor, etc.)
+- **🔌 Zero Friction** — Install hooks once, then forget about it
+- **📊 Dashboard** — Web UI for pattern management and analytics
+- **🔒 Local First** — All data stays on your machine (optional git sync)
 
 ## 🚀 Quick Start
 
 ```bash
 # Install
 CGO_ENABLED=0 go install github.com/mur-run/mur-core/cmd/mur@latest
+
+# Add to PATH (if needed)
 export PATH="$HOME/go/bin:$PATH"
 
-# Setup (interactive)
-mur init
+# Setup
+mur init --hooks
 
-# Check status
-mur status
-
-# That's it! Use your AI CLI as normal
-claude -p "fix this bug"
-gemini -p "explain this code"
+# Done! Use your AI CLI normally — mur works invisibly
+claude "fix this bug"
 ```
-
-mur works invisibly in the background. Your patterns are synced to all CLIs.
 
 ## 📦 Installation
 
+### From Source (Recommended)
+
 ```bash
-# Install (recommended)
 CGO_ENABLED=0 go install github.com/mur-run/mur-core/cmd/mur@latest
 
-# Make sure ~/go/bin is in your PATH
-export PATH="$HOME/go/bin:$PATH"
-
-# Verify installation
+# Verify
 mur version
 ```
 
-<details>
-<summary>Troubleshooting</summary>
+### From Git
 
-**"command not found: mur"**
-```bash
-# Add go/bin to PATH
-export PATH="$HOME/go/bin:$PATH"
-echo 'export PATH="$HOME/go/bin:$PATH"' >> ~/.zshrc
-```
-
-**"LC_UUID" error on macOS**
-```bash
-# Use CGO_ENABLED=0
-CGO_ENABLED=0 go install github.com/mur-run/mur-core/cmd/mur@latest
-```
-
-**Build from source**
 ```bash
 git clone https://github.com/mur-run/mur-core.git
 cd mur-core
-go build -o ~/go/bin/mur ./cmd/mur
+make install
+```
+
+### PATH Setup
+
+```bash
+# Add to your shell config (~/.zshrc, ~/.bashrc, etc.)
+export PATH="$HOME/go/bin:$PATH"
+```
+
+<details>
+<summary>📋 Troubleshooting</summary>
+
+**"command not found: mur"**
+```bash
+export PATH="$HOME/go/bin:$PATH"
+```
+
+**"LC_UUID" error on macOS**  
+Use `CGO_ENABLED=0` when installing (already included above).
+
+**Check installation**
+```bash
+mur doctor
 ```
 
 </details>
 
+## 🎯 How It Works
+
+```
+┌──────────────────────────────────────────────┐
+│  You use AI CLIs normally                     │
+│                                               │
+│  $ claude "explain this code"                 │
+│  $ gemini "fix the bug"                       │
+└──────────────────────────────────────────────┘
+                    │
+                    ▼
+┌──────────────────────────────────────────────┐
+│  mur hooks inject relevant patterns           │
+│                                               │
+│  [context: your-project-patterns.md]          │
+│  [context: learned-from-last-week.md]         │
+└──────────────────────────────────────────────┘
+                    │
+                    ▼
+┌──────────────────────────────────────────────┐
+│  AI responds with project context             │
+│                                               │
+│  "Based on your navigation pattern, use..."   │
+└──────────────────────────────────────────────┘
+                    │
+                    ▼
+┌──────────────────────────────────────────────┐
+│  mur learns from the session (optional)       │
+│                                               │
+│  $ mur learn extract --auto                   │
+└──────────────────────────────────────────────┘
+```
+
 ## 📋 Commands
 
-### Setup & Status
+### Core
 
 | Command | Description |
 |---------|-------------|
 | `mur init` | Interactive setup wizard |
-| `mur init --hooks` | Setup with CLI hooks for auto-learning |
-| `mur status` | Quick overview of patterns, sync, stats |
-| `mur doctor` | Diagnose setup issues |
-| `mur doctor --fix` | Auto-fix common issues |
+| `mur init --hooks` | Quick setup with CLI hooks |
+| `mur status` | Overview of patterns, sync status |
+| `mur doctor` | Diagnose and fix issues |
+| `mur sync` | Sync patterns to all AI tools |
 
-### Pattern Management
+### Patterns
 
 | Command | Description |
 |---------|-------------|
-| `mur new <name>` | Create new pattern from template |
+| `mur new <name>` | Create new pattern |
 | `mur edit <name>` | Edit pattern in $EDITOR |
-| `mur learn list` | List all patterns |
-| `mur learn get <name>` | Show pattern details |
-| `mur learn delete <name>` | Delete a pattern |
-| `mur lint` | Validate all patterns |
-| `mur lint <name>` | Validate specific pattern |
+| `mur search <query>` | Search patterns |
+| `mur copy <name>` | Copy pattern to clipboard |
+| `mur examples` | Install example patterns |
 
-### Learning & Extraction
+### Learning
 
 | Command | Description |
 |---------|-------------|
 | `mur transcripts` | Browse Claude Code sessions |
-| `mur transcripts --project X` | Filter by project |
-| `mur transcripts show <id>` | View session content |
 | `mur learn extract` | Extract patterns from sessions |
-| `mur learn extract --auto` | Auto-extract from recent sessions |
+| `mur learn extract --auto` | Auto-extract high-confidence patterns |
+| `mur import <file>` | Import from file or URL |
 
-### Import & Export
-
-| Command | Description |
-|---------|-------------|
-| `mur import file.yaml` | Import patterns from file |
-| `mur import https://...` | Import from URL |
-| `mur export` | Export all patterns (YAML) |
-| `mur export --format json` | Export as JSON |
-| `mur export -o file.yaml` | Export to file |
-
-### Sync & Deploy
+### Dashboard
 
 | Command | Description |
 |---------|-------------|
-| `mur sync` | Sync patterns to all CLIs/IDEs |
-| `mur sync --push` | Also push to learning repo |
-| `mur repo set <url>` | Set learning repo |
-| `mur repo status` | Show repo status |
-
-### Dashboard & Analytics
-
-| Command | Description |
-|---------|-------------|
-| `mur serve` | Start interactive web dashboard |
-| `mur serve -p 3000` | Custom port |
+| `mur serve` | Start web dashboard |
 | `mur dashboard` | Generate static HTML report |
-| `mur dashboard -o report.html` | Save to file |
 | `mur stats` | View usage statistics |
 
-### Maintenance
-
-| Command | Description |
-|---------|-------------|
-| `mur update` | Update mur components |
-| `mur health` | Check AI CLI availability |
-
-## 🎯 How It Works
+<details>
+<summary>📖 All Commands</summary>
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                         mur init                             │
-│  1. Select AI CLIs (Claude, Gemini, Codex, etc.)            │
-│  2. Install hooks (for real-time learning)                  │
-│  3. Set up learning repo (optional, for sync)               │
-│  4. Sync patterns to all CLIs                               │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    Use Any CLI Normally                      │
-│                                                              │
-│   claude -p "fix bug"     gemini -p "explain"               │
-│         │                        │                           │
-│         └────────┬───────────────┘                          │
-│                  ▼                                           │
-│         Patterns auto-injected                               │
-└─────────────────────────────────────────────────────────────┘
+mur
+├── init           # Setup wizard
+├── status         # Quick overview
+├── doctor         # Diagnose issues
+├── sync           # Sync to AI tools
+├── new            # Create pattern
+├── edit           # Edit pattern
+├── search         # Search patterns
+├── copy           # Copy to clipboard
+├── examples       # Install examples
+├── import         # Import patterns
+├── export         # Export patterns
+├── config         # View/edit config
+├── transcripts    # Browse sessions
+├── serve          # Web dashboard
+├── dashboard      # Static report
+├── stats          # Usage stats
+├── clean          # Cleanup old files
+├── version        # Show version
+├── web            # Open docs/GitHub
+└── learn
+    ├── list       # List patterns
+    ├── get        # Show pattern
+    ├── add        # Add pattern
+    ├── delete     # Delete pattern
+    ├── sync       # Sync to CLIs
+    └── extract    # Extract from sessions
 ```
 
-## 🔄 Sync Targets
+</details>
 
-mur syncs patterns to 8 targets:
+## 🔄 Supported Tools
 
-**CLIs (dynamic injection via hooks):**
-- Claude Code (`~/.claude/skills/mur/`)
-- Gemini CLI (`~/.gemini/skills/mur/`)
+**AI CLIs** (with hooks for real-time injection):
+- Claude Code
+- Gemini CLI
 
-**CLIs (static sync):**
-- Codex (`~/.codex/instructions.md`)
-- Auggie (`~/.augment/skills/mur/`)
-- Aider (`~/.aider/mur-patterns.md`)
+**AI CLIs** (static sync):
+- Codex
+- Auggie
+- Aider
 
-**IDEs (static sync):**
-- Continue (`~/.continue/rules/mur/`)
-- Cursor (`~/.cursor/rules/mur/`)
-- Windsurf (`~/.windsurf/rules/mur/`)
-
-## 📊 Dashboard
-
-View your patterns and analytics:
-
-```bash
-# Interactive dashboard (opens browser)
-mur serve
-
-# Static HTML report
-mur dashboard -o report.html
-open report.html
-```
+**IDEs** (static sync):
+- Continue
+- Cursor
+- Windsurf
 
 ## 🔧 Configuration
 
-Config location: `~/.mur/config.yaml`
-
 ```yaml
+# ~/.mur/config.yaml
+
 default_tool: claude
 
 tools:
@@ -200,24 +213,48 @@ tools:
     enabled: true
 
 learning:
-  repo: git@github.com:username/my-learnings.git
+  repo: git@github.com:you/patterns.git  # Optional: sync across machines
+  auto_push: true
 ```
+
+## 📊 Dashboard
+
+```bash
+# Interactive web dashboard
+mur serve
+# → http://localhost:8080
+
+# Static HTML report
+mur dashboard -o report.html
+```
+
+Features:
+- Pattern browser with search/filter
+- Usage statistics and charts
+- Sync status across tools
+- One-click pattern editing
 
 ## 📁 Directory Structure
 
 ```
 ~/.mur/
-├── config.yaml     # Configuration
-├── patterns/       # Your learned patterns
-├── stats.jsonl     # Usage statistics
-└── repo/           # Learning repo (if configured)
+├── config.yaml      # Configuration
+├── patterns/        # Your patterns (YAML)
+├── hooks/           # CLI hook scripts
+├── stats.jsonl      # Usage statistics
+└── repo/            # Git sync repo (optional)
 ```
 
-## 📖 Links
+## 🤝 Contributing
 
-- [Changelog](./CHANGELOG.md)
-- [Issues](https://github.com/mur-run/mur-core/issues)
+Issues and PRs welcome!
+
+```bash
+git clone https://github.com/mur-run/mur-core.git
+cd mur-core
+make check  # lint + test
+```
 
 ## 📄 License
 
-MIT
+MIT — use it however you want.

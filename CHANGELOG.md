@@ -2,6 +2,22 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [0.9.0] - 2026-02-08
+
+### Fixed
+- **JSON Pattern Extraction** - Claude's JSON pattern arrays now parse correctly into individual pattern files instead of saving as one blob (#1)
+- **Doctor CLI Detection** - Now finds AI CLIs installed outside PATH (e.g., `~/.npm-global/bin/`, `~/go/bin/`)
+
+### Added
+- Pattern name validation to filter low-quality extractions (now-need-update, wait-changed-line, etc.)
+- Homebrew formula (`Formula/mur.rb`) for easier installation
+- Unit tests for JSON extraction and pattern name validation
+
+### Changed
+- README overhauled with better installation docs, feature highlights, and command reference
+
+---
+
 ## [0.8.0] - 2026-02-07
 
 ### Added
