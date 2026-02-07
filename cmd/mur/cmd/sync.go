@@ -172,11 +172,21 @@ var syncSkillsCmd = &cobra.Command{
 var syncPatternsCmd = &cobra.Command{
 	Use:   "patterns",
 	Short: "Sync patterns to all CLI tools",
+	Long: `Sync learned patterns to all AI CLI tools.
+
+This generates a skill file from your patterns and copies it to:
+  • ~/.claude/skills/mur-patterns.md
+  • ~/.gemini/skills/mur-patterns.md
+  • ~/.codex/instructions.md
+  • ~/.augment/skills/mur-patterns.md
+  • ~/.aider/conventions.md
+
+After syncing, your patterns are available in any CLI you use.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println("Syncing patterns (Schema v2)...")
+		fmt.Println("Syncing patterns to all CLIs...")
 		fmt.Println()
 
-		results, err := learn.SyncPatternsV2()
+		results, err := sync.SyncPatternsToAllCLIs()
 		if err != nil {
 			return fmt.Errorf("sync failed: %w", err)
 		}
@@ -190,7 +200,7 @@ var syncPatternsCmd = &cobra.Command{
 		}
 
 		fmt.Println()
-		fmt.Println("Done.")
+		fmt.Println("Done. Your patterns are now available in all CLIs.")
 		return nil
 	},
 }

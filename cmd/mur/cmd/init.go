@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/mur-run/mur-core/internal/sync"
 	"github.com/spf13/cobra"
 )
 
@@ -156,6 +157,19 @@ func runInteractiveInit(home, murDir string) error {
 	if installHooks {
 		if err := installClaudeHooks(home, murDir); err != nil {
 			return fmt.Errorf("failed to install hooks: %w", err)
+		}
+	}
+
+	// Sync patterns to all selected CLIs
+	fmt.Println("Syncing patterns to CLIs...")
+	results, err := sync.SyncPatternsToAllCLIs()
+	if err != nil {
+		fmt.Printf("  ⚠ Warning: %v\n", err)
+	} else {
+		for _, r := range results {
+			if r.Success {
+				fmt.Printf("  ✓ %s: %s\n", r.Target, r.Message)
+			}
 		}
 	}
 
