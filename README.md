@@ -31,10 +31,10 @@ go install github.com/mur-run/mur-core/cmd/mur@latest
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                         mur init                             │
-│  • Detects your AI CLIs (Claude, Gemini, Codex, etc.)       │
-│  • Installs learning hooks                                   │
-│  • Sets up learning repo (optional)                          │
-│  • Syncs patterns to all CLIs                               │
+│  1. Select AI CLIs (Claude, Gemini, Codex, etc.)            │
+│  2. Install Claude Code hooks (for real-time learning)      │
+│  3. Set up learning repo (optional, for sync)               │
+│  4. Sync patterns to all CLIs                               │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
