@@ -160,7 +160,14 @@ func runInteractiveInit(home, murDir string) error {
 		}
 	}
 
+	// Ask about learning repo
+	fmt.Println()
+	if err := SetupLearningRepo(home); err != nil {
+		fmt.Printf("  ⚠ Warning: %v\n", err)
+	}
+
 	// Sync patterns to all selected CLIs
+	fmt.Println()
 	fmt.Println("Syncing patterns to CLIs...")
 	results, err := sync.SyncPatternsToAllCLIs()
 	if err != nil {

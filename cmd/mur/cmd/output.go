@@ -111,7 +111,7 @@ func outputSyncExecute(cmd *cobra.Command, args []string) error {
 
 	if !jsonOutput {
 		// Fall back to regular sync
-		return syncAllCmd.RunE(cmd, args)
+		return runSync(cmd, args)
 	}
 
 	result := OutputSyncResult{
