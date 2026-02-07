@@ -240,6 +240,7 @@ func suggestRejectExecute(cmd *cobra.Command, args []string) error {
 }
 
 func init() {
+	suggestCmd.Hidden = true
 	rootCmd.AddCommand(suggestCmd)
 	suggestCmd.AddCommand(suggestScanCmd)
 	suggestCmd.AddCommand(suggestListCmd)

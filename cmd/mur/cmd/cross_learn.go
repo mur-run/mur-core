@@ -161,6 +161,7 @@ func crossLearnStatusExecute(cmd *cobra.Command, args []string) error {
 }
 
 func init() {
+	crossLearnCmd.Hidden = true
 	rootCmd.AddCommand(crossLearnCmd)
 	crossLearnCmd.AddCommand(crossLearnScanCmd)
 	crossLearnCmd.AddCommand(crossLearnStatusCmd)

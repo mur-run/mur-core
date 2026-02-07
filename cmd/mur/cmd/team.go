@@ -156,6 +156,7 @@ var teamStatusCmd = &cobra.Command{
 }
 
 func init() {
+	teamCmd.Hidden = true
 	rootCmd.AddCommand(teamCmd)
 	teamCmd.AddCommand(teamInitCmd)
 	teamCmd.AddCommand(teamPullCmd)

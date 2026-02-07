@@ -145,6 +145,7 @@ var skillsShowCmd = &cobra.Command{
 }
 
 func init() {
+	skillsCmd.Hidden = true
 	rootCmd.AddCommand(skillsCmd)
 	skillsCmd.AddCommand(skillsListCmd)
 	skillsCmd.AddCommand(skillsImportCmd)

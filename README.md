@@ -1,28 +1,8 @@
 # mur 🔊
 
-[![CI](https://github.com/mur-run/mur-core/actions/workflows/ci.yml/badge.svg)](https://github.com/mur-run/mur-core/actions/workflows/ci.yml)
-[![Release](https://github.com/mur-run/mur-core/actions/workflows/release.yml/badge.svg)](https://github.com/mur-run/mur-core/releases)
-[![Go Report Card](https://goreportcard.com/badge/github.com/mur-run/mur-core)](https://goreportcard.com/report/github.com/mur-run/mur-core)
+**Continuous learning for AI assistants.**
 
-**Unified AI CLI with Continuous Learning**
-
-Every AI CLI is an isolated island. **mur** unifies them with a learning engine that makes your patterns smarter over time.
-
-## ✨ What's New in v0.5.0
-
-- **Renamed to mur-core** — Unified naming across the ecosystem
-- **`mur init --hooks`** — One-command Claude Code hooks installation
-- **`mur export`** — Export patterns to YAML/JSON/Markdown
-- **`mur inject`** — Inject patterns into project CLAUDE.md/AGENTS.md
-
-### v0.4.0
-
-- **Auto Pattern Injection** — Relevant patterns injected automatically based on context
-- **Effectiveness Tracking** — Patterns learn from your feedback and usage
-- **Semantic Search** — Find patterns by meaning, not just keywords
-- **Lifecycle Management** — Auto-deprecate underperforming patterns
-- **Cross-CLI Learning** — Learn from Claude, Gemini, Codex sessions together
-- **Pattern Suggestions** — Extract patterns from your session histories
+mur makes your AI CLIs smarter over time. Learn once, remember forever.
 
 ## 🚀 Quick Start
 
@@ -30,351 +10,130 @@ Every AI CLI is an isolated island. **mur** unifies them with a learning engine 
 # Install
 go install github.com/mur-run/mur-core/cmd/mur@latest
 
-# Initialize with Claude Code hooks
-mur init --hooks
+# Setup (interactive)
+mur init
 
-# Run with auto pattern injection
-mur run -p "fix the login bug"
-→ claude (auto: complexity 0.65) [3 patterns]
-
-# Give feedback
-mur feedback helpful swift-error-handling
-
-# Export patterns
-mur export --format md -o patterns.md
-
-# Inject into project
-mur inject ~/Projects/myapp
+# That's it! Use your AI CLI as normal
+claude -p "fix this bug"
+gemini -p "explain this code"
 ```
+
+mur works invisibly in the background. Your patterns are synced to all CLIs.
 
 ## 📦 Installation
 
-### Homebrew (macOS)
-
-```bash
-brew install mur-run/tap/mur
-```
-
-### Go Install
+### Go Install (recommended)
 
 ```bash
 go install github.com/mur-run/mur-core/cmd/mur@latest
 ```
 
-### Download Binary
+### From Source
 
 ```bash
-# macOS (Apple Silicon)
-curl -L https://github.com/mur-run/mur-core/releases/latest/download/mur_Darwin_arm64.tar.gz | tar xz
-sudo mv mur /usr/local/bin/
-
-# macOS (Intel)
-curl -L https://github.com/mur-run/mur-core/releases/latest/download/mur_Darwin_x86_64.tar.gz | tar xz
-sudo mv mur /usr/local/bin/
-
-# Linux
-curl -L https://github.com/mur-run/mur-core/releases/latest/download/mur_Linux_x86_64.tar.gz | tar xz
-sudo mv mur /usr/local/bin/
+git clone https://github.com/mur-run/mur-core.git
+cd mur-core
+go install ./cmd/mur
 ```
 
-## 🎯 Core Features
+## 🎯 How It Works
 
-### Smart Routing
+```
+┌─────────────────────────────────────────────────────────────┐
+│                         mur init                             │
+│  • Detects your AI CLIs (Claude, Gemini, Codex, etc.)       │
+│  • Installs learning hooks                                   │
+│  • Syncs patterns to all CLIs                               │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Use Any CLI Normally                      │
+│                                                              │
+│   claude -p "fix bug"     gemini -p "explain"               │
+│         │                        │                           │
+│         └────────┬───────────────┘                          │
+│                  ▼                                           │
+│         Patterns auto-applied                                │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                     mur sync (periodic)                      │
+│  • Syncs new patterns to all CLIs                           │
+│  • ~/.claude/skills/mur-patterns.md                         │
+│  • ~/.gemini/skills/mur-patterns.md                         │
+│  • etc.                                                      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## 📋 Commands
+
+### Essential
+
+| Command | Description |
+|---------|-------------|
+| `mur init` | Interactive setup wizard |
+| `mur sync` | Sync patterns to all CLIs |
+| `mur learn` | Add/manage learned patterns |
+| `mur stats` | View learning statistics |
+
+### Maintenance
+
+| Command | Description |
+|---------|-------------|
+| `mur update` | Update mur (binary, hooks, skills) |
+| `mur health` | Check AI CLI availability |
+
+### Advanced (use `mur run`)
 
 ```bash
-mur run -p "what is git?"           # → Free tool (simple question)
-mur run -p "refactor this module"   # → Paid tool (complex task)
-mur run -p "fix bug" -t claude      # Force specific tool
-mur run -p "test" --explain         # Show routing decision
+# Smart routing (auto-select best CLI)
+mur run -p "fix this bug"
+
+# Force specific CLI
+mur run -t claude -p "explain this"
 ```
-
-### Pattern Auto-Injection
-
-Patterns are automatically injected based on your project context:
-
-```bash
-cd ~/Projects/MySwiftApp
-mur run -p "fix the auth error"
-
-# mur detects: Swift project, error-handling context
-# Auto-injects: swift-error-handling, auth-patterns
-→ claude [2 patterns]
-```
-
-Disable with `--no-inject`, see details with `--verbose`.
-
-### Effectiveness Tracking
-
-```bash
-# After using mur run, give feedback
-mur feedback helpful swift-error-handling
-mur feedback unhelpful debugging-tips -c "too generic"
-
-# View pattern stats
-mur pattern-stats
-swift-error-handling        █████████░ 90%
-  Uses: 12   Success: 92% | 👍 8 😐 2 👎 0
-```
-
-### Semantic Search
-
-```bash
-# Index patterns for semantic search
-mur embed index
-
-# Search by meaning
-mur embed search "handle errors in network requests"
-1. network-error-handling  ██████████ 95%
-2. retry-logic            ████████░░ 78%
-```
-
-Supports local (Ollama) or cloud (OpenAI) embeddings.
-
-### Lifecycle Management
-
-```bash
-# Check for low-performing patterns
-mur lifecycle evaluate
-⚠️ debugging-tips: active → deprecated
-   Reason: low effectiveness: 25% (threshold: 30%)
-
-# Apply changes
-mur lifecycle apply
-```
-
-### Pattern Suggestion
-
-```bash
-# Extract patterns from session files
-mur suggest scan ~/sessions/
-Found 8 suggestions
-
-1. swift-error-handling  ████████░░ 80%
-   Handle Result types with proper error propagation
-
-# Interactive review
-mur suggest scan --interactive
-```
-
-### Cross-CLI Learning
-
-```bash
-# Learn from all your AI CLI histories
-mur cross-learn status
-Claude Code:    ✓ 42 session files
-Gemini CLI:     ✓ 18 session files
-
-mur cross-learn scan
-📚 Claude Code: 8 suggestions
-📚 Gemini CLI: 3 suggestions
-```
-
-### Sync to All CLIs
-
-```bash
-mur sync patterns
-✓ Claude Code: synced 12 patterns
-✓ Gemini CLI: synced 12 patterns
-✓ Codex: synced 12 patterns
-✓ Aider: synced 12 patterns
-```
-
-## 📋 Command Reference
-
-### Run & Route
-
-| Command | Description |
-|---------|-------------|
-| `mur run -p "prompt"` | Run with smart routing + pattern injection |
-| `mur run -t claude -p "..."` | Force specific tool |
-| `mur run --explain` | Show routing decision |
-| `mur run --no-inject` | Disable pattern injection |
-| `mur run -v` | Verbose (show injected patterns) |
-
-### Patterns
-
-| Command | Description |
-|---------|-------------|
-| `mur learn list` | List all patterns |
-| `mur learn add <name>` | Add pattern interactively |
-| `mur learn get <name>` | Show pattern details |
-| `mur lint` | Validate all patterns |
-| `mur migrate` | Migrate to Schema v2 |
-
-### Feedback & Stats
-
-| Command | Description |
-|---------|-------------|
-| `mur feedback helpful <pattern>` | Rate pattern as helpful |
-| `mur feedback unhelpful <pattern>` | Rate as unhelpful |
-| `mur pattern-stats` | View effectiveness stats |
-| `mur pattern-stats --update` | Refresh effectiveness scores |
-
-### Semantic Search
-
-| Command | Description |
-|---------|-------------|
-| `mur embed index` | Index patterns for search |
-| `mur embed search "query"` | Semantic search |
-| `mur embed status` | Show index status |
-| `mur embed rehash` | Rebuild index |
-
-### Lifecycle
-
-| Command | Description |
-|---------|-------------|
-| `mur lifecycle evaluate` | Check for deprecation |
-| `mur lifecycle apply` | Apply recommendations |
-| `mur lifecycle deprecate <name>` | Manually deprecate |
-| `mur lifecycle reactivate <name>` | Reactivate pattern |
-| `mur lifecycle cleanup` | Delete old archived |
-
-### Suggestions
-
-| Command | Description |
-|---------|-------------|
-| `mur suggest scan <dir>` | Scan for pattern suggestions |
-| `mur suggest scan -i` | Interactive review |
-| `mur suggest accept <name>` | Accept suggestion |
-| `mur suggest list` | List pending suggestions |
-
-### Cross-CLI Learning
-
-| Command | Description |
-|---------|-------------|
-| `mur cross-learn status` | Show available CLI sources |
-| `mur cross-learn scan` | Learn from all CLIs |
-| `mur cross-learn scan -s claude` | Learn from specific CLI |
-
-### Sync
-
-| Command | Description |
-|---------|-------------|
-| `mur sync all` | Sync everything |
-| `mur sync patterns` | Sync patterns to all CLIs |
-| `mur sync mcp` | Sync MCP config |
-| `mur sync hooks` | Sync hooks |
-
-### Export & Inject
-
-| Command | Description |
-|---------|-------------|
-| `mur export` | Export patterns as YAML (default) |
-| `mur export --format json` | Export as JSON |
-| `mur export --format md` | Export as Markdown |
-| `mur export --tag backend` | Filter by tag |
-| `mur export -o file.json` | Output to file |
-| `mur inject .` | Inject patterns into CLAUDE.md |
-| `mur inject --file AGENTS.md` | Use different file |
-| `mur inject --dry-run` | Preview without writing |
-
-### Other
-
-| Command | Description |
-|---------|-------------|
-| `mur init` | Initialize config |
-| `mur init --hooks` | Initialize + install Claude Code hooks |
-| `mur health` | Check tool availability |
-| `mur stats` | Usage statistics |
-| `mur serve` | Start web dashboard |
 
 ## 🔧 Configuration
 
-`~/.mur/config.yaml`:
+After `mur init`, config is at `~/.mur/config.yaml`:
 
 ```yaml
 default_tool: claude
 
-routing:
-  mode: auto  # auto | manual | cost-first
-  complexity_threshold: 0.5
-
 tools:
   claude:
     enabled: true
-    binary: claude
-    tier: paid
   gemini:
     enabled: true
-    binary: gemini
-    tier: free
-
-# Embedding provider for semantic search
-embedding:
-  provider: ollama  # ollama | openai
-  model: nomic-embed-text
-
-# Lifecycle thresholds
-lifecycle:
-  deprecate_threshold: 0.3
-  archive_threshold: 0.1
-  stale_after_days: 90
 ```
 
-## 🤖 Supported AI CLIs
-
-| CLI | Sync Support | Learning |
-|-----|--------------|----------|
-| Claude Code | MCP, Hooks, Patterns | ✅ Sessions |
-| Gemini CLI | MCP, Hooks, Patterns | ✅ Sessions |
-| Codex | instructions.md | ✅ Sessions |
-| Aider | conventions/ | ✅ Sessions |
-| Continue | MCP, Patterns | ✅ Sessions |
-| Cursor | Patterns | - |
-| OpenCode | MCP, Patterns | - |
-| Auggie | MCP, Patterns | - |
-
-## 🏗️ Architecture
+## 📁 Directory Structure
 
 ```
 ~/.mur/
-├── config.yaml           # Main configuration
-├── patterns/             # Pattern storage (Schema v2)
-├── hooks/                # Claude Code hooks (from init --hooks)
-├── transcripts/          # Session transcripts
-├── tracking/             # Usage & effectiveness data
-├── embeddings/           # Semantic search cache
-└── suggestions/          # Pending suggestions
+├── config.yaml     # Configuration
+├── patterns/       # Learned patterns
+├── hooks/          # Hook templates
+└── transcripts/    # Session logs
 ```
 
-## 📖 Pattern Schema v2
+## 🤝 Supported CLIs
 
-```yaml
-id: uuid
-name: swift-error-handling
-description: Handle Swift errors with Result types
-content: |
-  When handling errors in Swift...
+| CLI | Patterns Sync | Hooks |
+|-----|--------------|-------|
+| Claude Code | ✅ | ✅ |
+| Gemini CLI | ✅ | - |
+| Codex | ✅ | - |
+| Auggie | ✅ | - |
+| Aider | ✅ | - |
 
-tags:
-  confirmed: [swift, error-handling]
-  inferred:
-    - tag: ios
-      confidence: 0.92
+## 📖 Learn More
 
-applies:
-  languages: [swift]
-  frameworks: [swiftui]
-  keywords: [error, Result, throw]
-
-security:
-  trust_level: owner
-  reviewed: true
-
-learning:
-  effectiveness: 0.85
-  usage_count: 42
-
-lifecycle:
-  status: active
-```
-
-## 🔗 Links
-
-- **Website**: [mur.run](https://mur.run)
-- **Documentation**: [docs/](./docs/)
-- **Issues**: [GitHub Issues](https://github.com/mur-run/mur-core/issues)
-- **Releases**: [GitHub Releases](https://github.com/mur-run/mur-core/releases)
+- [Documentation](./docs/)
+- [Changelog](./CHANGELOG.md)
+- [Issues](https://github.com/mur-run/mur-core/issues)
 
 ## 📄 License
 

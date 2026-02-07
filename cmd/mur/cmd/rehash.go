@@ -15,6 +15,7 @@ var rehashCmd = &cobra.Command{
 }
 
 func init() {
+	rehashCmd.Hidden = true
 	rootCmd.AddCommand(rehashCmd)
 }
 

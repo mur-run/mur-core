@@ -193,6 +193,7 @@ func max(a, b int) int {
 }
 
 func init() {
+	embedCmd.Hidden = true
 	rootCmd.AddCommand(embedCmd)
 	embedCmd.AddCommand(embedIndexCmd)
 	embedCmd.AddCommand(embedStatusCmd)

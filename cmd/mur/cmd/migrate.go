@@ -44,6 +44,7 @@ var (
 )
 
 func init() {
+	migrateCmd.Hidden = true
 	rootCmd.AddCommand(migrateCmd)
 	migrateCmd.Flags().BoolVar(&migrateCheck, "check", false, "Check if migration is needed without migrating")
 	migrateCmd.Flags().BoolVar(&migrateDryRun, "dry-run", false, "Show what would be migrated without making changes")

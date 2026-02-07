@@ -41,6 +41,7 @@ var (
 )
 
 func init() {
+	classifyCmd.Hidden = true
 	rootCmd.AddCommand(classifyCmd)
 	classifyCmd.Flags().StringVarP(&classifyFile, "file", "f", "", "Current file context")
 	classifyCmd.Flags().BoolVar(&classifyDomainsOnly, "domains-only", false, "Show only domains, skip pattern matching")

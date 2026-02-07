@@ -36,6 +36,7 @@ Example:
 }
 
 func init() {
+	serveCmd.Hidden = true
 	rootCmd.AddCommand(serveCmd)
 	serveCmd.Flags().IntVarP(&servePort, "port", "p", 8383, "port to listen on")
 }

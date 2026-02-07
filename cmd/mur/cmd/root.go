@@ -4,19 +4,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var version = "0.4.0"
+var version = "0.5.1"
 
 var rootCmd = &cobra.Command{
 	Use:   "mur",
-	Short: "Murmur — Multi-AI CLI 統一管理層 + 跨工具學習系統",
-	Long: `Murmur (mur) is a unified management layer for AI CLI tools.
+	Short: "Continuous learning for AI assistants",
+	Long: `mur — Continuous learning for AI assistants.
 
-Features:
-  • Multi-tool runner — run any AI with one command
-  • MCP sync — configure once, sync everywhere
-  • Cross-tool learning — what Claude learns, Gemini knows
-  • Team knowledge base — share patterns across your team
-  • Smart routing — auto-select the cheapest tool for the task
+Learn once, remember forever. mur syncs your patterns to all AI CLIs.
+
+Quick start:
+  mur init              # Interactive setup
+  mur sync              # Sync patterns to CLIs
+  mur learn             # Manage patterns
+  mur stats             # View statistics
 
 Learn more: https://github.com/mur-run/mur-core`,
 	Version: version,

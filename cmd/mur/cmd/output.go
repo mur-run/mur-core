@@ -221,6 +221,7 @@ func outputLearnExecute(cmd *cobra.Command, args []string) error {
 }
 
 func init() {
+	outputCmd.Hidden = true
 	rootCmd.AddCommand(outputCmd)
 	outputCmd.AddCommand(outputSyncCmd)
 	outputCmd.AddCommand(outputStatsCmd)

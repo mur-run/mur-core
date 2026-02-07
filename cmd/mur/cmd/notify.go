@@ -107,6 +107,7 @@ Examples:
 }
 
 func init() {
+	notifyCmd.Hidden = true
 	rootCmd.AddCommand(notifyCmd)
 	notifyCmd.AddCommand(notifyTestCmd)
 

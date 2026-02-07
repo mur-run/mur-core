@@ -280,6 +280,7 @@ func maskWebhook(url string) string {
 }
 
 func init() {
+	configCmd.Hidden = true
 	rootCmd.AddCommand(configCmd)
 	configCmd.AddCommand(configShowCmd)
 	configCmd.AddCommand(configSetCmd)

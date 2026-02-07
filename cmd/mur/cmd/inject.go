@@ -39,6 +39,7 @@ var (
 )
 
 func init() {
+	injectCmd.Hidden = true // Use 'mur sync' instead
 	rootCmd.AddCommand(injectCmd)
 
 	injectCmd.Flags().StringVarP(&injectFile, "file", "f", "CLAUDE.md", "Target file name")

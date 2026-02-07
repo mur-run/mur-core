@@ -314,6 +314,7 @@ func lifecycleCleanupExecute(cmd *cobra.Command, args []string) error {
 }
 
 func init() {
+	lifecycleCmd.Hidden = true
 	rootCmd.AddCommand(lifecycleCmd)
 	lifecycleCmd.AddCommand(lifecycleEvaluateCmd)
 	lifecycleCmd.AddCommand(lifecycleApplyCmd)

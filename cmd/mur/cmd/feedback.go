@@ -152,9 +152,12 @@ func makeBar(value float64, width int) string {
 }
 
 func init() {
+	feedbackCmd.Hidden = true
 	rootCmd.AddCommand(feedbackCmd)
 	feedbackCmd.Flags().StringP("comment", "c", "", "Add a comment to the feedback")
 
+	patternStatsCmd.Hidden = true
+	patternStatsCmd.Hidden = true
 	rootCmd.AddCommand(patternStatsCmd)
 	patternStatsCmd.Flags().Bool("update", false, "Update pattern effectiveness scores from tracking data")
 }

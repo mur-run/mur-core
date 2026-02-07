@@ -38,6 +38,7 @@ var (
 )
 
 func init() {
+	lintCmd.Hidden = true
 	rootCmd.AddCommand(lintCmd)
 	lintCmd.Flags().BoolVar(&lintErrorsOnly, "errors-only", false, "Show only errors, hide warnings and info")
 	lintCmd.Flags().BoolVar(&lintJSON, "json", false, "Output in JSON format")

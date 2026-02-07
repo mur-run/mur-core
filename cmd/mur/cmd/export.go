@@ -35,6 +35,7 @@ var (
 )
 
 func init() {
+	exportCmd.Hidden = true // Use 'mur sync' instead
 	rootCmd.AddCommand(exportCmd)
 
 	exportCmd.Flags().StringVarP(&exportFormat, "format", "f", "yaml", "Output format: yaml, json, md")
