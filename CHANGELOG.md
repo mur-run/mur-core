@@ -6,6 +6,12 @@ All notable changes to mur-core will be documented in this file.
 
 ### Added
 
+#### Context-Aware Pattern Injection for Native CLIs
+- `mur context` - Output relevant patterns for current project (used by hooks)
+- Claude Code UserPromptSubmit hook now injects context-aware patterns
+- Works with `claude` directly - no need for `mur run`
+- Detects project type (Go, Swift, Python, Node.js) and matches patterns
+
 #### Automatic Pattern Extraction
 - `mur learn extract --accept-all` - Auto-save patterns above confidence threshold
 - `mur learn extract --quiet` - Silent mode for hooks
@@ -25,6 +31,7 @@ All notable changes to mur-core will be documented in this file.
 - Session-end hook now runs `mur learn extract --auto --accept-all --quiet`
 - Semantic search auto-initializes when embeddings are available
 - `mur init` now suggests setting up semantic search
+- UserPromptSubmit hook now runs `mur context` for dynamic pattern injection
 
 ## [0.6.0] - 2026-02-07
 

@@ -302,6 +302,16 @@ routing:
 }
 
 func installClaudeHooks(home, murDir string) error {
+	// Create on-prompt.sh - injects context-aware patterns
+	promptScriptPath := filepath.Join(murDir, "hooks", "on-prompt.sh")
+	promptScript := `#!/bin/bash
+# Inject context-aware patterns based on current project
+mur context --compact 2>/dev/null || true
+`
+	if err := os.WriteFile(promptScriptPath, []byte(promptScript), 0755); err != nil {
+		return err
+	}
+
 	// Create on-prompt-reminder.md
 	reminderPath := filepath.Join(murDir, "hooks", "on-prompt-reminder.md")
 	reminderContent := `[ContinuousLearning] If during this task you discover something non-obvious (a debugging technique, a workaround, a pattern), save it:
@@ -337,6 +347,9 @@ mur sync --quiet 2>/dev/null || true
 			{
 				"matcher": "",
 				"hooks": []map[string]interface{}{
+					// Inject context-aware patterns
+					{"type": "command", "command": fmt.Sprintf("bash %s >&2", promptScriptPath)},
+					// Learning reminder
 					{"type": "command", "command": fmt.Sprintf("cat %s >&2", reminderPath)},
 				},
 			},
