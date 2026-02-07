@@ -8,9 +8,7 @@ mur makes your AI CLIs smarter over time. Learn once, remember forever.
 
 ```bash
 # Install
-go install github.com/mur-run/mur-core/cmd/mur@latest
-
-# Ensure go/bin is in PATH
+CGO_ENABLED=0 go install github.com/mur-run/mur-core/cmd/mur@latest
 export PATH="$HOME/go/bin:$PATH"
 
 # Setup (interactive)
@@ -29,15 +27,40 @@ mur works invisibly in the background. Your patterns are synced to all CLIs.
 ## 📦 Installation
 
 ```bash
-# Install
-go install github.com/mur-run/mur-core/cmd/mur@latest
+# Install (recommended)
+CGO_ENABLED=0 go install github.com/mur-run/mur-core/cmd/mur@latest
 
 # Make sure ~/go/bin is in your PATH
 export PATH="$HOME/go/bin:$PATH"
 
-# Add to shell config for persistence
-echo 'export PATH="$HOME/go/bin:$PATH"' >> ~/.zshrc  # or ~/.bashrc
+# Verify installation
+mur version
 ```
+
+<details>
+<summary>Troubleshooting</summary>
+
+**"command not found: mur"**
+```bash
+# Add go/bin to PATH
+export PATH="$HOME/go/bin:$PATH"
+echo 'export PATH="$HOME/go/bin:$PATH"' >> ~/.zshrc
+```
+
+**"LC_UUID" error on macOS**
+```bash
+# Use CGO_ENABLED=0
+CGO_ENABLED=0 go install github.com/mur-run/mur-core/cmd/mur@latest
+```
+
+**Build from source**
+```bash
+git clone https://github.com/mur-run/mur-core.git
+cd mur-core
+go build -o ~/go/bin/mur ./cmd/mur
+```
+
+</details>
 
 ## 📋 Commands
 
