@@ -77,7 +77,8 @@ func runMigrate(cmd *cobra.Command, args []string) error {
 	fmt.Printf("📦 Found %d patterns that need migration (v1 → v2)\n\n", count)
 
 	if migrateDryRun {
-		fmt.Println("🔍 Dry run mode - no changes will be made\n")
+		fmt.Println("🔍 Dry run mode - no changes will be made")
+		fmt.Println()
 	}
 
 	// Run migration

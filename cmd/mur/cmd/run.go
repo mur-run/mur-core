@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"time"
 
 	"github.com/mur-run/mur-cli/internal/config"
+	"github.com/mur-run/mur-cli/internal/core/inject"
+	"github.com/mur-run/mur-cli/internal/core/pattern"
 	"github.com/mur-run/mur-cli/internal/router"
 	"github.com/mur-run/mur-cli/internal/stats"
 	"github.com/spf13/cobra"
@@ -20,13 +23,17 @@ var runCmd = &cobra.Command{
 With routing.mode=auto (default), murmur selects the best tool based on
 prompt complexity. Simple questions use free tools; complex tasks use paid.
 
+Patterns are automatically injected based on project context and prompt analysis.
+Use --no-inject to disable pattern injection.
+
 Use -t to override automatic selection.
 
 Examples:
   mur run -p "what is git?"              # Auto-routes to free tool
-  mur run -p "refactor this module"      # Auto-routes to paid tool
+  mur run -p "refactor this module"      # Auto-routes to paid tool  
   mur run -p "explain x" -t claude       # Force specific tool
-  mur run -p "test" --explain            # Show routing decision only`,
+  mur run -p "test" --explain            # Show routing decision only
+  mur run -p "fix bug" --no-inject       # Skip pattern injection`,
 	RunE: runExecute,
 }
 
@@ -34,6 +41,8 @@ func runExecute(cmd *cobra.Command, args []string) error {
 	prompt, _ := cmd.Flags().GetString("prompt")
 	forceTool, _ := cmd.Flags().GetString("tool")
 	explain, _ := cmd.Flags().GetBool("explain")
+	noInject, _ := cmd.Flags().GetBool("no-inject")
+	verbose, _ := cmd.Flags().GetBool("verbose")
 
 	if prompt == "" {
 		return fmt.Errorf("prompt is required. Use -p \"your prompt\"")
@@ -43,6 +52,43 @@ func runExecute(cmd *cobra.Command, args []string) error {
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	// Pattern injection
+	finalPrompt := prompt
+	var injectionResult *inject.InjectionResult
+
+	if !noInject {
+		// Get working directory
+		workDir, _ := os.Getwd()
+
+		// Initialize pattern store
+		patternsDir := filepath.Join(os.Getenv("HOME"), ".murmur", "patterns")
+		store := pattern.NewStore(patternsDir)
+
+		// Create injector and inject patterns
+		injector := inject.NewInjector(store)
+		injectionResult, err = injector.Inject(prompt, workDir)
+		if err != nil {
+			// Non-fatal: warn but continue
+			if verbose {
+				fmt.Fprintf(os.Stderr, "⚠ Pattern injection failed: %v\n", err)
+			}
+		} else if len(injectionResult.Patterns) > 0 {
+			finalPrompt = injectionResult.FormattedPrompt
+			if verbose {
+				fmt.Printf("📚 Injected %d patterns:\n", len(injectionResult.Patterns))
+				for _, p := range injectionResult.Patterns {
+					fmt.Printf("   • %s\n", p.Name)
+				}
+				if injectionResult.Context != nil && injectionResult.Context.ProjectType != "" {
+					fmt.Printf("🔍 Context: %s project (%s)\n", 
+						injectionResult.Context.ProjectType, 
+						injectionResult.Context.ProjectName)
+				}
+				fmt.Println()
+			}
+		}
 	}
 
 	var tool string
@@ -79,6 +125,21 @@ func runExecute(cmd *cobra.Command, args []string) error {
 				fmt.Printf("Keywords:   %v\n", selection.Analysis.Keywords)
 			}
 			fmt.Println()
+
+			// Show pattern info
+			if injectionResult != nil && len(injectionResult.Patterns) > 0 {
+				fmt.Println("Pattern Injection")
+				fmt.Println("-----------------")
+				fmt.Printf("Patterns:   %d matched\n", len(injectionResult.Patterns))
+				for _, p := range injectionResult.Patterns {
+					fmt.Printf("  • %s\n", p.Name)
+				}
+				if injectionResult.Context != nil && injectionResult.Context.ProjectType != "" {
+					fmt.Printf("Project:    %s (%s)\n", injectionResult.Context.ProjectName, injectionResult.Context.ProjectType)
+				}
+				fmt.Println()
+			}
+
 			fmt.Printf("Selected:   %s\n", selection.Tool)
 			fmt.Printf("Reason:     %s\n", selection.Reason)
 			if selection.Fallback != "" {
@@ -95,8 +156,8 @@ func runExecute(cmd *cobra.Command, args []string) error {
 
 	toolCfg, _ := cfg.GetTool(tool)
 
-	// Build command args
-	cmdArgs := append(toolCfg.Flags, prompt)
+	// Build command args (use finalPrompt with injected patterns)
+	cmdArgs := append(toolCfg.Flags, finalPrompt)
 
 	// Check if binary exists
 	binPath, err := exec.LookPath(toolCfg.Binary)
@@ -104,7 +165,12 @@ func runExecute(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("%s not found in PATH. Install it first", toolCfg.Binary)
 	}
 
-	fmt.Printf("→ %s (%s)\n\n", tool, reason)
+	// Show execution info
+	if injectionResult != nil && len(injectionResult.Patterns) > 0 {
+		fmt.Printf("→ %s (%s) [%d patterns]\n\n", tool, reason, len(injectionResult.Patterns))
+	} else {
+		fmt.Printf("→ %s (%s)\n\n", tool, reason)
+	}
 
 	// Execute the tool and track stats
 	startTime := time.Now()
@@ -146,4 +212,6 @@ func init() {
 	runCmd.Flags().StringP("prompt", "p", "", "The prompt to run")
 	runCmd.Flags().StringP("tool", "t", "", "Force specific tool (overrides routing)")
 	runCmd.Flags().Bool("explain", false, "Show routing decision without executing")
+	runCmd.Flags().Bool("no-inject", false, "Disable automatic pattern injection")
+	runCmd.Flags().BoolP("verbose", "v", false, "Show pattern injection details")
 }
