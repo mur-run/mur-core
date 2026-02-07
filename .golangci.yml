@@ -1,0 +1,31 @@
+run:
+  timeout: 5m
+  go: "1.22"
+
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gofmt
+    - goimports
+  disable:
+    - depguard
+
+linters-settings:
+  goimports:
+    local-prefixes: github.com/mur-run/mur-core
+
+issues:
+  exclude-rules:
+    # Ignore long lines in generated files
+    - path: _test\.go
+      linters:
+        - errcheck
+    # Allow fmt.Println in cmd
+    - path: cmd/
+      linters:
+        - forbidigo
