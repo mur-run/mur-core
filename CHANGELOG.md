@@ -2,6 +2,27 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [0.6.0] - 2026-02-07
+
+### Added
+
+#### Learning Repository
+- `mur repo set <url>` - Set learning repository
+- `mur repo status` - Show repository status
+- `mur repo remove` - Remove repository configuration
+- `mur init` now asks about learning repo during setup
+- Patterns can be stored in a git repo for sync across machines
+
+#### Simplified Commands
+- `mur sync` now pulls from repo + syncs to CLIs
+- `mur sync --push` pushes local changes to remote
+- Hidden advanced commands for cleaner help output
+
+### Changed
+- `mur init` is now fully interactive with repo setup
+- Simplified `mur --help` to show only essential commands
+- Renamed config directory: `~/.murmur` → `~/.mur`
+
 ## [0.5.0] - 2026-02-07
 
 ### Added

@@ -22,18 +22,8 @@ mur works invisibly in the background. Your patterns are synced to all CLIs.
 
 ## 📦 Installation
 
-### Go Install (recommended)
-
 ```bash
 go install github.com/mur-run/mur-core/cmd/mur@latest
-```
-
-### From Source
-
-```bash
-git clone https://github.com/mur-run/mur-core.git
-cd mur-core
-go install ./cmd/mur
 ```
 
 ## 🎯 How It Works
@@ -43,6 +33,7 @@ go install ./cmd/mur
 │                         mur init                             │
 │  • Detects your AI CLIs (Claude, Gemini, Codex, etc.)       │
 │  • Installs learning hooks                                   │
+│  • Sets up learning repo (optional)                          │
 │  • Syncs patterns to all CLIs                               │
 └─────────────────────────────────────────────────────────────┘
                               │
@@ -60,10 +51,8 @@ go install ./cmd/mur
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                     mur sync (periodic)                      │
-│  • Syncs new patterns to all CLIs                           │
-│  • ~/.claude/skills/mur-patterns.md                         │
-│  • ~/.gemini/skills/mur-patterns.md                         │
-│  • etc.                                                      │
+│  • Pulls from learning repo (if configured)                 │
+│  • Syncs patterns to all CLIs                               │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -74,9 +63,18 @@ go install ./cmd/mur
 | Command | Description |
 |---------|-------------|
 | `mur init` | Interactive setup wizard |
-| `mur sync` | Sync patterns to all CLIs |
+| `mur sync` | Pull patterns + sync to CLIs |
+| `mur sync --push` | Also push local changes to remote |
 | `mur learn` | Add/manage learned patterns |
 | `mur stats` | View learning statistics |
+
+### Repository
+
+| Command | Description |
+|---------|-------------|
+| `mur repo set <url>` | Set learning repo |
+| `mur repo status` | Show repo status |
+| `mur repo remove` | Remove repo config |
 
 ### Maintenance
 
@@ -85,14 +83,25 @@ go install ./cmd/mur
 | `mur update` | Update mur (binary, hooks, skills) |
 | `mur health` | Check AI CLI availability |
 
-### Advanced (use `mur run`)
+## 🔄 Learning Repo
+
+Store patterns in a git repo for:
+- Sync across machines
+- Team sharing
+- Backup
 
 ```bash
-# Smart routing (auto-select best CLI)
-mur run -p "fix this bug"
+# Set up during init, or later:
+mur repo set git@github.com:username/my-learnings.git
 
-# Force specific CLI
-mur run -t claude -p "explain this"
+# Check status
+mur repo status
+
+# Sync (pull + apply)
+mur sync
+
+# Push changes
+mur sync --push
 ```
 
 ## 🔧 Configuration
@@ -107,6 +116,9 @@ tools:
     enabled: true
   gemini:
     enabled: true
+
+learning:
+  repo: git@github.com:username/my-learnings.git
 ```
 
 ## 📁 Directory Structure
@@ -114,22 +126,22 @@ tools:
 ```
 ~/.mur/
 ├── config.yaml     # Configuration
-├── patterns/       # Learned patterns
+├── patterns/       # Learned patterns (git repo)
 ├── hooks/          # Hook templates
 └── transcripts/    # Session logs
 ```
 
 ## 🤝 Supported CLIs
 
-| CLI | Patterns Sync | Hooks |
-|-----|--------------|-------|
+| CLI | Patterns | Hooks |
+|-----|----------|-------|
 | Claude Code | ✅ | ✅ |
 | Gemini CLI | ✅ | - |
 | Codex | ✅ | - |
 | Auggie | ✅ | - |
 | Aider | ✅ | - |
 
-## 📖 Learn More
+## 📖 Links
 
 - [Documentation](./docs/)
 - [Changelog](./CHANGELOG.md)
