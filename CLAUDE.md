@@ -33,9 +33,9 @@ go install ./cmd/mur
 
 ### Unified Configuration Model
 
-murmur-ai centralizes configuration at `~/.murmur/` and syncs to individual AI CLI tools:
+murmur-ai centralizes configuration at `~/.mur/` and syncs to individual AI CLI tools:
 
-- **Source of truth**: `~/.murmur/config.yaml`, `~/.murmur/hooks.json`, `~/.murmur/mcp.json`
+- **Source of truth**: `~/.mur/config.yaml`, `~/.mur/hooks.json`, `~/.mur/mcp.json`
 - **Sync targets**: `~/.claude/`, `~/.gemini/`, etc.
 
 This means changes flow **from** murmur **to** AI tools, not the reverse.
@@ -46,7 +46,7 @@ This means changes flow **from** murmur **to** AI tools, not the reverse.
 cmd/mur/           # CLI entrypoint
   cmd/             # Cobra commands (init, run, config, health, learn, sync)
 internal/          # Core business logic
-  config/          # Config management (read/write ~/.murmur/)
+  config/          # Config management (read/write ~/.mur/)
   health/          # Health checks for AI tool availability
   learn/           # Learning system (extract patterns from sessions)
   run/             # Tool runner (execute prompts via AI tools)
@@ -83,13 +83,13 @@ The learning system (`internal/learn/`) extracts patterns from AI coding session
 
 ### Sync Strategy
 
-- **Hooks**: `~/.murmur/hooks.json` → each AI CLI's hooks config
-- **MCP**: `~/.murmur/mcp.json` → each AI CLI's MCP server config
+- **Hooks**: `~/.mur/hooks.json` → each AI CLI's hooks config
+- **MCP**: `~/.mur/mcp.json` → each AI CLI's MCP server config
 - **Learned patterns**: Generated skills/patterns → `~/.claude/learnings/`, etc.
 
 ## Configuration
 
-Default tool and enabled AI tools are set in `~/.murmur/config.yaml`:
+Default tool and enabled AI tools are set in `~/.mur/config.yaml`:
 
 ```yaml
 default_tool: claude

@@ -173,7 +173,7 @@ func TestPatternsDir(t *testing.T) {
 		t.Fatalf("PatternsDir() error = %v", err)
 	}
 
-	expected := filepath.Join(tmpDir, ".murmur", "patterns")
+	expected := filepath.Join(tmpDir, ".mur", "patterns")
 	if dir != expected {
 		t.Errorf("PatternsDir() = %q, want %q", dir, expected)
 	}

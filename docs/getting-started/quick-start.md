@@ -10,7 +10,7 @@ First, create your configuration:
 mur init
 ```
 
-This creates `~/.murmur/config.yaml` with sensible defaults.
+This creates `~/.mur/config.yaml` with sensible defaults.
 
 ## Check Available Tools
 

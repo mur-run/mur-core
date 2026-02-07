@@ -50,8 +50,8 @@ func feedbackExecute(cmd *cobra.Command, args []string) error {
 
 	// Create tracker
 	home, _ := os.UserHomeDir()
-	patternsDir := filepath.Join(home, ".murmur", "patterns")
-	trackingDir := filepath.Join(home, ".murmur", "tracking")
+	patternsDir := filepath.Join(home, ".mur", "patterns")
+	trackingDir := filepath.Join(home, ".mur", "tracking")
 	tracker := inject.NewTracker(pattern.NewStore(patternsDir), trackingDir)
 
 	// Record feedback
@@ -99,8 +99,8 @@ func patternStatsExecute(cmd *cobra.Command, args []string) error {
 	update, _ := cmd.Flags().GetBool("update")
 
 	home, _ := os.UserHomeDir()
-	patternsDir := filepath.Join(home, ".murmur", "patterns")
-	trackingDir := filepath.Join(home, ".murmur", "tracking")
+	patternsDir := filepath.Join(home, ".mur", "patterns")
+	trackingDir := filepath.Join(home, ".mur", "tracking")
 	tracker := inject.NewTracker(pattern.NewStore(patternsDir), trackingDir)
 
 	if update {

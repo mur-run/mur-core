@@ -18,10 +18,10 @@ func setupTestEnv(t *testing.T) (string, func()) {
 	origHome := os.Getenv("HOME")
 	_ = os.Setenv("HOME", tmpDir)
 
-	// Create .murmur directory
-	murmurDir := filepath.Join(tmpDir, ".murmur")
+	// Create .mur directory
+	murmurDir := filepath.Join(tmpDir, ".mur")
 	if err := os.MkdirAll(murmurDir, 0755); err != nil {
-		t.Fatalf("failed to create .murmur dir: %v", err)
+		t.Fatalf("failed to create .mur dir: %v", err)
 	}
 
 	cleanup := func() {

@@ -374,7 +374,7 @@ var learnAutoMergeCmd = &cobra.Command{
 	Short: "Create PRs for high-confidence patterns",
 	Long: `Check patterns with confidence >= threshold and create PRs to main branch.
 
-The threshold is configured in ~/.murmur/config.yaml under learning.merge_threshold
+The threshold is configured in ~/.mur/config.yaml under learning.merge_threshold
 (default: 0.8).
 
 Examples:

@@ -84,13 +84,13 @@ func EstimateCost(tool string, promptLength int) float64 {
 	return rate * float64(promptLength) / 1000.0
 }
 
-// StatsPath returns the path to the stats file (~/.murmur/stats.jsonl).
+// StatsPath returns the path to the stats file (~/.mur/stats.jsonl).
 func StatsPath() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("cannot determine home directory: %w", err)
 	}
-	return filepath.Join(home, ".murmur", "stats.jsonl"), nil
+	return filepath.Join(home, ".mur", "stats.jsonl"), nil
 }
 
 // Record appends a usage record to the stats file.

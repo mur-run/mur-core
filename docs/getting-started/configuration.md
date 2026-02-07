@@ -1,6 +1,6 @@
 # Configuration
 
-Murmur's configuration lives at `~/.murmur/config.yaml`.
+Murmur's configuration lives at `~/.mur/config.yaml`.
 
 ## Full Configuration Reference
 
@@ -127,6 +127,6 @@ mur config routing cost-first
 
 | File | Purpose |
 |------|---------|
-| `~/.murmur/config.yaml` | Main configuration |
-| `~/.murmur/patterns/` | Learned patterns |
-| `~/.murmur/stats.json` | Usage statistics |
+| `~/.mur/config.yaml` | Main configuration |
+| `~/.mur/patterns/` | Learned patterns |
+| `~/.mur/stats.json` | Usage statistics |

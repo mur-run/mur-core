@@ -9,7 +9,7 @@ import (
 func TestLoad(t *testing.T) {
 	// Create temp config
 	tmpDir := t.TempDir()
-	configDir := filepath.Join(tmpDir, ".murmur")
+	configDir := filepath.Join(tmpDir, ".mur")
 	_ = os.MkdirAll(configDir, 0755)
 
 	configContent := `default_tool: gemini

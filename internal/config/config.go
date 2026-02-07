@@ -102,13 +102,13 @@ type MCPConfig struct {
 	Servers     map[string]interface{} `yaml:"servers"`
 }
 
-// ConfigPath returns the path to the config file (~/.murmur/config.yaml).
+// ConfigPath returns the path to the config file (~/.mur/config.yaml).
 func ConfigPath() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("cannot determine home directory: %w", err)
 	}
-	return filepath.Join(home, ".murmur", "config.yaml"), nil
+	return filepath.Join(home, ".mur", "config.yaml"), nil
 }
 
 // Load reads and parses the config file.

@@ -113,7 +113,7 @@ Murmur estimates costs based on prompt length and tool tier:
 
 ## Data Storage
 
-Statistics are stored in `~/.murmur/stats.json`. Each run records:
+Statistics are stored in `~/.mur/stats.json`. Each run records:
 
 - Tool used
 - Timestamp

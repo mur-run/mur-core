@@ -49,7 +49,7 @@ OpenClaw offers unique capabilities:
 ## Planned Configuration
 
 ```yaml
-# ~/.murmur/config.yaml
+# ~/.mur/config.yaml
 tools:
   openclaw:
     enabled: false  # Enable when ready

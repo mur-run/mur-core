@@ -280,7 +280,7 @@ mur sync patterns
 
 ## 🔧 Configuration
 
-`~/.murmur/config.yaml`:
+`~/.mur/config.yaml`:
 
 ```yaml
 default_tool: claude
@@ -327,15 +327,13 @@ lifecycle:
 ## 🏗️ Architecture
 
 ```
-~/.murmur/
+~/.mur/
 ├── config.yaml           # Main configuration
 ├── patterns/             # Pattern storage (Schema v2)
-│   ├── swift-error.yaml
-│   └── debugging.yaml
+├── hooks/                # Claude Code hooks (from init --hooks)
+├── transcripts/          # Session transcripts
 ├── tracking/             # Usage & effectiveness data
-│   └── usage.jsonl
 ├── embeddings/           # Semantic search cache
-│   └── embeddings.json
 └── suggestions/          # Pending suggestions
 ```
 

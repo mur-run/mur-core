@@ -22,13 +22,13 @@ type TeamStatus struct {
 	Modified    []string
 }
 
-// TeamDir returns the path to ~/.murmur/team/
+// TeamDir returns the path to ~/.mur/team/
 func TeamDir() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("cannot determine home directory: %w", err)
 	}
-	return filepath.Join(home, ".murmur", "team"), nil
+	return filepath.Join(home, ".mur", "team"), nil
 }
 
 // IsInitialized checks if the team repo is configured and cloned.
@@ -47,7 +47,7 @@ func IsInitialized() bool {
 	return info.IsDir()
 }
 
-// Clone clones the team repo to ~/.murmur/team/
+// Clone clones the team repo to ~/.mur/team/
 func Clone(repoURL string) error {
 	dir, err := TeamDir()
 	if err != nil {

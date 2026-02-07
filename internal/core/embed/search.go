@@ -31,7 +31,7 @@ func NewPatternSearcher(store *pattern.Store, cfg Config) (*PatternSearcher, err
 	}
 
 	home, _ := os.UserHomeDir()
-	cacheDir := filepath.Join(home, ".murmur", "embeddings")
+	cacheDir := filepath.Join(home, ".mur", "embeddings")
 	cache := NewCache(cacheDir, embedder)
 
 	// Load existing cache

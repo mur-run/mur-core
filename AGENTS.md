@@ -66,6 +66,6 @@ go install ./cmd/mur
 
 ## Key Decisions
 
-- Config lives at `~/.murmur/`
+- Config lives at `~/.mur/`
 - Source of truth for patterns/hooks/MCP
 - Syncs to individual CLI configs (Claude, Gemini, etc.)

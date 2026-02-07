@@ -18,7 +18,7 @@ func SyncPatternsV2() ([]SyncResult, error) {
 		return nil, fmt.Errorf("cannot determine home directory: %w", err)
 	}
 
-	patternsDir := filepath.Join(home, ".murmur", "patterns")
+	patternsDir := filepath.Join(home, ".mur", "patterns")
 	store := pattern.NewStore(patternsDir)
 
 	patterns, err := store.GetActive()

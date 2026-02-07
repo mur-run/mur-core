@@ -13,13 +13,13 @@ import (
 	"github.com/mur-run/mur-core/internal/learn"
 )
 
-// RepoDir returns the path to the learning repo (~/.murmur/learning-repo/).
+// RepoDir returns the path to the learning repo (~/.mur/learning-repo/).
 func RepoDir() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("cannot determine home directory: %w", err)
 	}
-	return filepath.Join(home, ".murmur", "learning-repo"), nil
+	return filepath.Join(home, ".mur", "learning-repo"), nil
 }
 
 // IsInitialized checks if the learning repo has been initialized.

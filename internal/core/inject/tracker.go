@@ -81,8 +81,8 @@ func DefaultTracker() (*Tracker, error) {
 		return nil, err
 	}
 
-	patternsDir := filepath.Join(home, ".murmur", "patterns")
-	dataDir := filepath.Join(home, ".murmur", "tracking")
+	patternsDir := filepath.Join(home, ".mur", "patterns")
+	dataDir := filepath.Join(home, ".mur", "tracking")
 
 	return &Tracker{
 		store:   pattern.NewStore(patternsDir),

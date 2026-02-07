@@ -42,7 +42,7 @@ func SkillsSourceDir() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("cannot determine home directory: %w", err)
 	}
-	return filepath.Join(home, ".murmur", "skills"), nil
+	return filepath.Join(home, ".mur", "skills"), nil
 }
 
 // SuperpowersSkillsDir returns the path to Superpowers plugin skills.
@@ -54,7 +54,7 @@ func SuperpowersSkillsDir() (string, error) {
 	return filepath.Join(home, ".claude", "plugins", "using-superpowers", "skills"), nil
 }
 
-// ListSkills returns all available skills from ~/.murmur/skills/
+// ListSkills returns all available skills from ~/.mur/skills/
 func ListSkills() ([]Skill, error) {
 	skillsDir, err := SkillsSourceDir()
 	if err != nil {
@@ -266,7 +266,7 @@ func copyFile(src, dst string) error {
 	return err
 }
 
-// ImportSkill imports a skill from a file path to ~/.murmur/skills/
+// ImportSkill imports a skill from a file path to ~/.mur/skills/
 func ImportSkill(path string) error {
 	// Validate source exists
 	if _, err := os.Stat(path); os.IsNotExist(err) {

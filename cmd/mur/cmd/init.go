@@ -33,7 +33,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	murDir := filepath.Join(home, ".murmur")
+	murDir := filepath.Join(home, ".mur")
 
 	// Create directories
 	dirs := []string{
@@ -89,7 +89,7 @@ mcp:
 		}
 	}
 
-	fmt.Println("✓ Murmur initialized at ~/.murmur")
+	fmt.Println("✓ Murmur initialized at ~/.mur")
 
 	// Install hooks if requested
 	if initHooks {
@@ -119,7 +119,7 @@ func installClaudeHooks(home, murDir string) error {
 
   mur learn add --name "pattern-name" --content "description of what you learned"
 
-Or create a pattern file directly in ~/.murmur/patterns/
+Or create a pattern file directly in ~/.mur/patterns/
 
 Only extract if: it required actual discovery (not just docs), it will help with future tasks, and it has been verified to work. Skip trivial or well-documented things.
 
@@ -216,7 +216,7 @@ mur sync patterns --quiet 2>/dev/null || true
 				for _, hook := range hooksList {
 					hookMap, _ := hook.(map[string]interface{})
 					if cmd, ok := hookMap["command"].(string); ok {
-						if contains(cmd, ".murmur") {
+						if contains(cmd, ".mur") {
 							hasMur = true
 							break
 						}

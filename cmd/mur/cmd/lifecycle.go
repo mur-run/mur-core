@@ -75,7 +75,7 @@ var lifecycleCleanupCmd = &cobra.Command{
 
 func getLifecycleManager() (*pattern.LifecycleManager, error) {
 	home, _ := os.UserHomeDir()
-	patternsDir := filepath.Join(home, ".murmur", "patterns")
+	patternsDir := filepath.Join(home, ".mur", "patterns")
 	store := pattern.NewStore(patternsDir)
 
 	cfg := pattern.DefaultLifecycleConfig()
@@ -86,7 +86,7 @@ func lifecycleEvaluateExecute(cmd *cobra.Command, args []string) error {
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
 	
 	home, _ := os.UserHomeDir()
-	patternsDir := filepath.Join(home, ".murmur", "patterns")
+	patternsDir := filepath.Join(home, ".mur", "patterns")
 	store := pattern.NewStore(patternsDir)
 
 	cfg := pattern.DefaultLifecycleConfig()
@@ -230,7 +230,7 @@ func lifecycleListExecute(cmd *cobra.Command, args []string) error {
 	status, _ := cmd.Flags().GetString("status")
 
 	home, _ := os.UserHomeDir()
-	patternsDir := filepath.Join(home, ".murmur", "patterns")
+	patternsDir := filepath.Join(home, ".mur", "patterns")
 	store := pattern.NewStore(patternsDir)
 
 	patterns, err := store.List()
@@ -274,7 +274,7 @@ func lifecycleCleanupExecute(cmd *cobra.Command, args []string) error {
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
 
 	home, _ := os.UserHomeDir()
-	patternsDir := filepath.Join(home, ".murmur", "patterns")
+	patternsDir := filepath.Join(home, ".mur", "patterns")
 	store := pattern.NewStore(patternsDir)
 
 	cfg := pattern.DefaultLifecycleConfig()

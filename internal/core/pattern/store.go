@@ -22,13 +22,13 @@ func NewStore(baseDir string) *Store {
 	return &Store{baseDir: baseDir}
 }
 
-// DefaultStore returns a Store using the default ~/.murmur/patterns directory.
+// DefaultStore returns a Store using the default ~/.mur/patterns directory.
 func DefaultStore() (*Store, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return nil, fmt.Errorf("cannot determine home directory: %w", err)
 	}
-	return NewStore(filepath.Join(home, ".murmur", "patterns")), nil
+	return NewStore(filepath.Join(home, ".mur", "patterns")), nil
 }
 
 // Dir returns the patterns directory path.

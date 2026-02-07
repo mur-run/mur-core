@@ -23,7 +23,7 @@ mv mur /usr/local/bin/
 mur init
 ```
 
-This creates `~/.murmur/config.yaml` with default settings.
+This creates `~/.mur/config.yaml` with default settings.
 
 ### 3. Register with OpenClaw
 
@@ -85,7 +85,7 @@ mur stats
 Check your murmur config:
 
 ```bash
-cat ~/.murmur/config.yaml
+cat ~/.mur/config.yaml
 ```
 
 Ensure the AI CLI tools are installed and their config paths are correct.

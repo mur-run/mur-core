@@ -475,7 +475,7 @@ var AuditableEvents = []string{
 ## Configuration
 
 ```yaml
-# ~/.murmur/security.yaml
+# ~/.mur/security.yaml
 
 sanitization:
   enabled: true
@@ -507,7 +507,7 @@ output_filter:
   
 audit:
   enabled: true
-  log_path: ~/.murmur/audit.log
+  log_path: ~/.mur/audit.log
   retention_days: 90
   events: all  # all | security | changes
 ```

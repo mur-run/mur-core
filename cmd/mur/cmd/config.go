@@ -21,7 +21,7 @@ var configShowCmd = &cobra.Command{
 	Short: "Show current configuration",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		home, _ := os.UserHomeDir()
-		configPath := filepath.Join(home, ".murmur", "config.yaml")
+		configPath := filepath.Join(home, ".mur", "config.yaml")
 
 		data, err := os.ReadFile(configPath)
 		if err != nil {

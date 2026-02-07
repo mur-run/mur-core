@@ -74,8 +74,8 @@ func suggestScanExecute(cmd *cobra.Command, args []string) error {
 	}
 
 	home, _ := os.UserHomeDir()
-	patternsDir := filepath.Join(home, ".murmur", "patterns")
-	suggestDir := filepath.Join(home, ".murmur", "suggestions")
+	patternsDir := filepath.Join(home, ".mur", "patterns")
+	suggestDir := filepath.Join(home, ".mur", "suggestions")
 	store := pattern.NewStore(patternsDir)
 
 	cfg := suggest.DefaultExtractorConfig()
@@ -198,8 +198,8 @@ func suggestAcceptExecute(cmd *cobra.Command, args []string) error {
 	}
 
 	home, _ := os.UserHomeDir()
-	patternsDir := filepath.Join(home, ".murmur", "patterns")
-	suggestDir := filepath.Join(home, ".murmur", "suggestions")
+	patternsDir := filepath.Join(home, ".mur", "patterns")
+	suggestDir := filepath.Join(home, ".mur", "suggestions")
 	store := pattern.NewStore(patternsDir)
 
 	cfg := suggest.DefaultExtractorConfig()

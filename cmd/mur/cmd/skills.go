@@ -14,7 +14,7 @@ var skillsCmd = &cobra.Command{
 	Short: "Manage skills and methodologies",
 	Long: `Manage skills and methodologies that are synced to AI CLI tools.
 
-Skills are stored in ~/.murmur/skills/ and synced to:
+Skills are stored in ~/.mur/skills/ and synced to:
   • Claude Code: ~/.claude/skills/
   • Gemini CLI: ~/.gemini/skills/
   • Auggie: ~/.augment/skills/`,
@@ -32,7 +32,7 @@ var skillsListCmd = &cobra.Command{
 		if len(skills) == 0 {
 			fmt.Println("No skills found.")
 			fmt.Println()
-			fmt.Println("Add skills to ~/.murmur/skills/ or import with:")
+			fmt.Println("Add skills to ~/.mur/skills/ or import with:")
 			fmt.Println("  mur skills import <path>")
 			fmt.Println("  mur skills import --superpowers")
 			return nil

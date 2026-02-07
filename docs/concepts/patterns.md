@@ -136,10 +136,10 @@ The AI knows your conventions without you having to explain them again.
 
 ## Pattern Storage
 
-Patterns are stored in `~/.murmur/patterns/`:
+Patterns are stored in `~/.mur/patterns/`:
 
 ```
-~/.murmur/patterns/
+~/.mur/patterns/
 ├── error-handling-go.yaml
 ├── api-response-format.yaml
 ├── test-naming.yaml

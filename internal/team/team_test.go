@@ -17,7 +17,7 @@ func TestTeamDir(t *testing.T) {
 		t.Fatalf("TeamDir() error = %v", err)
 	}
 
-	expected := filepath.Join(tmpDir, ".murmur", "team")
+	expected := filepath.Join(tmpDir, ".mur", "team")
 	if dir != expected {
 		t.Errorf("TeamDir() = %q, want %q", dir, expected)
 	}
@@ -41,7 +41,7 @@ func TestIsInitializedTrue(t *testing.T) {
 	defer func() { _ = os.Setenv("HOME", oldHome) }()
 
 	// Create team dir with .git
-	teamDir := filepath.Join(tmpDir, ".murmur", "team", ".git")
+	teamDir := filepath.Join(tmpDir, ".mur", "team", ".git")
 	_ = os.MkdirAll(teamDir, 0755)
 
 	if !IsInitialized() {
@@ -79,7 +79,7 @@ func TestPatternsDir(t *testing.T) {
 		t.Fatalf("PatternsDir() error = %v", err)
 	}
 
-	expected := filepath.Join(tmpDir, ".murmur", "team", "patterns")
+	expected := filepath.Join(tmpDir, ".mur", "team", "patterns")
 	if dir != expected {
 		t.Errorf("PatternsDir() = %q, want %q", dir, expected)
 	}
@@ -96,7 +96,7 @@ func TestHooksDir(t *testing.T) {
 		t.Fatalf("HooksDir() error = %v", err)
 	}
 
-	expected := filepath.Join(tmpDir, ".murmur", "team", "hooks")
+	expected := filepath.Join(tmpDir, ".mur", "team", "hooks")
 	if dir != expected {
 		t.Errorf("HooksDir() = %q, want %q", dir, expected)
 	}
@@ -113,7 +113,7 @@ func TestSkillsDir(t *testing.T) {
 		t.Fatalf("SkillsDir() error = %v", err)
 	}
 
-	expected := filepath.Join(tmpDir, ".murmur", "team", "skills")
+	expected := filepath.Join(tmpDir, ".mur", "team", "skills")
 	if dir != expected {
 		t.Errorf("SkillsDir() = %q, want %q", dir, expected)
 	}
@@ -130,7 +130,7 @@ func TestMCPDir(t *testing.T) {
 		t.Fatalf("MCPDir() error = %v", err)
 	}
 
-	expected := filepath.Join(tmpDir, ".murmur", "team", "mcp")
+	expected := filepath.Join(tmpDir, ".mur", "team", "mcp")
 	if dir != expected {
 		t.Errorf("MCPDir() = %q, want %q", dir, expected)
 	}
@@ -148,7 +148,7 @@ func TestEnsureStructure(t *testing.T) {
 
 	// Check all directories created
 	dirs := []string{"patterns", "hooks", "skills", "mcp"}
-	teamDir := filepath.Join(tmpDir, ".murmur", "team")
+	teamDir := filepath.Join(tmpDir, ".mur", "team")
 	for _, d := range dirs {
 		path := filepath.Join(teamDir, d)
 		if _, err := os.Stat(path); os.IsNotExist(err) {
@@ -200,7 +200,7 @@ func TestCloneAlreadyInitialized(t *testing.T) {
 	defer func() { _ = os.Setenv("HOME", oldHome) }()
 
 	// Create team dir with .git
-	teamDir := filepath.Join(tmpDir, ".murmur", "team", ".git")
+	teamDir := filepath.Join(tmpDir, ".mur", "team", ".git")
 	_ = os.MkdirAll(teamDir, 0755)
 
 	err := Clone("https://github.com/example/repo.git")

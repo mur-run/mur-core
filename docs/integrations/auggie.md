@@ -38,7 +38,7 @@ auggie --version
 ## Configuration in Murmur
 
 ```yaml
-# ~/.murmur/config.yaml
+# ~/.mur/config.yaml
 tools:
   auggie:
     enabled: false  # Enable when ready

@@ -353,10 +353,10 @@ type LearningService interface {
 ## Configuration
 
 ```yaml
-# ~/.murmur/core.yaml
+# ~/.mur/core.yaml
 
 pattern:
-  storage: ~/.murmur/patterns
+  storage: ~/.mur/patterns
   format: yaml  # yaml | json | markdown
   
 classifier:
@@ -365,7 +365,7 @@ classifier:
   embedding:
     enabled: true
     model: bge-small-en-v1.5
-    index: ~/.murmur/vectors
+    index: ~/.mur/vectors
   llm:
     enabled: false  # Optional, for complex cases
     model: llama3.2:3b

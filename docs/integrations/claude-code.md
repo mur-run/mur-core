@@ -27,7 +27,7 @@ claude --version
 ## Configuration in Murmur
 
 ```yaml
-# ~/.murmur/config.yaml
+# ~/.mur/config.yaml
 tools:
   claude:
     enabled: true

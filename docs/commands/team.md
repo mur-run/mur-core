@@ -41,7 +41,7 @@ mur team init git@github.com:myorg/team-patterns.git
 
 This creates a connection to a shared repository for your team's patterns.
 
-### Configure in `~/.murmur/config.yaml`
+### Configure in `~/.mur/config.yaml`
 
 ```yaml
 team:
@@ -112,7 +112,7 @@ mur learn add my-pattern
 Or edit patterns:
 
 ```yaml
-# ~/.murmur/patterns/my-pattern.yaml
+# ~/.mur/patterns/my-pattern.yaml
 name: my-pattern
 team: true  # ← Share with team
 domain: golang

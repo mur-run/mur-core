@@ -19,10 +19,10 @@ mur sync <target> [flags]
 
 ## How It Works
 
-Murmur reads your unified configuration from `~/.murmur/config.yaml` and writes it to each AI tool's config file:
+Murmur reads your unified configuration from `~/.mur/config.yaml` and writes it to each AI tool's config file:
 
 ```
-~/.murmur/config.yaml
+~/.mur/config.yaml
         ↓
    mur sync all
         ↓
@@ -75,7 +75,7 @@ mur sync hooks
 
 ## MCP Configuration
 
-Define MCP servers once in `~/.murmur/config.yaml`:
+Define MCP servers once in `~/.mur/config.yaml`:
 
 ```yaml
 mcp:

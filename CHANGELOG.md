@@ -17,7 +17,7 @@ All notable changes to mur-core will be documented in this file.
 
 #### Claude Code Hooks
 - `mur init --hooks` - One-command Claude Code hooks installation
-- Automatically creates `~/.murmur/hooks/` with learning prompts
+- Automatically creates `~/.mur/hooks/` with learning prompts
 - Merges hooks into `~/.claude/settings.json`
 - Backs up existing settings before modification
 

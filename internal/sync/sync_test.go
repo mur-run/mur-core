@@ -44,7 +44,7 @@ func TestSkillsSourceDir(t *testing.T) {
 		t.Fatalf("SkillsSourceDir() error = %v", err)
 	}
 
-	expected := filepath.Join(tmpDir, ".murmur", "skills")
+	expected := filepath.Join(tmpDir, ".mur", "skills")
 	if dir != expected {
 		t.Errorf("SkillsSourceDir() = %q, want %q", dir, expected)
 	}
@@ -72,7 +72,7 @@ func TestListSkillsWithFile(t *testing.T) {
 	defer func() { _ = os.Setenv("HOME", oldHome) }()
 
 	// Create skills dir with a skill file
-	skillsDir := filepath.Join(tmpDir, ".murmur", "skills")
+	skillsDir := filepath.Join(tmpDir, ".mur", "skills")
 	_ = os.MkdirAll(skillsDir, 0755)
 
 	skillContent := `# Test Skill
@@ -107,7 +107,7 @@ func TestEnsureSkillsDir(t *testing.T) {
 		t.Fatalf("EnsureSkillsDir() error = %v", err)
 	}
 
-	skillsDir := filepath.Join(tmpDir, ".murmur", "skills")
+	skillsDir := filepath.Join(tmpDir, ".mur", "skills")
 	if _, err := os.Stat(skillsDir); os.IsNotExist(err) {
 		t.Error("EnsureSkillsDir() did not create directory")
 	}
@@ -135,7 +135,7 @@ func TestImportSkill(t *testing.T) {
 	}
 
 	// Check skill was imported
-	skillsDir := filepath.Join(tmpDir, ".murmur", "skills")
+	skillsDir := filepath.Join(tmpDir, ".mur", "skills")
 	dstPath := filepath.Join(skillsDir, "source-skill.md")
 	if _, err := os.Stat(dstPath); os.IsNotExist(err) {
 		t.Error("ImportSkill() did not copy file to skills directory")
@@ -176,7 +176,7 @@ func TestSyncSkillsEmpty(t *testing.T) {
 	defer func() { _ = os.Setenv("HOME", oldHome) }()
 
 	// Create empty skills dir
-	skillsDir := filepath.Join(tmpDir, ".murmur", "skills")
+	skillsDir := filepath.Join(tmpDir, ".mur", "skills")
 	_ = os.MkdirAll(skillsDir, 0755)
 
 	_, err := SyncSkills()

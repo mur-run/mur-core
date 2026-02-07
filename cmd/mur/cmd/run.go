@@ -63,7 +63,7 @@ func runExecute(cmd *cobra.Command, args []string) error {
 		workDir, _ := os.Getwd()
 
 		// Initialize pattern store
-		patternsDir := filepath.Join(os.Getenv("HOME"), ".murmur", "patterns")
+		patternsDir := filepath.Join(os.Getenv("HOME"), ".mur", "patterns")
 		store := pattern.NewStore(patternsDir)
 
 		// Create injector and inject patterns
@@ -198,8 +198,8 @@ func runExecute(cmd *cobra.Command, args []string) error {
 
 	// Track pattern usage for effectiveness learning
 	if injectionResult != nil && len(injectionResult.Patterns) > 0 {
-		trackingDir := filepath.Join(os.Getenv("HOME"), ".murmur", "tracking")
-		patternsDir := filepath.Join(os.Getenv("HOME"), ".murmur", "patterns")
+		trackingDir := filepath.Join(os.Getenv("HOME"), ".mur", "tracking")
+		patternsDir := filepath.Join(os.Getenv("HOME"), ".mur", "patterns")
 		tracker := inject.NewTracker(pattern.NewStore(patternsDir), trackingDir)
 		_ = tracker.RecordUsage(injectionResult.Patterns, injectionResult.Context, prompt, runErr == nil)
 	}

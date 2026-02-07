@@ -22,7 +22,7 @@ sudo mv mur /usr/local/bin/
 mur init
 ```
 
-This creates `~/.murmur/config.yaml` with default settings.
+This creates `~/.mur/config.yaml` with default settings.
 
 ## Run Your First Prompt
 
@@ -44,7 +44,7 @@ mur run -p "fix this bug" --explain
 mur learn add swift-error-handling
 
 # Or create manually
-cat > ~/.murmur/patterns/swift-error-handling.yaml << 'EOF'
+cat > ~/.mur/patterns/swift-error-handling.yaml << 'EOF'
 name: swift-error-handling
 description: Handle errors with Result types
 content: |

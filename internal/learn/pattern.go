@@ -35,13 +35,13 @@ func ValidCategories() []string {
 	return []string{"pattern", "decision", "lesson", "reference", "template"}
 }
 
-// PatternsDir returns the path to ~/.murmur/patterns/
+// PatternsDir returns the path to ~/.mur/patterns/
 func PatternsDir() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("cannot determine home directory: %w", err)
 	}
-	return filepath.Join(home, ".murmur", "patterns"), nil
+	return filepath.Join(home, ".mur", "patterns"), nil
 }
 
 // ensureDir creates the patterns directory if it doesn't exist.

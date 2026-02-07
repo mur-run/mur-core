@@ -51,7 +51,7 @@ func SyncMCP() ([]SyncResult, error) {
 	}
 
 	if len(cfg.MCP.Servers) == 0 {
-		return nil, fmt.Errorf("no MCP servers configured in ~/.murmur/config.yaml")
+		return nil, fmt.Errorf("no MCP servers configured in ~/.mur/config.yaml")
 	}
 
 	home, err := os.UserHomeDir()
@@ -195,7 +195,7 @@ func SyncHooks() ([]SyncResult, error) {
 
 	// Check if any hooks are configured
 	if !hasHooks(cfg.Hooks) {
-		return nil, fmt.Errorf("no hooks configured in ~/.murmur/config.yaml")
+		return nil, fmt.Errorf("no hooks configured in ~/.mur/config.yaml")
 	}
 
 	home, err := os.UserHomeDir()

@@ -91,7 +91,7 @@ type CrossCLILearner struct {
 // NewCrossCLILearner creates a new cross-CLI learner.
 func NewCrossCLILearner(store *pattern.Store) *CrossCLILearner {
 	home, _ := os.UserHomeDir()
-	suggestDir := filepath.Join(home, ".murmur", "suggestions")
+	suggestDir := filepath.Join(home, ".mur", "suggestions")
 
 	return &CrossCLILearner{
 		sources:   DefaultCLISources(),

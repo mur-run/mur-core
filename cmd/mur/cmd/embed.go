@@ -69,7 +69,7 @@ func getEmbedConfig() embed.Config {
 
 func embedIndexExecute(cmd *cobra.Command, args []string) error {
 	home, _ := os.UserHomeDir()
-	patternsDir := filepath.Join(home, ".murmur", "patterns")
+	patternsDir := filepath.Join(home, ".mur", "patterns")
 	store := pattern.NewStore(patternsDir)
 
 	cfg := getEmbedConfig()
@@ -93,7 +93,7 @@ func embedIndexExecute(cmd *cobra.Command, args []string) error {
 
 func embedStatusExecute(cmd *cobra.Command, args []string) error {
 	home, _ := os.UserHomeDir()
-	patternsDir := filepath.Join(home, ".murmur", "patterns")
+	patternsDir := filepath.Join(home, ".mur", "patterns")
 	store := pattern.NewStore(patternsDir)
 
 	cfg := getEmbedConfig()
@@ -127,7 +127,7 @@ func embedSearchExecute(cmd *cobra.Command, args []string) error {
 	topK, _ := cmd.Flags().GetInt("top")
 
 	home, _ := os.UserHomeDir()
-	patternsDir := filepath.Join(home, ".murmur", "patterns")
+	patternsDir := filepath.Join(home, ".mur", "patterns")
 	store := pattern.NewStore(patternsDir)
 
 	cfg := getEmbedConfig()
@@ -163,7 +163,7 @@ func embedSearchExecute(cmd *cobra.Command, args []string) error {
 
 func embedRehashExecute(cmd *cobra.Command, args []string) error {
 	home, _ := os.UserHomeDir()
-	patternsDir := filepath.Join(home, ".murmur", "patterns")
+	patternsDir := filepath.Join(home, ".mur", "patterns")
 	store := pattern.NewStore(patternsDir)
 
 	cfg := getEmbedConfig()

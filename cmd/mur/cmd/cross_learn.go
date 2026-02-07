@@ -52,7 +52,7 @@ func crossLearnScanExecute(cmd *cobra.Command, args []string) error {
 	interactive, _ := cmd.Flags().GetBool("interactive")
 
 	home, _ := os.UserHomeDir()
-	patternsDir := filepath.Join(home, ".murmur", "patterns")
+	patternsDir := filepath.Join(home, ".mur", "patterns")
 	store := pattern.NewStore(patternsDir)
 
 	learner := learn.NewCrossCLILearner(store)
@@ -130,7 +130,7 @@ func crossLearnScanExecute(cmd *cobra.Command, args []string) error {
 
 func interactiveAcceptCrossLearn(store *pattern.Store, suggestions []suggest.Suggestion) error {
 	home, _ := os.UserHomeDir()
-	suggestDir := filepath.Join(home, ".murmur", "suggestions")
+	suggestDir := filepath.Join(home, ".mur", "suggestions")
 	extractor := suggest.NewExtractor(store, suggestDir, suggest.DefaultExtractorConfig())
 
 	return interactiveAccept(extractor, suggestions)

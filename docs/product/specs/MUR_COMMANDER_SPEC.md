@@ -470,7 +470,7 @@ type Explanation struct {
 ## Configuration
 
 ```yaml
-# ~/.murmur/commander.yaml
+# ~/.mur/commander.yaml
 
 model:
   type: hybrid  # hybrid | llm-only | rules-only
@@ -499,7 +499,7 @@ validation:
   max_retries: 2
   
 training:
-  data_dir: ~/.murmur/training
+  data_dir: ~/.mur/training
   auto_collect: true
   min_samples: 100
   schedule: weekly

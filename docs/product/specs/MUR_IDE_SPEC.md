@@ -555,7 +555,7 @@ mur ide cancel 1
 ## Configuration
 
 ```yaml
-# ~/.murmur/ide.yaml
+# ~/.mur/ide.yaml
 
 agents:
   pool_size: 5

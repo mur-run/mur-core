@@ -16,7 +16,7 @@ You want the same MCP servers, hooks, and patterns in all of them. Without murmu
 
 ## The Solution
 
-Define everything once in `~/.murmur/config.yaml`:
+Define everything once in `~/.mur/config.yaml`:
 
 ```yaml
 mcp:
@@ -139,7 +139,7 @@ skills:
 ## How It Works
 
 ```
-~/.murmur/config.yaml
+~/.mur/config.yaml
          │
          ▼
    ┌─────────────┐

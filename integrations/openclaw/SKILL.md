@@ -5,7 +5,7 @@ Unified management layer for AI CLI tools. Sync configurations, extract learned 
 ## Requirements
 
 - `mur` CLI installed and in PATH
-- murmur-ai configured (`~/.murmur/config.yaml`)
+- murmur-ai configured (`~/.mur/config.yaml`)
 
 ## Commands
 
