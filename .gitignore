@@ -20,6 +20,13 @@ vendor/
 *.swo
 .DS_Store
 
+# AI CLI development files
+.augment/
+.claude/
+
+# Spec-driven development
+openspec/
+
 # Test
 *.test
 coverage.out
