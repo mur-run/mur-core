@@ -13,6 +13,9 @@ go install github.com/mur-run/mur-core/cmd/mur@latest
 # Setup (interactive)
 mur init
 
+# Check status
+mur status
+
 # That's it! Use your AI CLI as normal
 claude -p "fix this bug"
 gemini -p "explain this code"
@@ -26,13 +29,83 @@ mur works invisibly in the background. Your patterns are synced to all CLIs.
 go install github.com/mur-run/mur-core/cmd/mur@latest
 ```
 
+## 📋 Commands
+
+### Setup & Status
+
+| Command | Description |
+|---------|-------------|
+| `mur init` | Interactive setup wizard |
+| `mur init --hooks` | Setup with CLI hooks for auto-learning |
+| `mur status` | Quick overview of patterns, sync, stats |
+| `mur doctor` | Diagnose setup issues |
+| `mur doctor --fix` | Auto-fix common issues |
+
+### Pattern Management
+
+| Command | Description |
+|---------|-------------|
+| `mur new <name>` | Create new pattern from template |
+| `mur edit <name>` | Edit pattern in $EDITOR |
+| `mur learn list` | List all patterns |
+| `mur learn get <name>` | Show pattern details |
+| `mur learn delete <name>` | Delete a pattern |
+| `mur lint` | Validate all patterns |
+| `mur lint <name>` | Validate specific pattern |
+
+### Learning & Extraction
+
+| Command | Description |
+|---------|-------------|
+| `mur transcripts` | Browse Claude Code sessions |
+| `mur transcripts --project X` | Filter by project |
+| `mur transcripts show <id>` | View session content |
+| `mur learn extract` | Extract patterns from sessions |
+| `mur learn extract --auto` | Auto-extract from recent sessions |
+
+### Import & Export
+
+| Command | Description |
+|---------|-------------|
+| `mur import file.yaml` | Import patterns from file |
+| `mur import https://...` | Import from URL |
+| `mur export` | Export all patterns (YAML) |
+| `mur export --format json` | Export as JSON |
+| `mur export -o file.yaml` | Export to file |
+
+### Sync & Deploy
+
+| Command | Description |
+|---------|-------------|
+| `mur sync` | Sync patterns to all CLIs/IDEs |
+| `mur sync --push` | Also push to learning repo |
+| `mur repo set <url>` | Set learning repo |
+| `mur repo status` | Show repo status |
+
+### Dashboard & Analytics
+
+| Command | Description |
+|---------|-------------|
+| `mur serve` | Start interactive web dashboard |
+| `mur serve -p 3000` | Custom port |
+| `mur dashboard` | Generate static HTML report |
+| `mur dashboard -o report.html` | Save to file |
+| `mur stats` | View usage statistics |
+
+### Maintenance
+
+| Command | Description |
+|---------|-------------|
+| `mur update` | Update mur components |
+| `mur health` | Check AI CLI availability |
+
 ## 🎯 How It Works
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                         mur init                             │
 │  1. Select AI CLIs (Claude, Gemini, Codex, etc.)            │
-│  2. Install Claude Code hooks (for real-time learning)      │
+│  2. Install hooks (for real-time learning)                  │
 │  3. Set up learning repo (optional, for sync)               │
 │  4. Sync patterns to all CLIs                               │
 └─────────────────────────────────────────────────────────────┘
@@ -45,68 +118,44 @@ go install github.com/mur-run/mur-core/cmd/mur@latest
 │         │                        │                           │
 │         └────────┬───────────────┘                          │
 │                  ▼                                           │
-│         Patterns auto-applied                                │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                     mur sync (periodic)                      │
-│  • Pulls from learning repo (if configured)                 │
-│  • Syncs patterns to all CLIs                               │
+│         Patterns auto-injected                               │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## 📋 Commands
+## 🔄 Sync Targets
 
-### Essential
+mur syncs patterns to 8 targets:
 
-| Command | Description |
-|---------|-------------|
-| `mur init` | Interactive setup wizard |
-| `mur sync` | Pull patterns + sync to CLIs |
-| `mur sync --push` | Also push local changes to remote |
-| `mur learn` | Add/manage learned patterns |
-| `mur stats` | View learning statistics |
+**CLIs (dynamic injection via hooks):**
+- Claude Code (`~/.claude/skills/mur/`)
+- Gemini CLI (`~/.gemini/skills/mur/`)
 
-### Repository
+**CLIs (static sync):**
+- Codex (`~/.codex/instructions.md`)
+- Auggie (`~/.augment/skills/mur/`)
+- Aider (`~/.aider/mur-patterns.md`)
 
-| Command | Description |
-|---------|-------------|
-| `mur repo set <url>` | Set learning repo |
-| `mur repo status` | Show repo status |
-| `mur repo remove` | Remove repo config |
+**IDEs (static sync):**
+- Continue (`~/.continue/rules/mur/`)
+- Cursor (`~/.cursor/rules/mur/`)
+- Windsurf (`~/.windsurf/rules/mur/`)
 
-### Maintenance
+## 📊 Dashboard
 
-| Command | Description |
-|---------|-------------|
-| `mur update` | Update mur (binary, hooks, skills) |
-| `mur health` | Check AI CLI availability |
-
-## 🔄 Learning Repo
-
-Store patterns in a git repo for:
-- Sync across machines
-- Team sharing
-- Backup
+View your patterns and analytics:
 
 ```bash
-# Set up during init, or later:
-mur repo set git@github.com:username/my-learnings.git
+# Interactive dashboard (opens browser)
+mur serve
 
-# Check status
-mur repo status
-
-# Sync (pull + apply)
-mur sync
-
-# Push changes
-mur sync --push
+# Static HTML report
+mur dashboard -o report.html
+open report.html
 ```
 
 ## 🔧 Configuration
 
-After `mur init`, config is at `~/.mur/config.yaml`:
+Config location: `~/.mur/config.yaml`
 
 ```yaml
 default_tool: claude
@@ -126,24 +175,13 @@ learning:
 ```
 ~/.mur/
 ├── config.yaml     # Configuration
-├── patterns/       # Learned patterns (git repo)
-├── hooks/          # Hook templates
-└── transcripts/    # Session logs
+├── patterns/       # Your learned patterns
+├── stats.jsonl     # Usage statistics
+└── repo/           # Learning repo (if configured)
 ```
-
-## 🤝 Supported CLIs
-
-| CLI | Patterns | Hooks |
-|-----|----------|-------|
-| Claude Code | ✅ | ✅ |
-| Gemini CLI | ✅ | - |
-| Codex | ✅ | - |
-| Auggie | ✅ | - |
-| Aider | ✅ | - |
 
 ## 📖 Links
 
-- [Documentation](./docs/)
 - [Changelog](./CHANGELOG.md)
 - [Issues](https://github.com/mur-run/mur-core/issues)
 
