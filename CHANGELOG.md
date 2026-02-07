@@ -2,6 +2,16 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [0.9.2] - 2026-02-08
+
+### Added
+- **OpenAI and Gemini providers** for LLM extraction
+  - `--llm openai` for OpenAI-compatible APIs (OpenAI, Groq, Together, etc.)
+  - `--llm gemini` for Google Gemini API
+  - Configurable endpoint URL for custom OpenAI-compatible services
+
+---
+
 ## [0.9.1] - 2026-02-08
 
 ### Added
