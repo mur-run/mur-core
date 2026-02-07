@@ -216,14 +216,17 @@ learning:
   repo: git@github.com:you/patterns.git  # Optional: sync across machines
   auto_push: true
   llm:
-    provider: ollama           # ollama | claude
+    provider: ollama           # ollama | openai | gemini | claude
     model: deepseek-r1:8b      # LLM model for extraction
     ollama_url: http://localhost:11434
+    openai_url: https://api.openai.com/v1  # or Groq, Together, etc.
 ```
 
 Set your default LLM, then just run:
 ```bash
-mur learn extract --llm   # Uses config defaults
+mur learn extract --llm          # Uses config default
+mur learn extract --llm openai   # Override with OpenAI
+mur learn extract --llm gemini   # Override with Gemini
 ```
 
 ## 📊 Dashboard
