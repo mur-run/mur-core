@@ -215,6 +215,15 @@ tools:
 learning:
   repo: git@github.com:you/patterns.git  # Optional: sync across machines
   auto_push: true
+  llm:
+    provider: ollama           # ollama | claude
+    model: deepseek-r1:8b      # LLM model for extraction
+    ollama_url: http://localhost:11434
+```
+
+Set your default LLM, then just run:
+```bash
+mur learn extract --llm   # Uses config defaults
 ```
 
 ## 📊 Dashboard

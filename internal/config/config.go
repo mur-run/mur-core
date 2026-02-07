@@ -94,6 +94,15 @@ type LearningConfig struct {
 	// Auto-merge settings
 	AutoMerge      bool    `yaml:"auto_merge"`      // enable auto-merge to main
 	MergeThreshold float64 `yaml:"merge_threshold"` // confidence threshold for auto-merge (default: 0.8)
+	// LLM extraction settings
+	LLM LLMConfig `yaml:"llm"`
+}
+
+// LLMConfig represents LLM settings for pattern extraction.
+type LLMConfig struct {
+	Provider  string `yaml:"provider"`   // ollama | claude (default: ollama)
+	Model     string `yaml:"model"`      // model name (default: llama3.2 for ollama)
+	OllamaURL string `yaml:"ollama_url"` // Ollama API URL (default: http://localhost:11434)
 }
 
 // MCPConfig represents MCP-related settings.

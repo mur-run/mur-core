@@ -656,26 +656,49 @@ func runExtractLLM(sessionID, provider, model string, dryRun, acceptAll, quiet b
 	// Setup LLM options
 	opts := learn.DefaultLLMOptions()
 
-	switch strings.ToLower(provider) {
-	case "ollama", "":
-		opts.Provider = learn.LLMOllama
-		if model != "" {
-			opts.Model = model
+	// Load config for defaults
+	cfg, _ := config.Load()
+	if cfg != nil && cfg.Learning.LLM.Provider != "" {
+		// Use config defaults
+		switch strings.ToLower(cfg.Learning.LLM.Provider) {
+		case "ollama":
+			opts.Provider = learn.LLMOllama
+		case "claude":
+			opts.Provider = learn.LLMClaude
 		}
-		// Check if Ollama is available
+		if cfg.Learning.LLM.Model != "" {
+			opts.Model = cfg.Learning.LLM.Model
+		}
+		if cfg.Learning.LLM.OllamaURL != "" {
+			opts.OllamaURL = cfg.Learning.LLM.OllamaURL
+		}
+	}
+
+	// Command line flags override config
+	switch strings.ToLower(provider) {
+	case "ollama":
+		opts.Provider = learn.LLMOllama
+	case "claude":
+		opts.Provider = learn.LLMClaude
+	case "", "default":
+		// Use config default (already set above)
+	default:
+		return fmt.Errorf("unknown LLM provider: %s (use 'ollama' or 'claude')", provider)
+	}
+
+	if model != "" {
+		opts.Model = model
+	}
+
+	// Validate provider setup
+	if opts.Provider == learn.LLMOllama {
 		if !learn.CheckOllamaAvailable(opts.OllamaURL) {
 			return fmt.Errorf("Ollama not available at %s. Start it with: ollama serve", opts.OllamaURL)
 		}
-	case "claude":
-		opts.Provider = learn.LLMClaude
-		if model != "" {
-			opts.Model = model
-		}
+	} else if opts.Provider == learn.LLMClaude {
 		if opts.ClaudeKey == "" {
 			return fmt.Errorf("ANTHROPIC_API_KEY not set. Export it or use --llm ollama")
 		}
-	default:
-		return fmt.Errorf("unknown LLM provider: %s (use 'ollama' or 'claude')", provider)
 	}
 
 	if minConfidence == 0 {
@@ -948,8 +971,9 @@ func init() {
 	learnExtractCmd.Flags().Bool("accept-all", false, "Auto-save patterns above confidence threshold")
 	learnExtractCmd.Flags().Bool("quiet", false, "Silent mode (for hooks, minimal output)")
 	learnExtractCmd.Flags().Float64("min-confidence", 0.6, "Minimum confidence for auto-accept (default: 0.6)")
-	learnExtractCmd.Flags().String("llm", "", "Use LLM for extraction: 'ollama' (default) or 'claude'")
-	learnExtractCmd.Flags().String("llm-model", "", "LLM model (default: llama3.2 for ollama, claude-sonnet-4-20250514 for claude)")
+	learnExtractCmd.Flags().StringP("llm", "l", "", "Use LLM for extraction: 'ollama' or 'claude' (default from config)")
+	learnExtractCmd.Flags().Lookup("llm").NoOptDefVal = "default" // --llm without value uses config default
+	learnExtractCmd.Flags().String("llm-model", "", "LLM model (default from config, or llama3.2/claude-sonnet-4-20250514)")
 
 	learnPushCmd.Flags().Bool("auto-merge", false, "Check and create PRs for high-confidence patterns after push")
 	learnPushCmd.Flags().Bool("dry-run", false, "Preview auto-merge without creating PRs")
