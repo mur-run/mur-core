@@ -100,9 +100,11 @@ type LearningConfig struct {
 
 // LLMConfig represents LLM settings for pattern extraction.
 type LLMConfig struct {
-	Provider  string `yaml:"provider"`   // ollama | claude (default: ollama)
-	Model     string `yaml:"model"`      // model name (default: llama3.2 for ollama)
-	OllamaURL string `yaml:"ollama_url"` // Ollama API URL (default: http://localhost:11434)
+	Provider   string `yaml:"provider"`    // ollama | claude | openai | gemini (default: ollama)
+	Model      string `yaml:"model"`       // model name (default: llama3.2 for ollama)
+	OllamaURL  string `yaml:"ollama_url"`  // Ollama API URL (default: http://localhost:11434)
+	OpenAIURL  string `yaml:"openai_url"`  // OpenAI-compatible API URL (default: https://api.openai.com/v1)
+	APIKeyEnv  string `yaml:"api_key_env"` // Env var name for API key (e.g., OPENAI_API_KEY)
 }
 
 // MCPConfig represents MCP-related settings.

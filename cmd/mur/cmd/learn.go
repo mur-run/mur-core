@@ -272,8 +272,11 @@ Examples:
   mur learn extract --auto --dry-run     # Preview without saving
   mur learn extract --auto --accept-all  # Auto-save high-confidence patterns
   mur learn extract --auto --quiet       # Silent mode for hooks
-  mur learn extract --llm                # Use Ollama for smart extraction
-  mur learn extract --llm claude         # Use Claude API for extraction`,
+  mur learn extract --llm                # Use LLM (default from config)
+  mur learn extract --llm ollama         # Use local Ollama
+  mur learn extract --llm openai         # Use OpenAI API
+  mur learn extract --llm gemini         # Use Gemini API
+  mur learn extract --llm claude         # Use Claude API`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		sessionID, _ := cmd.Flags().GetString("session")
 		auto, _ := cmd.Flags().GetBool("auto")
@@ -665,12 +668,33 @@ func runExtractLLM(sessionID, provider, model string, dryRun, acceptAll, quiet b
 			opts.Provider = learn.LLMOllama
 		case "claude":
 			opts.Provider = learn.LLMClaude
+		case "openai":
+			opts.Provider = learn.LLMOpenAI
+		case "gemini":
+			opts.Provider = learn.LLMGemini
 		}
 		if cfg.Learning.LLM.Model != "" {
 			opts.Model = cfg.Learning.LLM.Model
 		}
 		if cfg.Learning.LLM.OllamaURL != "" {
 			opts.OllamaURL = cfg.Learning.LLM.OllamaURL
+		}
+		if cfg.Learning.LLM.OpenAIURL != "" {
+			opts.OpenAIURL = cfg.Learning.LLM.OpenAIURL
+		}
+		// Support custom API key env var
+		if cfg.Learning.LLM.APIKeyEnv != "" {
+			key := os.Getenv(cfg.Learning.LLM.APIKeyEnv)
+			if key != "" {
+				switch opts.Provider {
+				case learn.LLMOpenAI:
+					opts.OpenAIKey = key
+				case learn.LLMGemini:
+					opts.GeminiKey = key
+				case learn.LLMClaude:
+					opts.ClaudeKey = key
+				}
+			}
 		}
 	}
 
@@ -680,10 +704,14 @@ func runExtractLLM(sessionID, provider, model string, dryRun, acceptAll, quiet b
 		opts.Provider = learn.LLMOllama
 	case "claude":
 		opts.Provider = learn.LLMClaude
+	case "openai":
+		opts.Provider = learn.LLMOpenAI
+	case "gemini":
+		opts.Provider = learn.LLMGemini
 	case "", "default":
 		// Use config default (already set above)
 	default:
-		return fmt.Errorf("unknown LLM provider: %s (use 'ollama' or 'claude')", provider)
+		return fmt.Errorf("unknown LLM provider: %s (use 'ollama', 'claude', 'openai', or 'gemini')", provider)
 	}
 
 	if model != "" {
@@ -691,13 +719,22 @@ func runExtractLLM(sessionID, provider, model string, dryRun, acceptAll, quiet b
 	}
 
 	// Validate provider setup
-	if opts.Provider == learn.LLMOllama {
+	switch opts.Provider {
+	case learn.LLMOllama:
 		if !learn.CheckOllamaAvailable(opts.OllamaURL) {
 			return fmt.Errorf("Ollama not available at %s. Start it with: ollama serve", opts.OllamaURL)
 		}
-	} else if opts.Provider == learn.LLMClaude {
+	case learn.LLMClaude:
 		if opts.ClaudeKey == "" {
-			return fmt.Errorf("ANTHROPIC_API_KEY not set. Export it or use --llm ollama")
+			return fmt.Errorf("ANTHROPIC_API_KEY not set")
+		}
+	case learn.LLMOpenAI:
+		if opts.OpenAIKey == "" {
+			return fmt.Errorf("OPENAI_API_KEY not set")
+		}
+	case learn.LLMGemini:
+		if opts.GeminiKey == "" {
+			return fmt.Errorf("GEMINI_API_KEY not set")
 		}
 	}
 
@@ -971,9 +1008,9 @@ func init() {
 	learnExtractCmd.Flags().Bool("accept-all", false, "Auto-save patterns above confidence threshold")
 	learnExtractCmd.Flags().Bool("quiet", false, "Silent mode (for hooks, minimal output)")
 	learnExtractCmd.Flags().Float64("min-confidence", 0.6, "Minimum confidence for auto-accept (default: 0.6)")
-	learnExtractCmd.Flags().StringP("llm", "l", "", "Use LLM for extraction: 'ollama' or 'claude' (default from config)")
+	learnExtractCmd.Flags().StringP("llm", "l", "", "LLM provider: ollama, claude, openai, gemini (default from config)")
 	learnExtractCmd.Flags().Lookup("llm").NoOptDefVal = "default" // --llm without value uses config default
-	learnExtractCmd.Flags().String("llm-model", "", "LLM model (default from config, or llama3.2/claude-sonnet-4-20250514)")
+	learnExtractCmd.Flags().String("llm-model", "", "LLM model (default from config)")
 
 	learnPushCmd.Flags().Bool("auto-merge", false, "Check and create PRs for high-confidence patterns after push")
 	learnPushCmd.Flags().Bool("dry-run", false, "Preview auto-merge without creating PRs")

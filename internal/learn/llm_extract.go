@@ -15,8 +15,10 @@ import (
 type LLMProvider string
 
 const (
-	LLMOllama LLMProvider = "ollama"
-	LLMClaude LLMProvider = "claude"
+	LLMOllama   LLMProvider = "ollama"
+	LLMClaude   LLMProvider = "claude"
+	LLMOpenAI   LLMProvider = "openai"   // OpenAI-compatible APIs
+	LLMGemini   LLMProvider = "gemini"
 )
 
 // LLMExtractOptions configures LLM-based extraction.
@@ -25,6 +27,9 @@ type LLMExtractOptions struct {
 	Model       string // e.g., "llama3.2" for Ollama, "claude-sonnet-4-20250514" for Claude
 	OllamaURL   string // default: http://localhost:11434
 	ClaudeKey   string // from env ANTHROPIC_API_KEY
+	OpenAIKey   string // from env OPENAI_API_KEY
+	OpenAIURL   string // default: https://api.openai.com/v1 (or any compatible endpoint)
+	GeminiKey   string // from env GEMINI_API_KEY
 	MaxPatterns int    // max patterns to extract per session
 }
 
@@ -35,6 +40,9 @@ func DefaultLLMOptions() LLMExtractOptions {
 		Model:       "llama3.2",
 		OllamaURL:   "http://localhost:11434",
 		ClaudeKey:   os.Getenv("ANTHROPIC_API_KEY"),
+		OpenAIKey:   os.Getenv("OPENAI_API_KEY"),
+		OpenAIURL:   "https://api.openai.com/v1",
+		GeminiKey:   os.Getenv("GEMINI_API_KEY"),
 		MaxPatterns: 10,
 	}
 }
@@ -104,6 +112,10 @@ func ExtractWithLLM(session *Session, opts LLMExtractOptions) ([]ExtractedPatter
 		response, err = callOllama(text, opts)
 	case LLMClaude:
 		response, err = callClaude(text, opts)
+	case LLMOpenAI:
+		response, err = callOpenAI(text, opts)
+	case LLMGemini:
+		response, err = callGemini(text, opts)
 	default:
 		return nil, fmt.Errorf("unknown LLM provider: %s", opts.Provider)
 	}
@@ -338,4 +350,148 @@ func CheckOllamaAvailable(url string) bool {
 	}
 	defer resp.Body.Close()
 	return resp.StatusCode == http.StatusOK
+}
+
+// callOpenAI calls any OpenAI-compatible API (OpenAI, Groq, Together, etc.).
+func callOpenAI(transcript string, opts LLMExtractOptions) (string, error) {
+	if opts.OpenAIKey == "" {
+		return "", fmt.Errorf("OPENAI_API_KEY not set")
+	}
+
+	url := opts.OpenAIURL
+	if url == "" {
+		url = "https://api.openai.com/v1"
+	}
+	url = strings.TrimSuffix(url, "/") + "/chat/completions"
+
+	model := opts.Model
+	if model == "" || model == "llama3.2" {
+		model = "gpt-4o"
+	}
+
+	payload := map[string]interface{}{
+		"model": model,
+		"messages": []map[string]string{
+			{"role": "system", "content": extractionPrompt},
+			{"role": "user", "content": "Extract patterns from this coding session:\n\n" + transcript},
+		},
+		"temperature": 0.3,
+		"max_tokens":  4096,
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return "", err
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+opts.OpenAIKey)
+
+	client := &http.Client{Timeout: 120 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("openai request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("openai error %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	var result struct {
+		Choices []struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+		} `json:"choices"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", fmt.Errorf("failed to parse openai response: %w", err)
+	}
+
+	if len(result.Choices) == 0 {
+		return "", fmt.Errorf("empty response from openai")
+	}
+
+	return result.Choices[0].Message.Content, nil
+}
+
+// callGemini calls the Google Gemini API.
+func callGemini(transcript string, opts LLMExtractOptions) (string, error) {
+	if opts.GeminiKey == "" {
+		return "", fmt.Errorf("GEMINI_API_KEY not set")
+	}
+
+	model := opts.Model
+	if model == "" || model == "llama3.2" {
+		model = "gemini-2.0-flash"
+	}
+
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", model, opts.GeminiKey)
+
+	payload := map[string]interface{}{
+		"systemInstruction": map[string]interface{}{
+			"parts": []map[string]string{
+				{"text": extractionPrompt},
+			},
+		},
+		"contents": []map[string]interface{}{
+			{
+				"parts": []map[string]string{
+					{"text": "Extract patterns from this coding session:\n\n" + transcript},
+				},
+			},
+		},
+		"generationConfig": map[string]interface{}{
+			"temperature": 0.3,
+			"maxOutputTokens": 4096,
+		},
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return "", err
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 120 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("gemini request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("gemini error %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	var result struct {
+		Candidates []struct {
+			Content struct {
+				Parts []struct {
+					Text string `json:"text"`
+				} `json:"parts"`
+			} `json:"content"`
+		} `json:"candidates"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", fmt.Errorf("failed to parse gemini response: %w", err)
+	}
+
+	if len(result.Candidates) == 0 || len(result.Candidates[0].Content.Parts) == 0 {
+		return "", fmt.Errorf("empty response from gemini")
+	}
+
+	return result.Candidates[0].Content.Parts[0].Text, nil
 }
