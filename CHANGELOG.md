@@ -2,6 +2,18 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [0.9.3] - 2026-02-08
+
+### Added
+- **Smart LLM fallback** - Auto-detects Ollama if no LLM configured
+- **Doctor LLM check** - Shows LLM extraction configuration status
+- Hook now uses `--llm` for better extraction quality
+
+### Changed
+- Extraction falls back gracefully: Config LLM → Ollama → Keyword (with warning)
+
+---
+
 ## [0.9.2] - 2026-02-08
 
 ### Added
