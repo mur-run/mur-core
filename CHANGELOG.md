@@ -9,8 +9,15 @@ All notable changes to mur-core will be documented in this file.
 #### Context-Aware Pattern Injection for Native CLIs
 - `mur context` - Output relevant patterns for current project (used by hooks)
 - Claude Code UserPromptSubmit hook now injects context-aware patterns
-- Works with `claude` directly - no need for `mur run`
+- Gemini CLI BeforeAgent hook now injects context-aware patterns
+- Works with `claude` and `gemini` directly - no need for `mur run`
 - Detects project type (Go, Swift, Python, Node.js) and matches patterns
+
+#### IDE Integration (Static Rules)
+- Continue: `~/.continue/rules/mur-patterns.md`
+- Cursor: `~/.cursor/rules/mur-patterns.md`
+- Windsurf: `~/.windsurf/rules/mur-patterns.md`
+- `mur sync` now syncs to all 8 targets (5 CLIs + 3 IDEs)
 
 #### Automatic Pattern Extraction
 - `mur learn extract --accept-all` - Auto-save patterns above confidence threshold
