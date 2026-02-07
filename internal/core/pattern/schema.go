@@ -182,6 +182,10 @@ func (p *Pattern) VerifyHash() bool {
 
 // IsActive returns true if the pattern is active.
 func (p *Pattern) IsActive() bool {
+	// If no status set (old format), treat as active
+	if p.Lifecycle.Status == "" {
+		return true
+	}
 	return p.Lifecycle.Status == StatusActive
 }
 
