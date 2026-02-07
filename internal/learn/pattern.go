@@ -80,19 +80,31 @@ func validateName(name string) error {
 
 // List returns all patterns.
 func List() ([]Pattern, error) {
+	var patterns []Pattern
+
+	// Check ~/.mur/patterns/
 	dir, err := PatternsDir()
-	if err != nil {
-		return nil, err
+	if err == nil {
+		patterns = append(patterns, listFromDir(dir)...)
 	}
 
-	// Return empty list if directory doesn't exist
+	// Also check ~/.mur/repo/patterns/
+	home, _ := os.UserHomeDir()
+	repoDir := filepath.Join(home, ".mur", "repo", "patterns")
+	patterns = append(patterns, listFromDir(repoDir)...)
+
+	return patterns, nil
+}
+
+// listFromDir reads patterns from a specific directory.
+func listFromDir(dir string) []Pattern {
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		return []Pattern{}, nil
+		return nil
 	}
 
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		return nil, fmt.Errorf("cannot read patterns directory: %w", err)
+		return nil
 	}
 
 	var patterns []Pattern
@@ -101,16 +113,20 @@ func List() ([]Pattern, error) {
 			continue
 		}
 
-		name := strings.TrimSuffix(entry.Name(), ".yaml")
-		p, err := Get(name)
+		path := filepath.Join(dir, entry.Name())
+		data, err := os.ReadFile(path)
 		if err != nil {
-			// Skip invalid files
 			continue
 		}
-		patterns = append(patterns, *p)
+
+		var p Pattern
+		if err := yaml.Unmarshal(data, &p); err != nil {
+			continue
+		}
+		patterns = append(patterns, p)
 	}
 
-	return patterns, nil
+	return patterns
 }
 
 // Get returns a pattern by name.
