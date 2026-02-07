@@ -55,6 +55,12 @@ func DefaultCLISources() []CLISource {
 			Parser:      &GeminiParser{},
 		},
 		{
+			Name:        "Auggie",
+			SessionDir:  filepath.Join(home, ".augment", "sessions"),
+			FilePattern: "*.json",
+			Parser:      &AuggieParser{},
+		},
+		{
 			Name:        "Codex",
 			SessionDir:  filepath.Join(home, ".codex", "history"),
 			FilePattern: "*.jsonl",
@@ -514,6 +520,53 @@ func (p *GeminiParser) Parse(path string) ([]SessionEntry, error) {
 			Role:    msg.Role,
 			Content: msg.Content,
 		})
+	}
+
+	return entries, nil
+}
+
+// AuggieParser parses Auggie session files.
+type AuggieParser struct{}
+
+func (p *AuggieParser) Parse(path string) ([]SessionEntry, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var session struct {
+		SessionID   string `json:"sessionId"`
+		Created     string `json:"created"`
+		ChatHistory []struct {
+			Exchange struct {
+				RequestMessage string `json:"request_message"`
+				ResponseText   string `json:"response_text"`
+			} `json:"exchange"`
+		} `json:"chatHistory"`
+	}
+
+	if err := json.Unmarshal(data, &session); err != nil {
+		return nil, err
+	}
+
+	var entries []SessionEntry
+	ts, _ := time.Parse(time.RFC3339, session.Created)
+
+	for _, chat := range session.ChatHistory {
+		if chat.Exchange.RequestMessage != "" {
+			entries = append(entries, SessionEntry{
+				Role:      "user",
+				Content:   chat.Exchange.RequestMessage,
+				Timestamp: ts,
+			})
+		}
+		if chat.Exchange.ResponseText != "" {
+			entries = append(entries, SessionEntry{
+				Role:      "assistant",
+				Content:   chat.Exchange.ResponseText,
+				Timestamp: ts,
+			})
+		}
 	}
 
 	return entries, nil
