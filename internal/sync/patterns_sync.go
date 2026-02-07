@@ -23,11 +23,16 @@ type PatternTarget struct {
 // DefaultPatternTargets returns all supported CLI targets.
 func DefaultPatternTargets() []PatternTarget {
 	return []PatternTarget{
+		// Terminal CLIs
 		{Name: "Claude Code", SkillsDir: ".claude/skills", FileName: "mur-patterns.md", Format: "markdown"},
 		{Name: "Gemini CLI", SkillsDir: ".gemini/skills", FileName: "mur-patterns.md", Format: "markdown"},
 		{Name: "Codex", SkillsDir: ".codex", FileName: "instructions.md", Format: "markdown"},
 		{Name: "Auggie", SkillsDir: ".augment/skills", FileName: "mur-patterns.md", Format: "markdown"},
 		{Name: "Aider", SkillsDir: ".aider", FileName: "conventions.md", Format: "markdown"},
+		// IDE integrations
+		{Name: "Continue", SkillsDir: ".continue/rules", FileName: "mur-patterns.md", Format: "markdown"},
+		{Name: "Cursor", SkillsDir: ".cursor/rules", FileName: "mur-patterns.md", Format: "markdown"},
+		{Name: "Windsurf", SkillsDir: ".windsurf/rules", FileName: "mur-patterns.md", Format: "markdown"},
 	}
 }
 
