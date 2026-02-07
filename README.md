@@ -10,6 +10,9 @@ mur makes your AI CLIs smarter over time. Learn once, remember forever.
 # Install
 go install github.com/mur-run/mur-core/cmd/mur@latest
 
+# Ensure go/bin is in PATH
+export PATH="$HOME/go/bin:$PATH"
+
 # Setup (interactive)
 mur init
 
@@ -26,7 +29,14 @@ mur works invisibly in the background. Your patterns are synced to all CLIs.
 ## 📦 Installation
 
 ```bash
+# Install
 go install github.com/mur-run/mur-core/cmd/mur@latest
+
+# Make sure ~/go/bin is in your PATH
+export PATH="$HOME/go/bin:$PATH"
+
+# Add to shell config for persistence
+echo 'export PATH="$HOME/go/bin:$PATH"' >> ~/.zshrc  # or ~/.bashrc
 ```
 
 ## 📋 Commands
