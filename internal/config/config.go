@@ -100,11 +100,32 @@ type LearningConfig struct {
 
 // LLMConfig represents LLM settings for pattern extraction.
 type LLMConfig struct {
-	Provider   string `yaml:"provider"`    // ollama | claude | openai | gemini (default: ollama)
-	Model      string `yaml:"model"`       // model name (default: llama3.2 for ollama)
-	OllamaURL  string `yaml:"ollama_url"`  // Ollama API URL (default: http://localhost:11434)
-	OpenAIURL  string `yaml:"openai_url"`  // OpenAI-compatible API URL (default: https://api.openai.com/v1)
-	APIKeyEnv  string `yaml:"api_key_env"` // Env var name for API key (e.g., OPENAI_API_KEY)
+	Provider  string `yaml:"provider"`    // ollama | claude | openai | gemini
+	Model     string `yaml:"model"`       // model name
+	OllamaURL string `yaml:"ollama_url"`  // Ollama API URL (default: http://localhost:11434)
+	OpenAIURL string `yaml:"openai_url"`  // OpenAI-compatible API URL
+	APIKeyEnv string `yaml:"api_key_env"` // Env var name for API key
+
+	// Premium model for important sessions
+	Premium *LLMProviderConfig `yaml:"premium,omitempty"`
+
+	// Routing rules for when to use premium
+	Routing *LLMRoutingConfig `yaml:"routing,omitempty"`
+}
+
+// LLMProviderConfig represents a single LLM provider configuration.
+type LLMProviderConfig struct {
+	Provider  string `yaml:"provider"`
+	Model     string `yaml:"model"`
+	OllamaURL string `yaml:"ollama_url,omitempty"`
+	OpenAIURL string `yaml:"openai_url,omitempty"`
+	APIKeyEnv string `yaml:"api_key_env,omitempty"`
+}
+
+// LLMRoutingConfig defines when to use premium model.
+type LLMRoutingConfig struct {
+	MinMessages int      `yaml:"min_messages"` // Use premium if session has >= N messages
+	Projects    []string `yaml:"projects"`     // Use premium for these projects
 }
 
 // MCPConfig represents MCP-related settings.

@@ -2,6 +2,22 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [0.9.6] - 2026-02-08
+
+### Added
+- **Premium model routing** - Use different models for important sessions
+  - Configure `llm.premium` for high-quality model
+  - Set `llm.routing.min_messages` or `llm.routing.projects` rules
+  - Sessions matching rules use premium model automatically
+- **Complete config template** - All LLM options documented and commented out
+- **API key environment variables** - Configure `api_key_env` for each provider
+
+### Changed
+- Config defaults are now commented out (user enables by uncommenting)
+- Hook uses `--llm` flag for better extraction quality
+
+---
+
 ## [0.9.4] - 2026-02-08
 
 ### Added

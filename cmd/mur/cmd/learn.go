@@ -808,8 +808,51 @@ func runExtractLLM(sessionID, provider, model string, dryRun, acceptAll, quiet b
 		return nil
 	}
 
+	// Setup premium options if configured
+	var premiumOpts *learn.LLMExtractOptions
+	if cfg != nil && cfg.Learning.LLM.Premium != nil {
+		p := cfg.Learning.LLM.Premium
+		po := learn.DefaultLLMOptions()
+		switch strings.ToLower(p.Provider) {
+		case "ollama":
+			po.Provider = learn.LLMOllama
+		case "claude":
+			po.Provider = learn.LLMClaude
+		case "openai":
+			po.Provider = learn.LLMOpenAI
+		case "gemini":
+			po.Provider = learn.LLMGemini
+		}
+		if p.Model != "" {
+			po.Model = p.Model
+		}
+		if p.OllamaURL != "" {
+			po.OllamaURL = p.OllamaURL
+		}
+		if p.OpenAIURL != "" {
+			po.OpenAIURL = p.OpenAIURL
+		}
+		if p.APIKeyEnv != "" {
+			key := os.Getenv(p.APIKeyEnv)
+			if key != "" {
+				switch po.Provider {
+				case learn.LLMOpenAI:
+					po.OpenAIKey = key
+				case learn.LLMGemini:
+					po.GeminiKey = key
+				case learn.LLMClaude:
+					po.ClaudeKey = key
+				}
+			}
+		}
+		premiumOpts = &po
+	}
+
 	if !quiet {
 		fmt.Printf("Using %s for extraction...\n", opts.Provider)
+		if premiumOpts != nil {
+			fmt.Printf("Premium model: %s (for important sessions)\n", premiumOpts.Provider)
+		}
 		fmt.Println()
 	}
 
@@ -817,11 +860,36 @@ func runExtractLLM(sessionID, provider, model string, dryRun, acceptAll, quiet b
 	savedCount := 0
 
 	for _, session := range sessions {
-		if !quiet {
-			fmt.Printf("📝 Session: %s (%s)\n", session.ShortID(), session.Project)
+		// Check if this session should use premium model
+		useOpts := opts
+		usePremium := false
+		if premiumOpts != nil && cfg.Learning.LLM.Routing != nil {
+			routing := cfg.Learning.LLM.Routing
+			// Check message count
+			if routing.MinMessages > 0 && len(session.Messages) >= routing.MinMessages {
+				usePremium = true
+			}
+			// Check project patterns
+			for _, proj := range routing.Projects {
+				if strings.Contains(strings.ToLower(session.Project), strings.ToLower(proj)) {
+					usePremium = true
+					break
+				}
+			}
+			if usePremium {
+				useOpts = *premiumOpts
+			}
 		}
 
-		patterns, err := learn.ExtractWithLLM(session, opts)
+		if !quiet {
+			if usePremium {
+				fmt.Printf("📝 Session: %s (%s) ⭐ premium\n", session.ShortID(), session.Project)
+			} else {
+				fmt.Printf("📝 Session: %s (%s)\n", session.ShortID(), session.Project)
+			}
+		}
+
+		patterns, err := learn.ExtractWithLLM(session, useOpts)
 		if err != nil {
 			if !quiet {
 				fmt.Printf("   ⚠ Extraction failed: %v\n", err)

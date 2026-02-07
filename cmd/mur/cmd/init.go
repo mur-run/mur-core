@@ -309,12 +309,42 @@ tools:
 learning:
   auto_extract: true
   sync_to_tools: true
-  # LLM for pattern extraction (auto-detects Ollama if not set)
+  
+  # LLM for pattern extraction
+  # If not configured, mur will auto-detect Ollama or fall back to keyword extraction
   llm:
-    provider: ollama           # ollama | openai | gemini | claude
-    model: deepseek-r1:8b      # recommended for extraction
-    ollama_url: http://localhost:11434
-    # openai_url: https://api.openai.com/v1  # or Groq, Together, etc.
+    # --- Ollama (local, free) ---
+    # provider: ollama
+    # model: deepseek-r1:8b
+    # ollama_url: http://localhost:11434
+    
+    # --- OpenAI-compatible (OpenAI, Groq, Together, etc.) ---
+    # provider: openai
+    # model: gpt-4o-mini
+    # openai_url: https://api.openai.com/v1
+    # api_key_env: OPENAI_API_KEY
+    
+    # --- Google Gemini ---
+    # provider: gemini
+    # model: gemini-2.0-flash
+    # api_key_env: GEMINI_API_KEY
+    
+    # --- Anthropic Claude ---
+    # provider: claude
+    # model: claude-sonnet-4-20250514
+    # api_key_env: ANTHROPIC_API_KEY
+    
+    # --- Premium model for important sessions ---
+    # premium:
+    #   provider: claude
+    #   model: claude-sonnet-4-20250514
+    #   api_key_env: ANTHROPIC_API_KEY
+    
+    # --- When to use premium model ---
+    # routing:
+    #   min_messages: 20        # Sessions with >= 20 messages
+    #   projects:               # Or these projects
+    #     - important-project
 
 # Routing
 routing:
