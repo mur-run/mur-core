@@ -2,6 +2,16 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [0.9.1] - 2026-02-08
+
+### Added
+- **LLM-based extraction** - `mur learn extract --llm` uses AI for smart pattern extraction
+  - Supports Ollama (local, free) and Claude API
+  - Much better quality than keyword-based extraction
+  - Example: `mur learn extract --llm ollama --llm-model deepseek-r1:8b`
+
+---
+
 ## [0.9.0] - 2026-02-08
 
 ### Fixed
