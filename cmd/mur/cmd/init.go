@@ -23,14 +23,20 @@ var initCmd = &cobra.Command{
 	Short: "Initialize mur configuration",
 	Long: `Initialize mur with an interactive setup wizard.
 
-Use --non-interactive for scripted setup (uses defaults).`,
+Examples:
+  mur init          # Interactive: choose CLIs, configure hooks, set up repo
+  mur init --hooks  # Quick: install hooks with defaults (non-interactive)
+
+The --hooks flag is a shortcut for quick setup. It installs Claude Code
+and Gemini CLI hooks using default settings. Use plain 'mur init' for
+full control over configuration.`,
 	RunE: runInit,
 }
 
 func init() {
 	rootCmd.AddCommand(initCmd)
 	initCmd.Flags().BoolVar(&initNonInteractive, "non-interactive", false, "Skip interactive prompts, use defaults")
-	initCmd.Flags().BoolVar(&initHooks, "hooks", false, "Install Claude Code hooks (non-interactive mode)")
+	initCmd.Flags().BoolVar(&initHooks, "hooks", false, "Quick setup: install hooks with defaults (implies --non-interactive)")
 }
 
 // CLI tool configuration
@@ -48,6 +54,11 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	murDir := filepath.Join(home, ".mur")
+
+	// --hooks implies --non-interactive
+	if initHooks {
+		initNonInteractive = true
+	}
 
 	// Non-interactive mode
 	if initNonInteractive {
@@ -223,7 +234,7 @@ func runNonInteractiveInit(home, murDir string) error {
 		return err
 	}
 
-	fmt.Println("✓ mur initialized at ~/.mur")
+	fmt.Println("✓ mur initialized at ~/.mur (using defaults)")
 
 	// Install hooks if flag set
 	if initHooks {
@@ -233,7 +244,13 @@ func runNonInteractiveInit(home, murDir string) error {
 	}
 
 	fmt.Println()
-	fmt.Println("Next: mur run -p \"your task\"")
+	if initHooks {
+		fmt.Println("You're all set! Use claude or gemini directly — patterns auto-inject.")
+		fmt.Println()
+		fmt.Println("Tip: Run 'mur init' (without --hooks) for interactive setup with more options.")
+	} else {
+		fmt.Println("Next: mur run -p \"your task\"")
+	}
 
 	return nil
 }
