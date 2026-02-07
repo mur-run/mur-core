@@ -309,6 +309,12 @@ tools:
 learning:
   auto_extract: true
   sync_to_tools: true
+  # LLM for pattern extraction (auto-detects Ollama if not set)
+  llm:
+    provider: ollama           # ollama | openai | gemini | claude
+    model: deepseek-r1:8b      # recommended for extraction
+    ollama_url: http://localhost:11434
+    # openai_url: https://api.openai.com/v1  # or Groq, Together, etc.
 
 # Routing
 routing:
@@ -346,8 +352,8 @@ Only save if: it required discovery, it helps future tasks, and it's verified.
 	// Create on-stop.sh
 	stopScriptPath := filepath.Join(murDir, "hooks", "on-stop.sh")
 	stopScript := `#!/bin/bash
-# Extract patterns from session (auto-save high confidence ones)
-mur learn extract --auto --accept-all --quiet 2>/dev/null || true
+# Extract patterns from session using LLM (auto-save high confidence ones)
+mur learn extract --llm --auto --accept-all --quiet 2>/dev/null || true
 
 # Sync patterns to all CLIs
 mur sync --quiet 2>/dev/null || true
