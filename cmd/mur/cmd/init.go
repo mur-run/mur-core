@@ -397,18 +397,8 @@ mur sync --quiet 2>/dev/null || true
 		}
 	}
 
-	// Merge hooks
-	existingHooks, _ := settings["hooks"].(map[string]interface{})
-	if existingHooks == nil {
-		existingHooks = make(map[string]interface{})
-	}
-
-	for event, eventHooks := range hooks {
-		if _, exists := existingHooks[event]; !exists {
-			existingHooks[event] = eventHooks
-		}
-	}
-	settings["hooks"] = existingHooks
+	// Set mur hooks (overwrites any existing hooks to ensure correct paths)
+	settings["hooks"] = hooks
 
 	data, _ := json.MarshalIndent(settings, "", "  ")
 	if err := os.WriteFile(claudeSettingsPath, data, 0644); err != nil {
@@ -466,18 +456,8 @@ func installGeminiHooks(home, promptScriptPath, stopScriptPath string) error {
 		}
 	}
 
-	// Merge hooks
-	existingHooks, _ := settings["hooks"].(map[string]interface{})
-	if existingHooks == nil {
-		existingHooks = make(map[string]interface{})
-	}
-
-	for event, eventHooks := range hooks {
-		if _, exists := existingHooks[event]; !exists {
-			existingHooks[event] = eventHooks
-		}
-	}
-	settings["hooks"] = existingHooks
+	// Set mur hooks (overwrites any existing hooks)
+	settings["hooks"] = hooks
 
 	data, _ := json.MarshalIndent(settings, "", "  ")
 	if err := os.WriteFile(geminiSettingsPath, data, 0644); err != nil {
