@@ -285,10 +285,14 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 	cfg, _ := config.Load()
 	llmConfigured := cfg != nil && cfg.Learning.LLM.Provider != ""
 	if llmConfigured {
+		msg := fmt.Sprintf("Configured: %s", cfg.Learning.LLM.Provider)
+		if cfg.Learning.LLM.Model != "" {
+			msg += "/" + cfg.Learning.LLM.Model
+		}
 		checks = append(checks, checkResult{
 			name:    "LLM extraction",
 			status:  "ok",
-			message: fmt.Sprintf("Configured: %s", cfg.Learning.LLM.Provider),
+			message: msg,
 		})
 	} else if ollamaRunning {
 		checks = append(checks, checkResult{
@@ -302,6 +306,47 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 			status:  "warn",
 			message: "Not configured (extraction quality limited)",
 		})
+	}
+
+	// Check 9: Premium LLM configuration
+	if cfg != nil && cfg.Learning.LLM.Premium != nil {
+		p := cfg.Learning.LLM.Premium
+		msg := fmt.Sprintf("%s", p.Provider)
+		if p.Model != "" {
+			msg += "/" + p.Model
+		}
+		// Check if API key is available
+		if p.APIKeyEnv != "" {
+			if os.Getenv(p.APIKeyEnv) != "" {
+				msg += " ✓"
+			} else {
+				msg += fmt.Sprintf(" (missing %s)", p.APIKeyEnv)
+			}
+		}
+		checks = append(checks, checkResult{
+			name:    "Premium LLM",
+			status:  "ok",
+			message: msg,
+		})
+
+		// Show routing rules
+		if cfg.Learning.LLM.Routing != nil {
+			r := cfg.Learning.LLM.Routing
+			var rules []string
+			if r.MinMessages > 0 {
+				rules = append(rules, fmt.Sprintf(">=%d msgs", r.MinMessages))
+			}
+			if len(r.Projects) > 0 {
+				rules = append(rules, fmt.Sprintf("projects: %v", r.Projects))
+			}
+			if len(rules) > 0 {
+				checks = append(checks, checkResult{
+					name:    "Premium routing",
+					status:  "ok",
+					message: strings.Join(rules, ", "),
+				})
+			}
+		}
 	}
 
 	// Print results
