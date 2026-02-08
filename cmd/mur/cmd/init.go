@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
+	murhooks "github.com/mur-run/mur-core/internal/hooks"
 	"github.com/mur-run/mur-core/internal/sync"
 	"github.com/spf13/cobra"
 )
@@ -501,6 +502,21 @@ func installGeminiHooks(home, promptScriptPath, stopScriptPath string) error {
 	}
 
 	fmt.Println("✓ Installed Gemini CLI hooks")
+
+	// Install OpenCode hooks
+	if err := murhooks.InstallOpenCodeHooks(); err != nil {
+		fmt.Printf("  ⚠ OpenCode hooks: %v\n", err)
+	} else {
+		fmt.Println("✓ Installed OpenCode hooks")
+	}
+
+	// Install GitHub Copilot hooks
+	if err := murhooks.InstallCopilotHooks(); err != nil {
+		fmt.Printf("  ⚠ GitHub Copilot hooks: %v\n", err)
+	} else {
+		fmt.Println("✓ Installed GitHub Copilot hooks")
+	}
+
 	return nil
 }
 

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/mur-run/mur-core/internal/config"
+	murhooks "github.com/mur-run/mur-core/internal/hooks"
 	"github.com/spf13/cobra"
 )
 
@@ -113,6 +114,8 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 		{"Codex CLI", "codex"},
 		{"Auggie", "auggie"},
 		{"Aider", "aider"},
+		{"OpenCode", "opencode"},
+		{"GitHub Copilot", "gh"},
 	}
 
 	// Common installation paths to check (beyond PATH)
@@ -170,12 +173,11 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Check 4: Claude hooks
-	claudeHooksPath := filepath.Join(home, ".claude", "hooks.json")
-	if _, err := os.Stat(claudeHooksPath); err == nil {
-		// Check if hooks contain mur
-		content, _ := os.ReadFile(claudeHooksPath)
-		if strings.Contains(string(content), "mur") {
+	// Check 4: Claude hooks (in settings.json)
+	claudeSettingsPath := filepath.Join(home, ".claude", "settings.json")
+	if _, err := os.Stat(claudeSettingsPath); err == nil {
+		content, _ := os.ReadFile(claudeSettingsPath)
+		if strings.Contains(string(content), "mur") || strings.Contains(string(content), "on-prompt.sh") {
 			checks = append(checks, checkResult{
 				name:   "Claude hooks",
 				status: "ok",
@@ -184,7 +186,7 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 			checks = append(checks, checkResult{
 				name:    "Claude hooks",
 				status:  "warn",
-				message: "Hooks exist but mur not configured",
+				message: "Settings exist but mur not configured",
 			})
 		}
 	} else {
@@ -195,11 +197,11 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 		})
 	}
 
-	// Check 5: Gemini hooks
-	geminiHooksPath := filepath.Join(home, ".gemini", "hooks.json")
-	if _, err := os.Stat(geminiHooksPath); err == nil {
-		content, _ := os.ReadFile(geminiHooksPath)
-		if strings.Contains(string(content), "mur") {
+	// Check 5: Gemini hooks (in settings.json)
+	geminiSettingsPath := filepath.Join(home, ".gemini", "settings.json")
+	if _, err := os.Stat(geminiSettingsPath); err == nil {
+		content, _ := os.ReadFile(geminiSettingsPath)
+		if strings.Contains(string(content), "mur") || strings.Contains(string(content), "on-prompt.sh") {
 			checks = append(checks, checkResult{
 				name:   "Gemini hooks",
 				status: "ok",
@@ -208,12 +210,40 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 			checks = append(checks, checkResult{
 				name:    "Gemini hooks",
 				status:  "warn",
-				message: "Hooks exist but mur not configured",
+				message: "Settings exist but mur not configured",
 			})
 		}
 	} else {
 		checks = append(checks, checkResult{
 			name:    "Gemini hooks",
+			status:  "warn",
+			message: "Not installed (run: mur init --hooks)",
+		})
+	}
+
+	// Check 5b: OpenCode hooks
+	if installed, _ := murhooks.CheckOpenCodeHooks(); installed {
+		checks = append(checks, checkResult{
+			name:   "OpenCode hooks",
+			status: "ok",
+		})
+	} else {
+		checks = append(checks, checkResult{
+			name:    "OpenCode hooks",
+			status:  "warn",
+			message: "Not installed (run: mur init --hooks)",
+		})
+	}
+
+	// Check 5c: GitHub Copilot hooks
+	if installed, _ := murhooks.CheckCopilotHooks(); installed {
+		checks = append(checks, checkResult{
+			name:   "Copilot hooks",
+			status: "ok",
+		})
+	} else {
+		checks = append(checks, checkResult{
+			name:    "Copilot hooks",
 			status:  "warn",
 			message: "Not installed (run: mur init --hooks)",
 		})
