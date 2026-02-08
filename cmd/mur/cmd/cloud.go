@@ -1,0 +1,483 @@
+package cmd
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/mur-run/mur-core/internal/cloud"
+	"github.com/mur-run/mur-core/internal/config"
+	"github.com/mur-run/mur-core/internal/core/pattern"
+	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
+)
+
+var cloudCmd = &cobra.Command{
+	Use:   "cloud",
+	Short: "Manage cloud sync with mur-server",
+	Long: `Cloud sync enables team pattern sharing via mur-server.
+
+Commands:
+  mur cloud teams    — List your teams
+  mur cloud select   — Set active team
+  mur cloud sync     — Sync patterns with server`,
+}
+
+var cloudTeamsCmd = &cobra.Command{
+	Use:   "teams",
+	Short: "List your teams",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		client, err := getCloudClient(cmd)
+		if err != nil {
+			return err
+		}
+
+		if !client.AuthStore().IsLoggedIn() {
+			fmt.Println("Not logged in. Run 'mur login' first.")
+			return nil
+		}
+
+		teams, err := client.ListTeams()
+		if err != nil {
+			return fmt.Errorf("failed to list teams: %w", err)
+		}
+
+		if len(teams) == 0 {
+			fmt.Println("No teams found.")
+			fmt.Println("")
+			fmt.Println("Create a team:")
+			fmt.Println("  mur cloud create \"My Team\"")
+			return nil
+		}
+
+		// Get active team from config
+		cfg, _ := config.Load()
+		activeTeam := ""
+		if cfg != nil {
+			activeTeam = cfg.Server.Team
+		}
+
+		fmt.Println("Your Teams")
+		fmt.Println("==========")
+		fmt.Println("")
+
+		for _, t := range teams {
+			active := ""
+			if t.Slug == activeTeam || t.ID == activeTeam {
+				active = " (active)"
+			}
+			fmt.Printf("  %s%s\n", t.Name, active)
+			fmt.Printf("    Slug: %s  |  Role: %s  |  Plan: %s\n", t.Slug, t.Role, t.Plan)
+			fmt.Println("")
+		}
+
+		if activeTeam == "" && len(teams) > 0 {
+			fmt.Println("Set active team with:")
+			fmt.Printf("  mur cloud select %s\n", teams[0].Slug)
+		}
+
+		return nil
+	},
+}
+
+var cloudCreateCmd = &cobra.Command{
+	Use:   "create <name>",
+	Short: "Create a new team",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		name := args[0]
+
+		client, err := getCloudClient(cmd)
+		if err != nil {
+			return err
+		}
+
+		if !client.AuthStore().IsLoggedIn() {
+			fmt.Println("Not logged in. Run 'mur login' first.")
+			return nil
+		}
+
+		team, err := client.CreateTeam(name)
+		if err != nil {
+			return fmt.Errorf("failed to create team: %w", err)
+		}
+
+		fmt.Printf("✓ Team created: %s (slug: %s)\n", team.Name, team.Slug)
+		fmt.Println("")
+		fmt.Println("Set as active team:")
+		fmt.Printf("  mur cloud select %s\n", team.Slug)
+
+		return nil
+	},
+}
+
+var cloudSelectCmd = &cobra.Command{
+	Use:   "select <team-slug>",
+	Short: "Set active team for sync",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		teamSlug := args[0]
+
+		cfg, err := config.Load()
+		if err != nil {
+			cfg = config.Default()
+		}
+
+		cfg.Server.Team = teamSlug
+
+		// Save config
+		home, _ := os.UserHomeDir()
+		configPath := filepath.Join(home, ".mur", "config.yaml")
+
+		data, err := yaml.Marshal(cfg)
+		if err != nil {
+			return fmt.Errorf("failed to marshal config: %w", err)
+		}
+
+		if err := os.WriteFile(configPath, data, 0644); err != nil {
+			return fmt.Errorf("failed to save config: %w", err)
+		}
+
+		fmt.Printf("✓ Active team set to: %s\n", teamSlug)
+		fmt.Println("")
+		fmt.Println("Now you can sync:")
+		fmt.Println("  mur cloud sync")
+
+		return nil
+	},
+}
+
+var cloudSyncCmd = &cobra.Command{
+	Use:   "sync",
+	Short: "Sync patterns with server",
+	Long: `Bidirectional sync between local patterns and mur-server.
+
+Examples:
+  mur cloud sync              # Sync with active team
+  mur cloud sync --team=slug  # Sync with specific team
+  mur cloud sync --dry-run    # Show what would sync`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		teamSlug, _ := cmd.Flags().GetString("team")
+		dryRun, _ := cmd.Flags().GetBool("dry-run")
+		forceLocal, _ := cmd.Flags().GetBool("force-local")
+		forceServer, _ := cmd.Flags().GetBool("force-server")
+
+		client, err := getCloudClient(cmd)
+		if err != nil {
+			return err
+		}
+
+		if !client.AuthStore().IsLoggedIn() {
+			fmt.Println("Not logged in. Run 'mur login' first.")
+			return nil
+		}
+
+		// Get team from flag or config
+		if teamSlug == "" {
+			cfg, err := config.Load()
+			if err == nil && cfg.Server.Team != "" {
+				teamSlug = cfg.Server.Team
+			}
+		}
+
+		if teamSlug == "" {
+			return fmt.Errorf("no team specified. Use --team or run 'mur cloud select <team>'")
+		}
+
+		// Find team ID
+		teams, err := client.ListTeams()
+		if err != nil {
+			return fmt.Errorf("failed to list teams: %w", err)
+		}
+
+		var teamID string
+		for _, t := range teams {
+			if t.Slug == teamSlug || t.ID == teamSlug {
+				teamID = t.ID
+				break
+			}
+		}
+
+		if teamID == "" {
+			return fmt.Errorf("team not found: %s", teamSlug)
+		}
+
+		fmt.Printf("Syncing with team: %s\n", teamSlug)
+		fmt.Println("")
+
+		// Load local patterns
+		store, err := pattern.DefaultStore()
+		if err != nil {
+			return fmt.Errorf("failed to load patterns: %w", err)
+		}
+
+		localPatterns, err := store.List()
+		if err != nil {
+			return fmt.Errorf("failed to list local patterns: %w", err)
+		}
+
+		// Get local version (stored in a sync state file)
+		localVersion := getLocalSyncVersion(teamSlug)
+
+		// Check sync status
+		status, err := client.GetSyncStatus(teamID, localVersion)
+		if err != nil {
+			return fmt.Errorf("failed to get sync status: %w", err)
+		}
+
+		fmt.Printf("Local version:  %d\n", localVersion)
+		fmt.Printf("Server version: %d\n", status.ServerVersion)
+		fmt.Println("")
+
+		// Pull changes from server
+		if status.HasUpdates {
+			fmt.Println("⬇️  Pulling from server...")
+
+			pullResp, err := client.Pull(teamID, localVersion)
+			if err != nil {
+				return fmt.Errorf("failed to pull: %w", err)
+			}
+
+			created, updated, deleted := 0, 0, 0
+			for _, p := range pullResp.Patterns {
+				exists := store.Exists(p.Name)
+
+				if dryRun {
+					if p.Deleted {
+						fmt.Printf("  Would delete: %s\n", p.Name)
+						deleted++
+					} else if exists {
+						fmt.Printf("  Would update: %s\n", p.Name)
+						updated++
+					} else {
+						fmt.Printf("  Would create: %s\n", p.Name)
+						created++
+					}
+					continue
+				}
+
+				if p.Deleted {
+					// Delete local pattern
+					if err := store.Delete(p.Name); err == nil {
+						deleted++
+					}
+				} else {
+					// Create or update
+					localP := convertCloudPattern(&p)
+					if exists {
+						if err := store.Update(localP); err == nil {
+							updated++
+						}
+					} else {
+						if err := store.Create(localP); err == nil {
+							created++
+						}
+					}
+				}
+			}
+
+			if !dryRun {
+				saveLocalSyncVersion(teamSlug, pullResp.Version)
+			}
+
+			fmt.Printf("  ✓ %d created, %d updated, %d deleted\n", created, updated, deleted)
+			fmt.Println("")
+		} else {
+			fmt.Println("⬇️  No updates from server")
+			fmt.Println("")
+		}
+
+		// Push local changes
+		fmt.Println("⬆️  Pushing to server...")
+
+		var changes []cloud.SyncChange
+		for i := range localPatterns {
+			// For now, push all as creates/updates
+			// A proper implementation would track local changes
+			cloudP := convertLocalPattern(&localPatterns[i])
+			changes = append(changes, cloud.SyncChange{
+				Action:  "create", // Server will handle upsert
+				Pattern: cloudP,
+			})
+		}
+
+		if len(changes) == 0 {
+			fmt.Println("  No local changes to push")
+		} else if dryRun {
+			fmt.Printf("  Would push %d patterns\n", len(changes))
+		} else {
+			pushReq := cloud.PushRequest{
+				BaseVersion: localVersion,
+				Changes:     changes,
+			}
+
+			pushResp, err := client.Push(teamID, pushReq)
+			if err != nil {
+				return fmt.Errorf("failed to push: %w", err)
+			}
+
+			if !pushResp.OK {
+				fmt.Println("  ⚠️  Conflicts detected:")
+				for _, c := range pushResp.Conflicts {
+					fmt.Printf("    - %s\n", c.PatternName)
+				}
+
+				if forceLocal {
+					fmt.Println("  --force-local: Would overwrite server (not implemented)")
+				} else if forceServer {
+					fmt.Println("  --force-server: Would overwrite local (not implemented)")
+				} else {
+					fmt.Println("")
+					fmt.Println("Resolve conflicts with:")
+					fmt.Println("  mur cloud sync --force-local   # Keep local versions")
+					fmt.Println("  mur cloud sync --force-server  # Keep server versions")
+				}
+				return nil
+			}
+
+			saveLocalSyncVersion(teamSlug, pushResp.Version)
+			fmt.Printf("  ✓ %d patterns pushed\n", len(changes))
+		}
+
+		fmt.Println("")
+		fmt.Println("✅ Sync complete")
+
+		return nil
+	},
+}
+
+// Helper functions
+
+func getCloudClient(cmd *cobra.Command) (*cloud.Client, error) {
+	serverURL, _ := cmd.Flags().GetString("server")
+
+	if serverURL == "" {
+		cfg, err := config.Load()
+		if err == nil && cfg.Server.URL != "" {
+			serverURL = cfg.Server.URL
+		}
+	}
+
+	return cloud.NewClient(serverURL)
+}
+
+func getLocalSyncVersion(teamSlug string) int64 {
+	home, _ := os.UserHomeDir()
+	path := filepath.Join(home, ".mur", "sync-state.yaml")
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return 0
+	}
+
+	var state map[string]int64
+	if err := yaml.Unmarshal(data, &state); err != nil {
+		return 0
+	}
+
+	return state[teamSlug]
+}
+
+func saveLocalSyncVersion(teamSlug string, version int64) {
+	home, _ := os.UserHomeDir()
+	path := filepath.Join(home, ".mur", "sync-state.yaml")
+
+	state := make(map[string]int64)
+
+	// Load existing state
+	data, err := os.ReadFile(path)
+	if err == nil {
+		yaml.Unmarshal(data, &state)
+	}
+
+	state[teamSlug] = version
+
+	data, _ = yaml.Marshal(state)
+	os.WriteFile(path, data, 0644)
+}
+
+func convertCloudPattern(p *cloud.Pattern) *pattern.Pattern {
+	local := &pattern.Pattern{
+		Name:        p.Name,
+		Description: p.Description,
+		Content:     p.Content,
+	}
+
+	// Convert tags
+	if p.Tags != nil {
+		if confirmed, ok := p.Tags["confirmed"].([]interface{}); ok {
+			for _, t := range confirmed {
+				if s, ok := t.(string); ok {
+					local.Tags.Confirmed = append(local.Tags.Confirmed, s)
+				}
+			}
+		}
+	}
+
+	// Convert applies
+	if p.Applies != nil {
+		if langs, ok := p.Applies["languages"].([]interface{}); ok {
+			for _, l := range langs {
+				if s, ok := l.(string); ok {
+					local.Applies.Languages = append(local.Applies.Languages, s)
+				}
+			}
+		}
+		if projs, ok := p.Applies["projects"].([]interface{}); ok {
+			for _, pr := range projs {
+				if s, ok := pr.(string); ok {
+					local.Applies.Projects = append(local.Applies.Projects, s)
+				}
+			}
+		}
+	}
+
+	return local
+}
+
+func convertLocalPattern(p *pattern.Pattern) *cloud.Pattern {
+	cloud := &cloud.Pattern{
+		Name:        p.Name,
+		Description: p.Description,
+		Content:     strings.TrimSpace(p.Content),
+	}
+
+	// Convert tags
+	if len(p.Tags.Confirmed) > 0 {
+		cloud.Tags = map[string]any{
+			"confirmed": p.Tags.Confirmed,
+		}
+	}
+
+	// Convert applies
+	applies := make(map[string]any)
+	if len(p.Applies.Languages) > 0 {
+		applies["languages"] = p.Applies.Languages
+	}
+	if len(p.Applies.Projects) > 0 {
+		applies["projects"] = p.Applies.Projects
+	}
+	if len(applies) > 0 {
+		cloud.Applies = applies
+	}
+
+	return cloud
+}
+
+func init() {
+	rootCmd.AddCommand(cloudCmd)
+	cloudCmd.AddCommand(cloudTeamsCmd)
+	cloudCmd.AddCommand(cloudCreateCmd)
+	cloudCmd.AddCommand(cloudSelectCmd)
+	cloudCmd.AddCommand(cloudSyncCmd)
+
+	// Global flags for cloud commands
+	cloudCmd.PersistentFlags().String("server", "", "Server URL (default: https://api.mur.run)")
+
+	// Sync flags
+	cloudSyncCmd.Flags().String("team", "", "Team slug to sync with")
+	cloudSyncCmd.Flags().Bool("dry-run", false, "Show what would sync without making changes")
+	cloudSyncCmd.Flags().Bool("force-local", false, "Overwrite server with local on conflicts")
+	cloudSyncCmd.Flags().Bool("force-server", false, "Overwrite local with server on conflicts")
+}

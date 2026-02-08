@@ -18,7 +18,14 @@ type Config struct {
 	MCP           MCPConfig           `yaml:"mcp"`
 	Hooks         HooksConfig         `yaml:"hooks"`
 	Team          TeamConfig          `yaml:"team"`
+	Server        ServerConfig        `yaml:"server"`
 	Notifications NotificationsConfig `yaml:"notifications"`
+}
+
+// ServerConfig represents mur-server cloud sync settings.
+type ServerConfig struct {
+	URL  string `yaml:"url"`  // Server URL (default: https://api.mur.run)
+	Team string `yaml:"team"` // Active team slug
 }
 
 // NotificationsConfig represents notification settings.
@@ -233,6 +240,11 @@ func (c *Config) EnsureTool(name string) error {
 		return fmt.Errorf("tool is disabled: %s", name)
 	}
 	return nil
+}
+
+// Default returns a default configuration.
+func Default() *Config {
+	return defaultConfig()
 }
 
 // defaultConfig returns a default configuration.

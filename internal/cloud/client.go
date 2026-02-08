@@ -1,0 +1,316 @@
+package cloud
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"time"
+)
+
+const (
+	DefaultServerURL = "https://api.mur.run"
+)
+
+// Client is the mur-server API client
+type Client struct {
+	baseURL    string
+	httpClient *http.Client
+	authStore  *AuthStore
+}
+
+// NewClient creates a new API client
+func NewClient(serverURL string) (*Client, error) {
+	if serverURL == "" {
+		serverURL = DefaultServerURL
+	}
+
+	authStore, err := NewAuthStore()
+	if err != nil {
+		return nil, err
+	}
+
+	return &Client{
+		baseURL:   serverURL,
+		authStore: authStore,
+		httpClient: &http.Client{
+			Timeout: 30 * time.Second,
+		},
+	}, nil
+}
+
+// AuthStore returns the auth store
+func (c *Client) AuthStore() *AuthStore {
+	return c.authStore
+}
+
+// LoginRequest represents login input
+type LoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+// AuthResponse represents auth response
+type AuthResponse struct {
+	User         *User  `json:"user"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
+// Login authenticates with the server
+func (c *Client) Login(email, password string) (*AuthResponse, error) {
+	req := LoginRequest{
+		Email:    email,
+		Password: password,
+	}
+
+	var resp AuthResponse
+	if err := c.post("/api/v1/auth/login", req, &resp); err != nil {
+		return nil, err
+	}
+
+	// Save tokens
+	authData := &AuthData{
+		AccessToken:  resp.AccessToken,
+		RefreshToken: resp.RefreshToken,
+		ExpiresAt:    time.Now().Add(15 * time.Minute),
+		User:         resp.User,
+	}
+	if err := c.authStore.Save(authData); err != nil {
+		return nil, fmt.Errorf("failed to save auth: %w", err)
+	}
+
+	return &resp, nil
+}
+
+// Refresh refreshes the access token
+func (c *Client) Refresh() error {
+	auth, err := c.authStore.Load()
+	if err != nil || auth == nil {
+		return fmt.Errorf("not logged in")
+	}
+
+	req := map[string]string{
+		"refresh_token": auth.RefreshToken,
+	}
+
+	var resp AuthResponse
+	if err := c.post("/api/v1/auth/refresh", req, &resp); err != nil {
+		return err
+	}
+
+	// Save new tokens
+	authData := &AuthData{
+		AccessToken:  resp.AccessToken,
+		RefreshToken: resp.RefreshToken,
+		ExpiresAt:    time.Now().Add(15 * time.Minute),
+		User:         resp.User,
+	}
+	return c.authStore.Save(authData)
+}
+
+// Me returns the current user
+func (c *Client) Me() (*User, error) {
+	var user User
+	if err := c.get("/api/v1/auth/me", &user); err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+// Logout clears stored credentials
+func (c *Client) Logout() error {
+	return c.authStore.Clear()
+}
+
+// Team represents a team
+type Team struct {
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	Slug      string    `json:"slug"`
+	OwnerID   string    `json:"owner_id"`
+	Plan      string    `json:"plan"`
+	Role      string    `json:"role,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// TeamsResponse represents teams list response
+type TeamsResponse struct {
+	Teams []Team `json:"teams"`
+}
+
+// ListTeams returns user's teams
+func (c *Client) ListTeams() ([]Team, error) {
+	var resp TeamsResponse
+	if err := c.get("/api/v1/teams", &resp); err != nil {
+		return nil, err
+	}
+	return resp.Teams, nil
+}
+
+// CreateTeam creates a new team
+func (c *Client) CreateTeam(name string) (*Team, error) {
+	req := map[string]string{"name": name}
+	var team Team
+	if err := c.post("/api/v1/teams", req, &team); err != nil {
+		return nil, err
+	}
+	return &team, nil
+}
+
+// SyncStatus represents sync status
+type SyncStatus struct {
+	ServerVersion int64 `json:"server_version"`
+	HasUpdates    bool  `json:"has_updates"`
+}
+
+// GetSyncStatus returns sync status
+func (c *Client) GetSyncStatus(teamID string, version int64) (*SyncStatus, error) {
+	var status SyncStatus
+	path := fmt.Sprintf("/api/v1/teams/%s/sync/status?version=%d", teamID, version)
+	if err := c.get(path, &status); err != nil {
+		return nil, err
+	}
+	return &status, nil
+}
+
+// Pattern represents a pattern
+type Pattern struct {
+	ID          string         `json:"id"`
+	TeamID      string         `json:"team_id"`
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	Content     string         `json:"content"`
+	Tags        map[string]any `json:"tags"`
+	Applies     map[string]any `json:"applies"`
+	Security    map[string]any `json:"security"`
+	Learning    map[string]any `json:"learning"`
+	Lifecycle   map[string]any `json:"lifecycle"`
+	Version     int64          `json:"version"`
+	Deleted     bool           `json:"deleted"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+}
+
+// PullResponse represents pull response
+type PullResponse struct {
+	Patterns []Pattern `json:"patterns"`
+	Version  int64     `json:"version"`
+}
+
+// Pull pulls patterns since a version
+func (c *Client) Pull(teamID string, sinceVersion int64) (*PullResponse, error) {
+	var resp PullResponse
+	path := fmt.Sprintf("/api/v1/teams/%s/sync/pull?since=%d", teamID, sinceVersion)
+	if err := c.get(path, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// SyncChange represents a sync change
+type SyncChange struct {
+	Action  string   `json:"action"` // create, update, delete
+	ID      string   `json:"id,omitempty"`
+	Pattern *Pattern `json:"pattern,omitempty"`
+}
+
+// PushRequest represents push request
+type PushRequest struct {
+	BaseVersion int64        `json:"base_version"`
+	Changes     []SyncChange `json:"changes"`
+}
+
+// Conflict represents a sync conflict
+type Conflict struct {
+	PatternID     string   `json:"pattern_id"`
+	PatternName   string   `json:"pattern_name"`
+	ServerVersion *Pattern `json:"server_version"`
+	ClientVersion *Pattern `json:"client_version"`
+}
+
+// PushResponse represents push response
+type PushResponse struct {
+	OK        bool       `json:"ok"`
+	Version   int64      `json:"version"`
+	Conflicts []Conflict `json:"conflicts,omitempty"`
+}
+
+// Push pushes changes
+func (c *Client) Push(teamID string, req PushRequest) (*PushResponse, error) {
+	var resp PushResponse
+	path := fmt.Sprintf("/api/v1/teams/%s/sync/push", teamID)
+	if err := c.post(path, req, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// HTTP helpers
+
+func (c *Client) get(path string, result interface{}) error {
+	return c.do("GET", path, nil, result)
+}
+
+func (c *Client) post(path string, body interface{}, result interface{}) error {
+	return c.do("POST", path, body, result)
+}
+
+func (c *Client) do(method, path string, body interface{}, result interface{}) error {
+	// Auto-refresh token if needed
+	if c.authStore.NeedsRefresh() {
+		_ = c.Refresh() // Ignore refresh errors, request will fail if token invalid
+	}
+
+	var bodyReader io.Reader
+	if body != nil {
+		b, err := json.Marshal(body)
+		if err != nil {
+			return fmt.Errorf("failed to marshal request: %w", err)
+		}
+		bodyReader = bytes.NewReader(b)
+	}
+
+	req, err := http.NewRequest(method, c.baseURL+path, bodyReader)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	// Add auth header if logged in
+	auth, _ := c.authStore.Load()
+	if auth != nil && auth.AccessToken != "" {
+		req.Header.Set("Authorization", "Bearer "+auth.AccessToken)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode >= 400 {
+		var errResp struct {
+			Error string `json:"error"`
+		}
+		if json.Unmarshal(respBody, &errResp) == nil && errResp.Error != "" {
+			return fmt.Errorf("%s", errResp.Error)
+		}
+		return fmt.Errorf("request failed with status %d", resp.StatusCode)
+	}
+
+	if result != nil {
+		if err := json.Unmarshal(respBody, result); err != nil {
+			return fmt.Errorf("failed to parse response: %w", err)
+		}
+	}
+
+	return nil
+}
