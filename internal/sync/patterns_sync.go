@@ -29,10 +29,12 @@ func DefaultPatternTargets() []PatternTarget {
 		{Name: "Codex", SkillsDir: ".codex", FileName: "instructions.md", Format: "markdown"},
 		{Name: "Auggie", SkillsDir: ".augment/skills", FileName: "mur-patterns.md", Format: "markdown"},
 		{Name: "Aider", SkillsDir: ".aider", FileName: "conventions.md", Format: "markdown"},
+		{Name: "OpenCode", SkillsDir: ".opencode", FileName: "instructions.md", Format: "markdown"},
 		// IDE integrations
 		{Name: "Continue", SkillsDir: ".continue/rules", FileName: "mur-patterns.md", Format: "markdown"},
 		{Name: "Cursor", SkillsDir: ".cursor/rules", FileName: "mur-patterns.md", Format: "markdown"},
 		{Name: "Windsurf", SkillsDir: ".windsurf/rules", FileName: "mur-patterns.md", Format: "markdown"},
+		{Name: "GitHub Copilot", SkillsDir: ".github", FileName: "copilot-instructions.md", Format: "markdown"},
 	}
 }
 
