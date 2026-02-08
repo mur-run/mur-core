@@ -891,10 +891,20 @@ func runExtractLLM(sessionID, provider, model string, dryRun, acceptAll, quiet b
 
 		patterns, err := learn.ExtractWithLLM(session, useOpts)
 		if err != nil {
-			if !quiet {
-				fmt.Printf("   ⚠ Extraction failed: %v\n", err)
+			// If premium failed, fallback to default model
+			if usePremium {
+				if !quiet {
+					fmt.Printf("   ⚠ Premium failed: %v\n", err)
+					fmt.Printf("   ↪ Falling back to %s...\n", opts.Provider)
+				}
+				patterns, err = learn.ExtractWithLLM(session, opts)
 			}
-			continue
+			if err != nil {
+				if !quiet {
+					fmt.Printf("   ⚠ Extraction failed: %v\n", err)
+				}
+				continue
+			}
 		}
 
 		if len(patterns) == 0 {
