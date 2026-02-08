@@ -358,6 +358,34 @@ Features:
 - Sync status across tools
 - One-click pattern editing
 
+## ☁️ Cloud Sync
+
+Sync patterns across devices and share with your team via [mur.run](https://mur.run).
+
+```bash
+# Login to mur cloud
+mur cloud login
+
+# Push local patterns to cloud
+mur cloud sync push
+
+# Pull patterns from cloud
+mur cloud sync pull
+
+# Logout
+mur cloud logout
+```
+
+### Plans
+
+| Plan | Price | Features |
+|------|-------|----------|
+| **Free** | $0/mo | Unlimited local patterns, all tool integrations |
+| **Pro** | $19/mo | Cloud sync, cross-device patterns |
+| **Team** | $49/mo | 5 team members, shared pattern library |
+
+Sign up at [app.mur.run](https://app.mur.run)
+
 ## 📁 Directory Structure
 
 ```
