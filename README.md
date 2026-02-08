@@ -1,4 +1,4 @@
-# mur 🔊
+# MUR Core 🔊
 
 [![Go Version](https://img.shields.io/github/go-mod/go-version/mur-run/mur-core)](https://go.dev)
 [![Release](https://img.shields.io/github/v/release/mur-run/mur-core)](https://github.com/mur-run/mur-core/releases)
@@ -6,7 +6,7 @@
 
 **Your AI assistant's memory.**
 
-mur captures patterns from your coding sessions and injects them back into your AI tools. Learn once, remember forever. Works invisibly — just use your CLI as normal.
+MUR Core captures patterns from your coding sessions and injects them back into your AI tools. Learn once, remember forever. Works invisibly — just use your CLI as normal.
 
 ## ✨ Features
 
