@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -258,8 +259,8 @@ func (c *Client) post(path string, body interface{}, result interface{}) error {
 }
 
 func (c *Client) do(method, path string, body interface{}, result interface{}) error {
-	// Auto-refresh token if needed
-	if c.authStore.NeedsRefresh() {
+	// Auto-refresh token if needed (but not for auth endpoints to avoid recursion)
+	if c.authStore.NeedsRefresh() && !strings.HasPrefix(path, "/api/v1/auth/") {
 		_ = c.Refresh() // Ignore refresh errors, request will fail if token invalid
 	}
 
