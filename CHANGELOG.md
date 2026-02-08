@@ -2,6 +2,31 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [1.0.0] - 2026-02-08 🎉
+
+**mur is ready for production!**
+
+### Highlights
+- **10 AI Tools Supported** — Claude, Gemini, Codex, Auggie, Aider, OpenCode, Continue, Cursor, Windsurf, GitHub Copilot
+- **4 Hook Integrations** — Claude Code, Gemini CLI, OpenCode, GitHub Copilot
+- **LLM-Powered Extraction** — Smart pattern extraction with Ollama, OpenAI, Gemini, Claude
+- **Premium Model Routing** — Use better models for important sessions
+
+### What's New in 1.0
+- OpenCode and GitHub Copilot sync support
+- OpenCode and GitHub Copilot hooks support  
+- Terminal screenshots in README
+- Complete documentation
+
+### Since 0.9.x
+- LLM-based pattern extraction (`mur learn extract --llm`)
+- Premium model routing with min_messages and projects rules
+- Smart LLM fallback (Config → Ollama → keyword)
+- Doctor shows all hook and LLM status
+- 56+ learned patterns
+
+---
+
 ## [0.9.8] - 2026-02-08
 
 ### Fixed
