@@ -2,6 +2,18 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [1.0.1] - 2026-02-08
+
+### Added
+- **Cloud sync** - `mur cloud login/logout/sync` commands for mur-server integration
+- Team pattern sharing via cloud sync
+
+### Fixed
+- **Infinite recursion in token refresh** - Fixed issue where auth refresh could loop infinitely
+- **Empty changes slice** - Cloud sync now correctly returns empty slice instead of nil
+
+---
+
 ## [1.0.0] - 2026-02-08 🎉
 
 **mur is ready for production!**
