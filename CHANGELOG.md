@@ -2,6 +2,25 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [0.9.8] - 2026-02-08
+
+### Fixed
+- **API key documentation** - Clarified that `api_key_env` takes the variable NAME, not the key value itself
+
+### Changed
+- Improved error messages for missing API keys
+- Doctor now shows clearer status for premium LLM configuration
+
+---
+
+## [0.9.7] - 2026-02-08
+
+### Added
+- **Doctor premium LLM display** - `mur doctor` now shows Premium LLM and routing configuration status
+- Shows ✓ when API key is available, or "(missing ENV_VAR)" when not configured
+
+---
+
 ## [0.9.6] - 2026-02-08
 
 ### Added

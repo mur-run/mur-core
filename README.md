@@ -252,6 +252,32 @@ learning:
 
 This keeps your API keys secure and out of config files.
 
+### Premium Model Routing
+
+Use a better (more expensive) model for important sessions:
+
+```yaml
+learning:
+  llm:
+    provider: ollama
+    model: deepseek-r1:8b       # Default: local, free
+    
+    premium:
+      provider: gemini
+      model: gemini-2.0-flash
+      api_key_env: GEMINI_API_KEY
+    
+    routing:
+      min_messages: 20          # Use premium for long sessions
+      projects: [my-app, core]  # Use premium for these projects
+```
+
+Sessions matching routing rules automatically use the premium model:
+```
+📝 Session: abc123 (my-app)
+   ⭐ Using premium model (project match)
+```
+
 ### Remote Ollama (LAN Setup)
 
 Run Ollama on a powerful server and access it from other machines:
