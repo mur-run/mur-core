@@ -291,7 +291,7 @@ Examples:
 		// Push local changes
 		fmt.Println("⬆️  Pushing to server...")
 
-		var changes []cloud.SyncChange
+		changes := make([]cloud.SyncChange, 0) // Initialize as empty slice, not nil
 		for i := range localPatterns {
 			// For now, push all as creates/updates
 			// A proper implementation would track local changes
