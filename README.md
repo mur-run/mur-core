@@ -11,10 +11,40 @@ mur captures patterns from your coding sessions and injects them back into your 
 ## ✨ Features
 
 - **🧠 Continuous Learning** — Extract patterns from Claude Code, Gemini CLI sessions
-- **🔄 Universal Sync** — Patterns sync to 8+ AI tools (Claude, Gemini, Codex, Cursor, etc.)
+- **🔄 Universal Sync** — Patterns sync to 10+ AI tools (Claude, Gemini, Codex, Cursor, etc.)
 - **🔌 Zero Friction** — Install hooks once, then forget about it
 - **📊 Dashboard** — Web UI for pattern management and analytics
 - **🔒 Local First** — All data stays on your machine (optional git sync)
+
+## 📸 Screenshots
+
+<details>
+<summary>mur doctor — Health check</summary>
+
+![mur doctor](assets/screenshots/doctor.png)
+
+</details>
+
+<details>
+<summary>mur sync — Sync to all AI tools</summary>
+
+![mur sync](assets/screenshots/sync.png)
+
+</details>
+
+<details>
+<summary>mur init --hooks — One-command setup</summary>
+
+![mur init --hooks](assets/screenshots/init-hooks.png)
+
+</details>
+
+<details>
+<summary>mur status — Quick overview</summary>
+
+![mur status](assets/screenshots/status.png)
+
+</details>
 
 ## 🚀 Quick Start
 
