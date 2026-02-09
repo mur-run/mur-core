@@ -260,9 +260,9 @@ func runNonInteractiveInit(home, murDir string) error {
 func detectCLIs() []cliTool {
 	tools := []cliTool{
 		{Name: "Claude Code", Binary: "claude", HooksSupport: true},
-		{Name: "Gemini CLI", Binary: "gemini", HooksSupport: false},
+		{Name: "Gemini CLI", Binary: "gemini", HooksSupport: true},
 		{Name: "Codex", Binary: "codex", HooksSupport: false},
-		{Name: "Auggie", Binary: "auggie", HooksSupport: false},
+		{Name: "Auggie", Binary: "auggie", HooksSupport: true},
 		{Name: "Aider", Binary: "aider", HooksSupport: false},
 	}
 
@@ -532,6 +532,13 @@ func installGeminiHooks(home, promptScriptPath, stopScriptPath string) error {
 		fmt.Printf("  ⚠ GitHub Copilot hooks: %v\n", err)
 	} else {
 		fmt.Println("✓ Installed GitHub Copilot hooks")
+	}
+
+	// Install Auggie (Augment CLI) hooks
+	if err := murhooks.InstallAuggieHooks(); err != nil {
+		fmt.Printf("  ⚠ Auggie hooks: %v\n", err)
+	} else {
+		fmt.Println("✓ Installed Auggie hooks")
 	}
 
 	return nil
