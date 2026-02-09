@@ -192,6 +192,10 @@ type Pattern struct {
 	Deleted     bool           `json:"deleted"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
+	// v1.1.0+ fields for pattern schema v2
+	PatternVersion string `json:"pattern_version,omitempty"`
+	SchemaVersion  int    `json:"schema_version,omitempty"`
+	EmbeddingHash  string `json:"embedding_hash,omitempty"`
 }
 
 // PullResponse represents pull response

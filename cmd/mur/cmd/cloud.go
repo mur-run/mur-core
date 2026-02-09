@@ -404,6 +404,15 @@ func convertCloudPattern(p *cloud.Pattern) *pattern.Pattern {
 		Content:     p.Content,
 	}
 
+	// Set schema version (v1.1.0+)
+	if p.SchemaVersion > 0 {
+		local.SchemaVersion = p.SchemaVersion
+	} else {
+		local.SchemaVersion = 2 // Default to v2
+	}
+	local.Version = p.PatternVersion
+	local.EmbeddingHash = p.EmbeddingHash
+
 	// Convert tags
 	if p.Tags != nil {
 		if confirmed, ok := p.Tags["confirmed"].([]interface{}); ok {
@@ -437,15 +446,24 @@ func convertCloudPattern(p *cloud.Pattern) *pattern.Pattern {
 }
 
 func convertLocalPattern(p *pattern.Pattern) *cloud.Pattern {
-	cloud := &cloud.Pattern{
+	cp := &cloud.Pattern{
 		Name:        p.Name,
 		Description: p.Description,
 		Content:     strings.TrimSpace(p.Content),
+		// v1.1.0+ schema version fields
+		PatternVersion: p.Version,
+		SchemaVersion:  p.SchemaVersion,
+		EmbeddingHash:  p.EmbeddingHash,
+	}
+
+	// Default schema version to 2 if not set
+	if cp.SchemaVersion == 0 {
+		cp.SchemaVersion = 2
 	}
 
 	// Convert tags
 	if len(p.Tags.Confirmed) > 0 {
-		cloud.Tags = map[string]any{
+		cp.Tags = map[string]any{
 			"confirmed": p.Tags.Confirmed,
 		}
 	}
@@ -459,10 +477,10 @@ func convertLocalPattern(p *pattern.Pattern) *cloud.Pattern {
 		applies["projects"] = p.Applies.Projects
 	}
 	if len(applies) > 0 {
-		cloud.Applies = applies
+		cp.Applies = applies
 	}
 
-	return cloud
+	return cp
 }
 
 func init() {
