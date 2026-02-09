@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/mur-run/mur-core/internal/config"
+	"github.com/mur-run/mur-core/internal/core/analytics"
 	"github.com/mur-run/mur-core/internal/core/embed"
 	"github.com/spf13/cobra"
 )
@@ -87,6 +89,18 @@ func runSearch(cmd *cobra.Command, args []string) error {
 			return nil // Silent fail for hooks
 		}
 		return fmt.Errorf("search failed: %w", err)
+	}
+
+	// Record analytics for matches
+	if len(matches) > 0 {
+		home, _ := os.UserHomeDir()
+		tracker := analytics.NewTracker(filepath.Join(home, ".mur"))
+		for _, m := range matches {
+			// Only record if above min_score
+			if m.Score >= cfg.Search.MinScore {
+				_ = tracker.RecordSearch(m.Pattern.ID, m.Pattern.Name, m.Score, query)
+			}
+		}
 	}
 
 	// Inject mode - output to stderr for hooks
