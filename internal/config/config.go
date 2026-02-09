@@ -107,7 +107,7 @@ type SearchConfig struct {
 	OllamaURL  string `yaml:"ollama_url"`  // Ollama API URL
 	TopK       int    `yaml:"top_k"`       // default number of results
 	MinScore   float64 `yaml:"min_score"`  // minimum similarity score
-	AutoInject bool   `yaml:"auto_inject"` // auto-inject to prompt via hooks
+	AutoInject *bool  `yaml:"auto_inject"` // auto-inject to prompt via hooks (default: true)
 }
 
 // IsEnabled returns whether search is enabled (default: true).
@@ -116,6 +116,14 @@ func (s SearchConfig) IsEnabled() bool {
 		return true // default to enabled
 	}
 	return *s.Enabled
+}
+
+// IsAutoInject returns whether auto-inject is enabled (default: true).
+func (s SearchConfig) IsAutoInject() bool {
+	if s.AutoInject == nil {
+		return true // default to enabled
+	}
+	return *s.AutoInject
 }
 
 // EmbeddingsConfig represents embedding cache settings.
@@ -426,7 +434,7 @@ func defaultConfig() *Config {
 			OllamaURL:  "http://localhost:11434",
 			TopK:       3,
 			MinScore:   0.6,
-			AutoInject: true,
+			AutoInject: boolPtr(true),
 		},
 		Embeddings: EmbeddingsConfig{
 			CacheEnabled: true,

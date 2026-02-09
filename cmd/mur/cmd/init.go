@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/mur-run/mur-core/internal/config"
 	murhooks "github.com/mur-run/mur-core/internal/hooks"
 	"github.com/mur-run/mur-core/internal/sync"
 	"github.com/spf13/cobra"
@@ -356,6 +357,10 @@ routing:
 }
 
 func installClaudeHooks(home, murDir string) error {
+	// Load config to check search settings
+	cfg, _ := config.Load()
+	searchEnabled := cfg != nil && cfg.Search.IsEnabled() && cfg.Search.IsAutoInject()
+
 	// Create on-prompt.sh - injects context-aware patterns
 	promptScriptPath := filepath.Join(murDir, "hooks", "on-prompt.sh")
 	promptScript := `#!/bin/bash
@@ -396,16 +401,28 @@ mur sync --quiet 2>/dev/null || true
 	// Update Claude settings
 	claudeSettingsPath := filepath.Join(home, ".claude", "settings.json")
 
+	// Build UserPromptSubmit hooks
+	promptHooks := []map[string]interface{}{
+		// Inject context-aware patterns
+		{"type": "command", "command": fmt.Sprintf("bash %s >&2", promptScriptPath)},
+		// Learning reminder
+		{"type": "command", "command": fmt.Sprintf("cat %s >&2", reminderPath)},
+	}
+
+	// Add semantic search hook if enabled
+	if searchEnabled {
+		promptHooks = append(promptHooks, map[string]interface{}{
+			"type":    "command",
+			"command": `mur search --inject "$PROMPT" 2>/dev/null || true`,
+		})
+		fmt.Println("  + Added semantic search hook (auto-inject enabled)")
+	}
+
 	hooks := map[string]interface{}{
 		"UserPromptSubmit": []map[string]interface{}{
 			{
 				"matcher": "",
-				"hooks": []map[string]interface{}{
-					// Inject context-aware patterns
-					{"type": "command", "command": fmt.Sprintf("bash %s >&2", promptScriptPath)},
-					// Learning reminder
-					{"type": "command", "command": fmt.Sprintf("cat %s >&2", reminderPath)},
-				},
+				"hooks":   promptHooks,
 			},
 		},
 		"Stop": []map[string]interface{}{
