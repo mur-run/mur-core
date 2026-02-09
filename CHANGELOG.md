@@ -6,10 +6,12 @@ All notable changes to mur-core will be documented in this file.
 
 ### Added
 - **🔍 Semantic Search**: `mur search` finds patterns by meaning using embeddings
+- **🤖 OpenAI Embeddings**: Use `text-embedding-3-small/large` when no local GPU
 - **📁 Directory Sync Format**: 90%+ token savings with individual skill directories
 - **📊 Embedding Index**: `mur index status/rebuild` for managing vector embeddings
 - **🔗 Search Hooks**: Auto-suggest relevant patterns in Claude Code prompts
 - **🔄 Pattern Migration**: `mur migrate` upgrades patterns to v2 schema
+- **📈 Analytics Tracking**: `mur analytics` tracks pattern usage and effectiveness
 
 ### New Commands
 - `mur search <query>` — Semantic pattern search
@@ -17,6 +19,10 @@ All notable changes to mur-core will be documented in this file.
 - `mur index status` — Check embedding index health
 - `mur index rebuild` — Rebuild all embeddings
 - `mur migrate --dry-run` — Preview pattern migration
+- `mur analytics` — View pattern usage summary
+- `mur analytics top` — Show most used patterns
+- `mur analytics cold` — Show patterns not used recently
+- `mur analytics feedback` — Record pattern helpfulness
 
 ### Changed
 - `mur sync` now defaults to directory format (individual skill folders)
