@@ -22,6 +22,7 @@ All notable changes to mur-core will be documented in this file.
 - `mur sync` now defaults to directory format (individual skill folders)
 - `mur init --hooks` adds semantic search hook when enabled
 - Pattern schema v2 adds version, resources, and embedding_hash fields
+- Default `min_score` lowered to 0.5 for better nomic-embed-text compatibility
 
 ### Configuration
 ```yaml
