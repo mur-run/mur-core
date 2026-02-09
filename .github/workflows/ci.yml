@@ -1,10 +1,11 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
+  # Uncomment below when billing is fixed:
+  # push:
+  #   branches: [main]
 
 jobs:
   test:
@@ -58,36 +59,23 @@ jobs:
           version: latest
           args: --timeout=5m
 
-  build-matrix:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        goos: [linux, darwin, windows]
-        goarch: [amd64, arm64]
-        exclude:
-          - goos: windows
-            goarch: arm64
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.22'
-
-      - name: Build for ${{ matrix.goos }}/${{ matrix.goarch }}
-        env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-        run: |
-          output="mur-${{ matrix.goos }}-${{ matrix.goarch }}"
-          if [ "${{ matrix.goos }}" = "windows" ]; then
-            output="${output}.exe"
-          fi
-          go build -o "$output" ./cmd/mur
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: mur-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: mur-*
+  # Cross-platform builds moved to release.yml to save CI minutes
+  # build-matrix:
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       goos: [linux, darwin, windows]
+  #       goarch: [amd64, arm64]
+  #       exclude:
+  #         - goos: windows
+  #           goarch: arm64
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-go@v5
+  #       with:
+  #         go-version: '1.22'
+  #     - name: Build for ${{ matrix.goos }}/${{ matrix.goarch }}
+  #       env:
+  #         GOOS: ${{ matrix.goos }}
+  #         GOARCH: ${{ matrix.goarch }}
+  #       run: go build -o "mur-${{ matrix.goos }}-${{ matrix.goarch }}" ./cmd/mur
