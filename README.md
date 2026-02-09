@@ -26,16 +26,23 @@ MUR Core captures patterns from your coding sessions and injects them back into 
 </details>
 
 <details>
-<summary>mur sync — Sync to all AI tools</summary>
+<summary>mur search — Semantic pattern search</summary>
 
-![mur sync](assets/screenshots/sync.png)
+![mur search](assets/screenshots/search.png)
 
 </details>
 
 <details>
-<summary>mur init --hooks — One-command setup</summary>
+<summary>mur index status — Embedding index status</summary>
 
-![mur init --hooks](assets/screenshots/init-hooks.png)
+![mur index status](assets/screenshots/index-status.png)
+
+</details>
+
+<details>
+<summary>mur sync — Sync to all AI tools</summary>
+
+![mur sync](assets/screenshots/sync.png)
 
 </details>
 
