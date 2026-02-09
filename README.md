@@ -329,6 +329,32 @@ ollama pull nomic-embed-text
 
 </details>
 
+### OpenAI Embeddings (Alternative)
+
+No GPU? Use OpenAI's embedding API instead of Ollama:
+
+```yaml
+# ~/.mur/config.yaml
+search:
+  provider: openai
+  model: text-embedding-3-small  # or text-embedding-3-large
+  min_score: 0.7                 # OpenAI scores are higher
+```
+
+```bash
+export OPENAI_API_KEY=sk-xxx
+mur index rebuild
+```
+
+| Model | Dimensions | Cost | Notes |
+|-------|-----------|------|-------|
+| `text-embedding-3-small` | 1536 | $0.02/1M tokens | Fast, cheap (recommended) |
+| `text-embedding-3-large` | 3072 | $0.13/1M tokens | More accurate |
+
+**Ollama vs OpenAI:**
+- Ollama: Free, offline, local GPU needed, scores ~0.5-0.6
+- OpenAI: Paid, requires internet, no GPU, scores ~0.7-0.9
+
 ### Build Index
 
 ```bash
@@ -368,11 +394,18 @@ This reduces token usage by **90%+** — Claude loads only the patterns it needs
 search:
   enabled: true
   provider: ollama              # ollama | openai
-  model: nomic-embed-text       # embedding model
+  model: nomic-embed-text       # embedding model (see table below)
   top_k: 3                      # results per search
-  min_score: 0.5                # minimum similarity (default: 0.5)
+  min_score: 0.5                # minimum similarity
   auto_inject: true             # auto-suggest in hooks
 ```
+
+**Embedding models:**
+| Provider | Model | min_score |
+|----------|-------|-----------|
+| ollama | `nomic-embed-text` | 0.5 |
+| openai | `text-embedding-3-small` | 0.7 |
+| openai | `text-embedding-3-large` | 0.7 |
 
 ## 🔧 Configuration
 
