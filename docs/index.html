@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mur - Unified AI CLI Manager</title>
+    <meta name="description" content="One CLI to rule them all. Manage Claude Code, Gemini, Codex, and more from a single interface with cross-tool learning.">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔮</text></svg>">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg: #0d1117;
+            --bg-secondary: #161b22;
+            --text: #e6edf3;
+            --text-muted: #8b949e;
+            --accent: #7c3aed;
+            --accent-hover: #8b5cf6;
+            --border: #30363d;
+            --code-bg: #1c2128;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        header {
+            text-align: center;
+            padding: 4rem 0 3rem;
+        }
+        
+        .logo {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        
+        h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--accent), #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .tagline {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+        }
+        
+        .install-box {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin: 2rem auto;
+            max-width: 500px;
+            position: relative;
+        }
+        
+        .install-box code {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            font-size: 1rem;
+            color: var(--text);
+        }
+        
+        .install-box .comment {
+            color: var(--text-muted);
+        }
+        
+        .copy-btn {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--border);
+            border: none;
+            color: var(--text-muted);
+            padding: 0.4rem 0.6rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+        
+        .copy-btn:hover {
+            background: var(--accent);
+            color: white;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin: 3rem 0;
+        }
+        
+        .feature {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+        
+        .feature-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .feature h3 {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .feature p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+        
+        .tools {
+            text-align: center;
+            margin: 3rem 0;
+        }
+        
+        .tools h2 {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            font-weight: 400;
+        }
+        
+        .tool-list {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .tool {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+        
+        .cta {
+            text-align: center;
+            margin: 3rem 0;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 2rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+            margin: 0.5rem;
+        }
+        
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        
+        .btn-secondary:hover {
+            border-color: var(--accent);
+        }
+        
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            border-top: 1px solid var(--border);
+            margin-top: 4rem;
+        }
+        
+        footer a {
+            color: var(--text-muted);
+            text-decoration: none;
+        }
+        
+        footer a:hover {
+            color: var(--accent);
+        }
+        
+        @media (max-width: 600px) {
+            h1 { font-size: 2rem; }
+            .tagline { font-size: 1rem; }
+            header { padding: 2rem 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">🔮</div>
+            <h1>mur</h1>
+            <p class="tagline">One CLI to rule them all</p>
+            
+            <div class="install-box">
+                <code><span class="comment"># macOS / Linux</span><br>brew install mur-run/tap/mur</code>
+                <button class="copy-btn" onclick="copyInstall()">Copy</button>
+            </div>
+        </header>
+        
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">🎯</div>
+                <h3>Unified Interface</h3>
+                <p>Run Claude, Gemini, Codex, and more through one consistent CLI</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🧠</div>
+                <h3>Cross-Tool Learning</h3>
+                <p>Capture patterns once, share across all your AI tools</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📊</div>
+                <h3>Usage Tracking</h3>
+                <p>Monitor usage across tools in one dashboard</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🔄</div>
+                <h3>Sync Everywhere</h3>
+                <p>Git-based pattern sync across all your machines</p>
+            </div>
+        </div>
+        
+        <div class="tools">
+            <h2>Supported AI CLIs</h2>
+            <div class="tool-list">
+                <span class="tool">Claude Code</span>
+                <span class="tool">Gemini CLI</span>
+                <span class="tool">Codex</span>
+                <span class="tool">Auggie</span>
+                <span class="tool">OpenCode</span>
+            </div>
+        </div>
+        
+        <div class="cta">
+            <a href="https://github.com/mur-run/mur-cli" class="btn btn-primary">View on GitHub</a>
+            <a href="https://github.com/mur-run/mur-cli/releases" class="btn btn-secondary">Download</a>
+        </div>
+    </div>
+    
+    <footer>
+        <p>
+            Made with 🔮 by <a href="https://github.com/mur-run">mur-run</a>
+            · <a href="https://github.com/mur-run/mur-cli">GitHub</a>
+            · MIT License
+        </p>
+    </footer>
+    
+    <script>
+        function copyInstall() {
+            navigator.clipboard.writeText('brew install mur-run/tap/mur');
+            const btn = document.querySelector('.copy-btn');
+            btn.textContent = 'Copied!';
+            setTimeout(() => btn.textContent = 'Copy', 2000);
+        }
+    </script>
+</body>
+</html>
