@@ -1,225 +1,158 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
-	"sort"
 	"strings"
 
-	"github.com/mur-run/mur-core/internal/core/pattern"
+	"github.com/mur-run/mur-core/internal/config"
+	"github.com/mur-run/mur-core/internal/core/embed"
 	"github.com/spf13/cobra"
 )
 
 var searchCmd = &cobra.Command{
 	Use:   "search <query>",
-	Short: "Search patterns by keyword",
-	Long: `Search patterns by name, description, tags, or content.
+	Short: "Semantic search for patterns",
+	Long: `Search patterns using semantic similarity.
+
+Requires indexed patterns. Run 'mur index rebuild' first.
 
 Examples:
-  mur search error           # Find patterns about errors
-  mur search "go testing"    # Multiple keywords
-  mur search --tag backend   # Search by tag only
-  mur search --domain go     # Search by domain`,
-	Args: cobra.MinimumNArgs(1),
+  mur search "Swift async testing"
+  mur search --top 5 "Docker compose best practices"
+  mur search --json "database optimization"
+  mur search --inject "$PROMPT"   # For hooks (outputs to stderr)`,
+	Args: cobra.ExactArgs(1),
 	RunE: runSearch,
 }
 
 var (
-	searchTag    string
-	searchDomain string
-	searchLimit  int
+	searchTopK   int
+	searchJSON   bool
+	searchInject bool
 )
 
 func init() {
 	rootCmd.AddCommand(searchCmd)
-	searchCmd.Flags().StringVar(&searchTag, "tag", "", "Filter by tag")
-	searchCmd.Flags().StringVar(&searchDomain, "domain", "", "Filter by domain")
-	searchCmd.Flags().IntVarP(&searchLimit, "limit", "n", 20, "Max results")
-}
-
-type searchResult struct {
-	pattern pattern.Pattern
-	score   int
+	searchCmd.Flags().IntVar(&searchTopK, "top", 0, "Number of results (default: from config)")
+	searchCmd.Flags().BoolVar(&searchJSON, "json", false, "Output as JSON")
+	searchCmd.Flags().BoolVar(&searchInject, "inject", false, "Inject mode for hooks (output to stderr)")
 }
 
 func runSearch(cmd *cobra.Command, args []string) error {
-	query := strings.ToLower(strings.Join(args, " "))
+	query := args[0]
 
-	home, err := os.UserHomeDir()
+	cfg, err := config.Load()
 	if err != nil {
 		return err
 	}
 
-	patternsDir := filepath.Join(home, ".mur", "patterns")
-	store := pattern.NewStore(patternsDir)
+	if !cfg.Search.IsEnabled() {
+		if searchInject {
+			return nil // Silent fail for hooks
+		}
+		return fmt.Errorf("semantic search is disabled")
+	}
 
-	patterns, err := store.List()
+	// Use config default if not specified
+	topK := searchTopK
+	if topK == 0 {
+		topK = cfg.Search.TopK
+	}
+	if topK == 0 {
+		topK = 3
+	}
+
+	indexer, err := embed.NewPatternIndexer(cfg)
 	if err != nil {
-		return fmt.Errorf("failed to load patterns: %w", err)
+		if searchInject {
+			return nil // Silent fail for hooks
+		}
+		return fmt.Errorf("cannot create indexer: %w", err)
 	}
 
-	if len(patterns) == 0 {
-		fmt.Println("No patterns found.")
-		fmt.Println("Create one with: mur new <name>")
+	// Check if we have indexed patterns
+	status := indexer.Status()
+	if status.IndexedCount == 0 {
+		if searchInject {
+			return nil // Silent fail
+		}
+		return fmt.Errorf("no indexed patterns, run: mur index rebuild")
+	}
+
+	matches, err := indexer.Search(query, topK)
+	if err != nil {
+		if searchInject {
+			return nil // Silent fail for hooks
+		}
+		return fmt.Errorf("search failed: %w", err)
+	}
+
+	// Inject mode - output to stderr for hooks
+	if searchInject {
+		if len(matches) == 0 {
+			return nil
+		}
+
+		var names []string
+		for _, m := range matches {
+			names = append(names, m.Pattern.Name)
+		}
+
+		hint := fmt.Sprintf("[mur] 🎯 Relevant patterns: %s\n", strings.Join(names, ", "))
+		hint += fmt.Sprintf("[mur] 💡 Consider loading /%s for this task\n", getSkillPath(matches[0]))
+
+		fmt.Fprint(os.Stderr, hint)
 		return nil
 	}
 
-	// Search and score
-	var results []searchResult
-	for _, p := range patterns {
-		score := scorePattern(&p, query, searchTag, searchDomain)
-		if score > 0 {
-			results = append(results, searchResult{pattern: p, score: score})
-		}
-	}
-
-	// Sort by score (highest first)
-	sort.Slice(results, func(i, j int) bool {
-		return results[i].score > results[j].score
-	})
-
-	// Limit results
-	if len(results) > searchLimit {
-		results = results[:searchLimit]
-	}
-
-	if len(results) == 0 {
-		fmt.Printf("No patterns found matching '%s'\n", query)
-		return nil
-	}
-
-	fmt.Println()
-	fmt.Printf("🔍 Found %d patterns matching '%s'\n", len(results), query)
-	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	fmt.Println()
-
-	for _, r := range results {
-		p := r.pattern
-
-		// Name and effectiveness
-		eff := ""
-		if p.Learning.Effectiveness > 0 {
-			eff = fmt.Sprintf(" (%.0f%%)", p.Learning.Effectiveness*100)
-		}
-		fmt.Printf("📄 %s%s\n", p.Name, eff)
-
-		// Description
-		if p.Description != "" {
-			desc := p.Description
-			if len(desc) > 80 {
-				desc = desc[:77] + "..."
-			}
-			fmt.Printf("   %s\n", desc)
-		}
-
-		// Tags
-		var tags []string
-		tags = append(tags, p.Tags.Confirmed...)
-		for _, t := range p.Tags.Inferred {
-			if t.Confidence >= 0.7 {
-				tags = append(tags, t.Tag)
+	// JSON output
+	if searchJSON {
+		output := make([]map[string]interface{}, len(matches))
+		for i, m := range matches {
+			output[i] = map[string]interface{}{
+				"name":        m.Pattern.Name,
+				"description": m.Pattern.Description,
+				"score":       m.Score,
+				"skill_path":  getSkillPath(m),
 			}
 		}
-		if len(tags) > 0 {
-			fmt.Printf("   Tags: %s\n", strings.Join(tags, ", "))
-		}
+		return json.NewEncoder(os.Stdout).Encode(output)
+	}
 
+	// Pretty print
+	fmt.Println("🔍 Searching patterns...")
+	fmt.Println()
+
+	for i, m := range matches {
+		fmt.Printf("  %d. %s (%.2f)\n", i+1, m.Pattern.Name, m.Score)
+		if m.Pattern.Description != "" {
+			fmt.Printf("     %s\n", m.Pattern.Description)
+		}
 		fmt.Println()
 	}
 
-	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	fmt.Println("View:   mur learn get <name>")
-	fmt.Println("Edit:   mur edit <name>")
-	fmt.Println()
+	fmt.Printf("Found %d patterns matching %q\n", len(matches), query)
 
 	return nil
 }
 
-func scorePattern(p *pattern.Pattern, query, tagFilter, domainFilter string) int {
-	score := 0
+// getSkillPath returns the skill directory path for a pattern.
+func getSkillPath(m embed.PatternMatch) string {
+	domain := m.Pattern.GetPrimaryDomain()
+	name := strings.ToLower(m.Pattern.Name)
+	name = strings.ReplaceAll(name, " ", "-")
 
-	// Tag filter
-	if tagFilter != "" {
-		hasTag := false
-		for _, t := range p.Tags.Confirmed {
-			if strings.EqualFold(t, tagFilter) {
-				hasTag = true
-				break
-			}
-		}
-		for _, t := range p.Tags.Inferred {
-			if strings.EqualFold(t.Tag, tagFilter) && t.Confidence >= 0.7 {
-				hasTag = true
-				break
-			}
-		}
-		if !hasTag {
-			return 0
-		}
-		score += 5
+	if domain == "general" || domain == "" {
+		return name
 	}
 
-	// Domain filter (from tags)
-	if domainFilter != "" {
-		hasDomain := false
-		domains := []string{"go", "swift", "python", "node", "rust", "javascript", "typescript"}
-		for _, t := range p.Tags.Confirmed {
-			if strings.EqualFold(t, domainFilter) {
-				for _, d := range domains {
-					if strings.EqualFold(t, d) {
-						hasDomain = true
-						break
-					}
-				}
-			}
-		}
-		if !hasDomain {
-			return 0
-		}
-		score += 5
+	// Check if name already starts with domain
+	domainPrefix := domain + "-"
+	if strings.HasPrefix(name, domainPrefix) {
+		return domain + "--" + strings.TrimPrefix(name, domainPrefix)
 	}
 
-	// Empty query with filters only
-	if query == "" {
-		if tagFilter != "" || domainFilter != "" {
-			return score + 1
-		}
-		return 0
-	}
-
-	// Name match (highest weight)
-	nameLower := strings.ToLower(p.Name)
-	if strings.Contains(nameLower, query) {
-		score += 10
-		if strings.HasPrefix(nameLower, query) {
-			score += 5
-		}
-	}
-
-	// Description match
-	descLower := strings.ToLower(p.Description)
-	if strings.Contains(descLower, query) {
-		score += 5
-	}
-
-	// Tag match
-	for _, t := range p.Tags.Confirmed {
-		if strings.Contains(strings.ToLower(t), query) {
-			score += 3
-		}
-	}
-	for _, t := range p.Tags.Inferred {
-		if strings.Contains(strings.ToLower(t.Tag), query) {
-			score += 2
-		}
-	}
-
-	// Content match (lowest weight)
-	contentLower := strings.ToLower(p.Content)
-	if strings.Contains(contentLower, query) {
-		score += 1
-	}
-
-	return score
+	return domain + "--" + name
 }
