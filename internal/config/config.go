@@ -16,6 +16,8 @@ type Config struct {
 	Routing       RoutingConfig       `yaml:"routing"`
 	Learning      LearningConfig      `yaml:"learning"`
 	Sync          SyncConfig          `yaml:"sync"`
+	Search        SearchConfig        `yaml:"search"`
+	Embeddings    EmbeddingsConfig    `yaml:"embeddings"`
 	MCP           MCPConfig           `yaml:"mcp"`
 	Hooks         HooksConfig         `yaml:"hooks"`
 	Team          TeamConfig          `yaml:"team"`
@@ -95,6 +97,32 @@ type SyncConfig struct {
 	PrefixDomain  *bool  `yaml:"prefix_domain"`   // use domain--name format (default: true)
 	L3Threshold   int    `yaml:"l3_threshold"`    // chars above which content goes to examples.md
 	CleanOld      bool   `yaml:"clean_old"`       // remove old single-file format on sync
+}
+
+// SearchConfig represents semantic search settings.
+type SearchConfig struct {
+	Enabled    *bool  `yaml:"enabled"`     // nil = use default (true)
+	Provider   string `yaml:"provider"`    // ollama | openai | none
+	Model      string `yaml:"model"`       // embedding model name
+	OllamaURL  string `yaml:"ollama_url"`  // Ollama API URL
+	TopK       int    `yaml:"top_k"`       // default number of results
+	MinScore   float64 `yaml:"min_score"`  // minimum similarity score
+	AutoInject bool   `yaml:"auto_inject"` // auto-inject to prompt via hooks
+}
+
+// IsEnabled returns whether search is enabled (default: true).
+func (s SearchConfig) IsEnabled() bool {
+	if s.Enabled == nil {
+		return true // default to enabled
+	}
+	return *s.Enabled
+}
+
+// EmbeddingsConfig represents embedding cache settings.
+type EmbeddingsConfig struct {
+	CacheEnabled bool   `yaml:"cache_enabled"`
+	CacheDir     string `yaml:"cache_dir"`
+	BatchSize    int    `yaml:"batch_size"`
 }
 
 // GetPrefixDomain returns whether to use domain prefixes (default: true).
@@ -209,10 +237,32 @@ func (c *Config) applyDefaults() {
 	if c.Sync.L3Threshold == 0 {
 		c.Sync.L3Threshold = 500
 	}
-	// PrefixDomain: we can't distinguish "not set" from "explicitly false"
-	// So we default to true only if Format is being set for the first time
-	// This is a limitation - users who want PrefixDomain=false must set it explicitly
-	
+
+	// Search defaults
+	if c.Search.Provider == "" {
+		c.Search.Provider = "ollama"
+	}
+	if c.Search.Model == "" {
+		c.Search.Model = "nomic-embed-text"
+	}
+	if c.Search.OllamaURL == "" {
+		c.Search.OllamaURL = "http://localhost:11434"
+	}
+	if c.Search.TopK == 0 {
+		c.Search.TopK = 3
+	}
+	if c.Search.MinScore == 0 {
+		c.Search.MinScore = 0.6
+	}
+
+	// Embeddings defaults
+	if c.Embeddings.CacheDir == "" {
+		c.Embeddings.CacheDir = "~/.mur/embeddings"
+	}
+	if c.Embeddings.BatchSize == 0 {
+		c.Embeddings.BatchSize = 10
+	}
+
 	// Default tool
 	if c.DefaultTool == "" {
 		c.DefaultTool = "claude"
@@ -368,6 +418,20 @@ func defaultConfig() *Config {
 			PrefixDomain: boolPtr(true),
 			L3Threshold:  500,
 			CleanOld:     false,
+		},
+		Search: SearchConfig{
+			Enabled:    boolPtr(true),
+			Provider:   "ollama",
+			Model:      "nomic-embed-text",
+			OllamaURL:  "http://localhost:11434",
+			TopK:       3,
+			MinScore:   0.6,
+			AutoInject: true,
+		},
+		Embeddings: EmbeddingsConfig{
+			CacheEnabled: true,
+			CacheDir:     "~/.mur/embeddings",
+			BatchSize:    10,
 		},
 		MCP: MCPConfig{
 			SyncEnabled: true,
