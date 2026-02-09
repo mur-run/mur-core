@@ -571,7 +571,7 @@ mur cloud logout
 | **Pro** | $19/mo | Cloud sync, cross-device patterns |
 | **Team** | $49/mo | 5 team members, shared pattern library |
 
-Sign up at [app.mur.run](https://app.mur.run)
+Learn more at [mur.run/products/core](https://mur.run/products/core)
 
 ## 💻 System Requirements
 
