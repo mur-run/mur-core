@@ -136,6 +136,12 @@ $env:PATH += ";$env:USERPROFILE\go\bin"
 **"LC_UUID" error on macOS**  
 Use `CGO_ENABLED=0` when installing (already included above).
 
+**Ollama not running?**  
+Semantic search still works using cached embeddings. After Ollama is back:
+```bash
+mur index rebuild
+```
+
 **Check installation**
 ```bash
 mur doctor
