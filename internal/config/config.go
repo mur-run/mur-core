@@ -260,7 +260,7 @@ func (c *Config) applyDefaults() {
 		c.Search.TopK = 3
 	}
 	if c.Search.MinScore == 0 {
-		c.Search.MinScore = 0.6
+		c.Search.MinScore = 0.5
 	}
 
 	// Embeddings defaults

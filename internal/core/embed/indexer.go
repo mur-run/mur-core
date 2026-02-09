@@ -179,8 +179,8 @@ func (idx *PatternIndexer) Search(query string, topK int) ([]PatternMatch, error
 		return nil, fmt.Errorf("failed to embed query: %w", err)
 	}
 
-	// Search cache
-	results := idx.cache.Search(queryVec, topK)
+	// Search cache - get more results to filter
+	results := idx.cache.Search(queryVec, topK*3)
 
 	// Load patterns
 	matches := make([]PatternMatch, 0, len(results))
@@ -202,6 +202,11 @@ func (idx *PatternIndexer) Search(query string, topK int) ([]PatternMatch, error
 				Score:      r.Score,
 				Confidence: r.Score, // Use score as confidence for now
 			})
+		}
+
+		// Stop once we have enough matches
+		if len(matches) >= topK {
+			break
 		}
 	}
 
