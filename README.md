@@ -49,10 +49,8 @@ MUR Core captures patterns from your coding sessions and injects them back into 
 ## 🚀 Quick Start
 
 ```bash
-# Install
+# Install (macOS/Linux)
 CGO_ENABLED=0 go install github.com/mur-run/mur-core/cmd/mur@latest
-
-# Add to PATH (if needed)
 export PATH="$HOME/go/bin:$PATH"
 
 # Setup
@@ -64,12 +62,26 @@ claude "fix this bug"
 
 ## 📦 Installation
 
-### From Source (Recommended)
+### macOS / Linux
 
 ```bash
 CGO_ENABLED=0 go install github.com/mur-run/mur-core/cmd/mur@latest
 
 # Verify
+mur version
+```
+
+### Windows
+
+**PowerShell:**
+```powershell
+$env:CGO_ENABLED=0; go install github.com/mur-run/mur-core/cmd/mur@latest
+mur version
+```
+
+**CMD:**
+```cmd
+set CGO_ENABLED=0 && go install github.com/mur-run/mur-core/cmd/mur@latest
 mur version
 ```
 
@@ -83,18 +95,43 @@ make install
 
 ### PATH Setup
 
+<details>
+<summary>macOS / Linux</summary>
+
 ```bash
-# Add to your shell config (~/.zshrc, ~/.bashrc, etc.)
-export PATH="$HOME/go/bin:$PATH"
+# Zsh (macOS default)
+echo 'export PATH="$HOME/go/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+
+# Bash (Linux default)
+echo 'export PATH="$HOME/go/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
 ```
+
+</details>
+
+<details>
+<summary>Windows</summary>
+
+**Option 1: PowerShell (temporary)**
+```powershell
+$env:PATH += ";$env:USERPROFILE\go\bin"
+```
+
+**Option 2: Permanent (GUI)**
+1. Search "Environment Variables" → "Edit system environment variables"
+2. Click "Environment Variables" → User variables → `Path` → Edit
+3. Add `%USERPROFILE%\go\bin`
+4. Restart terminal
+
+</details>
 
 <details>
 <summary>📋 Troubleshooting</summary>
 
 **"command not found: mur"**
-```bash
-export PATH="$HOME/go/bin:$PATH"
-```
+- macOS/Linux: `export PATH="$HOME/go/bin:$PATH"`
+- Windows: Add `%USERPROFILE%\go\bin` to PATH
 
 **"LC_UUID" error on macOS**  
 Use `CGO_ENABLED=0` when installing (already included above).
@@ -243,15 +280,45 @@ mur
 
 v1.1+ includes intelligent pattern matching using embeddings. Instead of keyword search, mur finds patterns by *meaning*.
 
-### Setup
+### Install Ollama
+
+<details>
+<summary>macOS</summary>
 
 ```bash
-# Install Ollama (local embeddings, free)
 brew install ollama
 ollama serve &
 ollama pull nomic-embed-text
+```
 
-# Build the embedding index
+</details>
+
+<details>
+<summary>Linux</summary>
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+ollama serve &
+ollama pull nomic-embed-text
+```
+
+</details>
+
+<details>
+<summary>Windows</summary>
+
+1. Download [Ollama for Windows](https://ollama.com/download/windows)
+2. Install and launch
+3. Open PowerShell:
+```powershell
+ollama pull nomic-embed-text
+```
+
+</details>
+
+### Build Index
+
+```bash
 mur index rebuild
 ```
 
@@ -260,7 +327,7 @@ mur index rebuild
 ```bash
 # Search by meaning
 mur search "How to test async Swift code"
-# → swift-testing-macro-over-xctest (0.65)
+# → swift-testing-macro-over-xctest (0.58)
 
 # The hook auto-suggests patterns in Claude Code
 claude "fix this async test"
@@ -290,7 +357,7 @@ search:
   provider: ollama              # ollama | openai
   model: nomic-embed-text       # embedding model
   top_k: 3                      # results per search
-  min_score: 0.6                # minimum similarity
+  min_score: 0.5                # minimum similarity (default: 0.5)
   auto_inject: true             # auto-suggest in hooks
 ```
 
@@ -375,18 +442,62 @@ Sessions matching routing rules automatically use the premium model:
 
 ### Remote Ollama (LAN Setup)
 
-Run Ollama on a powerful server and access it from other machines:
+Run Ollama on a powerful server and access it from other machines.
 
-**On the server (e.g., Mac mini):**
+#### Server Setup
+
+<details>
+<summary>macOS (server)</summary>
+
 ```bash
 # Make Ollama listen on all interfaces
 launchctl setenv OLLAMA_HOST "0.0.0.0"
 brew services restart ollama
 ```
 
-**On client machines:**
+</details>
+
+<details>
+<summary>Linux (server)</summary>
+
+```bash
+# Edit systemd service
+sudo systemctl edit ollama
+
+# Add these lines:
+[Service]
+Environment="OLLAMA_HOST=0.0.0.0"
+
+# Restart
+sudo systemctl restart ollama
+```
+
+</details>
+
+<details>
+<summary>Windows (server)</summary>
+
+1. Open "Environment Variables" settings
+2. Add system variable: `OLLAMA_HOST` = `0.0.0.0`
+3. Restart Ollama
+
+</details>
+
+#### Client Setup
+
+Add to your config file:
+
+- **macOS/Linux:** `~/.mur/config.yaml`
+- **Windows:** `%USERPROFILE%\.mur\config.yaml`
+
 ```yaml
-# ~/.mur/config.yaml
+search:
+  enabled: true
+  provider: ollama
+  model: nomic-embed-text
+  ollama_url: http://192.168.1.100:11434  # Server IP
+  min_score: 0.5
+
 learning:
   llm:
     provider: ollama
@@ -394,7 +505,12 @@ learning:
     ollama_url: http://192.168.1.100:11434  # Server IP
 ```
 
-This way, laptops can use LLM extraction without running models locally.
+Then rebuild the index:
+```bash
+mur index rebuild
+```
+
+This way, laptops can use embeddings and LLM extraction without running models locally.
 
 ### Recommended Models
 
@@ -451,13 +567,23 @@ mur cloud logout
 
 Sign up at [app.mur.run](https://app.mur.run)
 
+## 💻 System Requirements
+
+- **Go 1.21+** (for installation from source)
+- **Platforms:** macOS, Linux, Windows
+- **Optional:** Ollama (for semantic search & LLM extraction)
+
 ## 📁 Directory Structure
 
+**macOS / Linux:** `~/.mur/`  
+**Windows:** `%USERPROFILE%\.mur\`
+
 ```
-~/.mur/
+.mur/
 ├── config.yaml      # Configuration
 ├── patterns/        # Your patterns (YAML)
 ├── hooks/           # CLI hook scripts
+├── embeddings/      # Semantic search cache
 ├── stats.jsonl      # Usage statistics
 └── repo/            # Git sync repo (optional)
 ```
