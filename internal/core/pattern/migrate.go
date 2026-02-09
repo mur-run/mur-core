@@ -227,10 +227,15 @@ func migrateV1ToV2(v1 V1Pattern, options MigrateOptions) (*Pattern, error) {
 			Updated: updated,
 		},
 		SchemaVersion: SchemaVersion,
+		Version:       "1.0.0", // Default version for migrated patterns
 	}
 
-	// Calculate hash
+	// Calculate hashes
 	p.UpdateHash()
+	p.UpdateEmbeddingHash()
+
+	// Infer resources
+	p.InferResources()
 
 	return p, nil
 }

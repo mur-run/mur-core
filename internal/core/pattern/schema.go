@@ -4,6 +4,7 @@ package pattern
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -37,6 +38,22 @@ type Pattern struct {
 
 	// Schema version for migration
 	SchemaVersion int `yaml:"schema_version"`
+
+	// Pattern versioning (semantic version)
+	Version string `yaml:"version,omitempty"`
+
+	// L3 resources metadata
+	Resources Resources `yaml:"resources,omitempty"`
+
+	// Embedding hash for semantic search cache (SHA256 of content, first 16 chars)
+	EmbeddingHash string `yaml:"embedding_hash,omitempty"`
+}
+
+// Resources tracks L3 resource availability for a pattern.
+type Resources struct {
+	HasExamples  bool     `yaml:"has_examples,omitempty"`
+	HasReference bool     `yaml:"has_reference,omitempty"`
+	Scripts      []string `yaml:"scripts,omitempty"`
 }
 
 // TagSet holds multi-dimensional tags for a pattern.
@@ -168,6 +185,63 @@ func (p *Pattern) CalculateHash() string {
 	h := sha256.New()
 	h.Write([]byte(p.Content))
 	return hex.EncodeToString(h.Sum(nil))
+}
+
+// CalculateEmbeddingHash computes a short hash for embedding cache invalidation.
+// Returns first 16 chars of SHA256 hash.
+func (p *Pattern) CalculateEmbeddingHash() string {
+	h := sha256.Sum256([]byte(p.Content))
+	return hex.EncodeToString(h[:8]) // 8 bytes = 16 hex chars
+}
+
+// UpdateEmbeddingHash updates the pattern's embedding hash.
+func (p *Pattern) UpdateEmbeddingHash() {
+	p.EmbeddingHash = p.CalculateEmbeddingHash()
+}
+
+// InferResources determines L3 resource needs based on content.
+func (p *Pattern) InferResources() {
+	// Has examples if content is long or has code blocks
+	p.Resources.HasExamples = len(p.Content) > 500 ||
+		strings.Count(p.Content, "```") >= 2
+}
+
+// GetPrimaryDomain returns the primary domain from tags.
+func (p *Pattern) GetPrimaryDomain() string {
+	// Check confirmed tags first
+	for _, t := range p.Tags.Confirmed {
+		if isDomainTag(t) {
+			return strings.ToLower(t)
+		}
+	}
+
+	// Check high-confidence inferred tags
+	for _, ts := range p.Tags.Inferred {
+		if ts.Confidence >= 0.7 && isDomainTag(ts.Tag) {
+			return strings.ToLower(ts.Tag)
+		}
+	}
+
+	// Infer from name prefix
+	prefixes := []string{"swift-", "go-", "php-", "laravel-", "docker-", "k8s-", "git-"}
+	for _, prefix := range prefixes {
+		if strings.HasPrefix(strings.ToLower(p.Name), prefix) {
+			return strings.TrimSuffix(prefix, "-")
+		}
+	}
+
+	return "general"
+}
+
+// isDomainTag returns true if the tag represents a domain.
+func isDomainTag(tag string) bool {
+	domains := map[string]bool{
+		"swift": true, "go": true, "php": true, "python": true,
+		"javascript": true, "typescript": true, "rust": true,
+		"devops": true, "docker": true, "kubernetes": true,
+		"database": true, "testing": true, "security": true,
+	}
+	return domains[strings.ToLower(tag)]
 }
 
 // UpdateHash updates the pattern's hash.

@@ -399,7 +399,7 @@ func generateIndexSkill(targetDir string, patterns []pattern.Pattern) error {
 	// Group patterns by domain
 	domains := make(map[string][]pattern.Pattern)
 	for _, p := range patterns {
-		domain := getPrimaryDomain(p)
+		domain := p.GetPrimaryDomain()
 		domains[domain] = append(domains[domain], p)
 	}
 
@@ -516,7 +516,7 @@ func getSkillDirName(p pattern.Pattern, prefixDomain bool) string {
 		return name
 	}
 
-	domain := getPrimaryDomain(p)
+	domain := p.GetPrimaryDomain()
 	if domain == "general" || domain == "" {
 		return name
 	}
@@ -530,44 +530,6 @@ func getSkillDirName(p pattern.Pattern, prefixDomain bool) string {
 	}
 
 	return fmt.Sprintf("%s--%s", domain, name)
-}
-
-// getPrimaryDomain extracts the primary domain from a pattern's tags.
-func getPrimaryDomain(p pattern.Pattern) string {
-	// Check confirmed tags first
-	for _, t := range p.Tags.Confirmed {
-		if isDomainTag(t) {
-			return strings.ToLower(t)
-		}
-	}
-
-	// Check high-confidence inferred tags
-	for _, ts := range p.Tags.Inferred {
-		if ts.Confidence >= 0.7 && isDomainTag(ts.Tag) {
-			return strings.ToLower(ts.Tag)
-		}
-	}
-
-	// Infer from name prefix
-	prefixes := []string{"swift-", "go-", "php-", "laravel-", "docker-", "k8s-", "git-"}
-	for _, prefix := range prefixes {
-		if strings.HasPrefix(strings.ToLower(p.Name), prefix) {
-			return strings.TrimSuffix(prefix, "-")
-		}
-	}
-
-	return "general"
-}
-
-// isDomainTag returns true if the tag represents a domain.
-func isDomainTag(tag string) bool {
-	domains := map[string]bool{
-		"swift": true, "go": true, "php": true, "python": true,
-		"javascript": true, "typescript": true, "rust": true,
-		"devops": true, "docker": true, "kubernetes": true,
-		"database": true, "testing": true, "security": true,
-	}
-	return domains[strings.ToLower(tag)]
 }
 
 // extractSummary extracts a summary from content (first paragraph or maxLen chars).
