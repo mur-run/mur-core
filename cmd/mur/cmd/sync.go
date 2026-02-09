@@ -6,13 +6,16 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/mur-run/mur-core/internal/config"
 	"github.com/mur-run/mur-core/internal/sync"
 	"github.com/spf13/cobra"
 )
 
 var (
-	syncPush  bool
-	syncQuiet bool
+	syncPush     bool
+	syncQuiet    bool
+	syncFormat   string
+	syncCleanOld bool
 )
 
 var syncCmd = &cobra.Command{
@@ -24,10 +27,17 @@ This command:
   1. Pulls latest patterns from remote repo (if configured)
   2. Syncs patterns to all CLI skill directories
 
+Sync formats:
+  directory  Individual skill directories (default, 90%+ token savings)
+  single     Single merged file (legacy format)
+
 Examples:
-  mur sync          # Pull + sync to CLIs
-  mur sync --push   # Also push local changes to remote
-  mur sync --quiet  # Silent mode (for hooks)`,
+  mur sync                    # Pull + sync using configured format
+  mur sync --format directory # Use directory format
+  mur sync --format single    # Use legacy single-file format
+  mur sync --clean-old        # Remove old single-file format
+  mur sync --push             # Also push local changes to remote
+  mur sync --quiet            # Silent mode (for hooks)`,
 	RunE: runSync,
 }
 
@@ -35,12 +45,28 @@ func init() {
 	rootCmd.AddCommand(syncCmd)
 	syncCmd.Flags().BoolVar(&syncPush, "push", false, "Push local changes to remote repo")
 	syncCmd.Flags().BoolVar(&syncQuiet, "quiet", false, "Silent mode (minimal output)")
+	syncCmd.Flags().StringVar(&syncFormat, "format", "", "Sync format: directory (default) or single")
+	syncCmd.Flags().BoolVar(&syncCleanOld, "clean-old", false, "Remove old single-file format files")
 }
 
 func runSync(cmd *cobra.Command, args []string) error {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return err
+	}
+
+	// Load config
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("cannot load config: %w", err)
+	}
+
+	// Override config with flags
+	if syncFormat != "" {
+		cfg.Sync.Format = syncFormat
+	}
+	if syncCleanOld {
+		cfg.Sync.CleanOld = true
 	}
 
 	patternsDir := filepath.Join(home, ".mur", "repo")
@@ -76,9 +102,14 @@ func runSync(cmd *cobra.Command, args []string) error {
 
 	// Sync patterns to all CLIs
 	if !syncQuiet {
-		fmt.Println("Syncing patterns to CLIs...")
+		format := cfg.Sync.Format
+		if format == "" {
+			format = "directory"
+		}
+		fmt.Printf("Syncing patterns to CLIs (format: %s)...\n", format)
 	}
-	results, err := sync.SyncPatternsToAllCLIs()
+
+	results, err := sync.SyncPatternsWithFormat(cfg)
 	if err != nil {
 		return fmt.Errorf("sync failed: %w", err)
 	}

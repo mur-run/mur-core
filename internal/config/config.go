@@ -15,6 +15,7 @@ type Config struct {
 	Tools         map[string]Tool     `yaml:"tools"`
 	Routing       RoutingConfig       `yaml:"routing"`
 	Learning      LearningConfig      `yaml:"learning"`
+	Sync          SyncConfig          `yaml:"sync"`
 	MCP           MCPConfig           `yaml:"mcp"`
 	Hooks         HooksConfig         `yaml:"hooks"`
 	Team          TeamConfig          `yaml:"team"`
@@ -86,6 +87,27 @@ type Tool struct {
 	Flags        []string `yaml:"flags"`
 	Tier         string   `yaml:"tier"`         // free | paid
 	Capabilities []string `yaml:"capabilities"` // coding, analysis, simple-qa, tool-use, architecture
+}
+
+// SyncConfig represents sync-related settings.
+type SyncConfig struct {
+	Format        string `yaml:"format"`          // "directory" or "single"
+	PrefixDomain  *bool  `yaml:"prefix_domain"`   // use domain--name format (default: true)
+	L3Threshold   int    `yaml:"l3_threshold"`    // chars above which content goes to examples.md
+	CleanOld      bool   `yaml:"clean_old"`       // remove old single-file format on sync
+}
+
+// GetPrefixDomain returns whether to use domain prefixes (default: true).
+func (s SyncConfig) GetPrefixDomain() bool {
+	if s.PrefixDomain == nil {
+		return true // default
+	}
+	return *s.PrefixDomain
+}
+
+// boolPtr returns a pointer to a bool value.
+func boolPtr(b bool) *bool {
+	return &b
 }
 
 // LearningConfig represents learning-related settings.
@@ -166,12 +188,35 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("cannot read config: %w", err)
 	}
 
+	// Parse the config file first to see what's specified
 	var cfg Config
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, fmt.Errorf("cannot parse config: %w", err)
 	}
 
+	// Apply defaults for missing sections
+	cfg.applyDefaults()
+
 	return &cfg, nil
+}
+
+// applyDefaults fills in zero values with sensible defaults.
+func (c *Config) applyDefaults() {
+	// Sync defaults
+	if c.Sync.Format == "" {
+		c.Sync.Format = "directory"
+	}
+	if c.Sync.L3Threshold == 0 {
+		c.Sync.L3Threshold = 500
+	}
+	// PrefixDomain: we can't distinguish "not set" from "explicitly false"
+	// So we default to true only if Format is being set for the first time
+	// This is a limitation - users who want PrefixDomain=false must set it explicitly
+	
+	// Default tool
+	if c.DefaultTool == "" {
+		c.DefaultTool = "claude"
+	}
 }
 
 // Save writes config back to file.
@@ -317,6 +362,12 @@ func defaultConfig() *Config {
 			AutoExtract:  true,
 			SyncToTools:  true,
 			PatternLimit: 5,
+		},
+		Sync: SyncConfig{
+			Format:       "directory",
+			PrefixDomain: boolPtr(true),
+			L3Threshold:  500,
+			CleanOld:     false,
 		},
 		MCP: MCPConfig{
 			SyncEnabled: true,
