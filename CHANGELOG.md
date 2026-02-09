@@ -2,6 +2,54 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [1.1.0] - 2026-02-09
+
+### Added
+- **🔍 Semantic Search**: `mur search` finds patterns by meaning using embeddings
+- **📁 Directory Sync Format**: 90%+ token savings with individual skill directories
+- **📊 Embedding Index**: `mur index status/rebuild` for managing vector embeddings
+- **🔗 Search Hooks**: Auto-suggest relevant patterns in Claude Code prompts
+- **🔄 Pattern Migration**: `mur migrate` upgrades patterns to v2 schema
+
+### New Commands
+- `mur search <query>` — Semantic pattern search
+- `mur search --inject` — Hook mode for auto-suggestions
+- `mur index status` — Check embedding index health
+- `mur index rebuild` — Rebuild all embeddings
+- `mur migrate --dry-run` — Preview pattern migration
+
+### Changed
+- `mur sync` now defaults to directory format (individual skill folders)
+- `mur init --hooks` adds semantic search hook when enabled
+- Pattern schema v2 adds version, resources, and embedding_hash fields
+
+### Configuration
+```yaml
+search:
+  enabled: true
+  provider: ollama
+  model: nomic-embed-text
+  auto_inject: true  # auto-suggest in hooks
+  
+sync:
+  format: directory  # new default
+  prefix_domain: true  # swift--pattern-name format
+```
+
+### Migration
+```bash
+# Upgrade patterns to v2 schema
+mur migrate patterns --to 2
+
+# Rebuild for semantic search
+mur index rebuild
+
+# Re-install hooks with search support
+mur init --hooks
+```
+
+---
+
 ## [1.0.1] - 2026-02-08
 
 ### Added

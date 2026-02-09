@@ -157,9 +157,19 @@ mur doctor
 |---------|-------------|
 | `mur new <name>` | Create new pattern |
 | `mur edit <name>` | Edit pattern in $EDITOR |
-| `mur search <query>` | Search patterns |
+| `mur search <query>` | Semantic search patterns |
 | `mur copy <name>` | Copy pattern to clipboard |
 | `mur examples` | Install example patterns |
+| `mur migrate` | Migrate patterns to v2 schema |
+
+### Semantic Search
+
+| Command | Description |
+|---------|-------------|
+| `mur index status` | Check embedding index status |
+| `mur index rebuild` | Rebuild all embeddings |
+| `mur search <query>` | Search patterns by meaning |
+| `mur search --json` | JSON output for scripts |
 
 ### Learning
 
@@ -228,6 +238,61 @@ mur
 - Continue
 - Cursor
 - Windsurf
+
+## 🔍 Semantic Search
+
+v1.1+ includes intelligent pattern matching using embeddings. Instead of keyword search, mur finds patterns by *meaning*.
+
+### Setup
+
+```bash
+# Install Ollama (local embeddings, free)
+brew install ollama
+ollama serve &
+ollama pull nomic-embed-text
+
+# Build the embedding index
+mur index rebuild
+```
+
+### Usage
+
+```bash
+# Search by meaning
+mur search "How to test async Swift code"
+# → swift-testing-macro-over-xctest (0.65)
+
+# The hook auto-suggests patterns in Claude Code
+claude "fix this async test"
+# → [mur] 🎯 Relevant patterns: swift-testing-macro-over-xctest
+```
+
+### Directory Sync Format
+
+v1.1+ uses individual skill directories instead of one large file:
+
+```bash
+# Before: ~/.claude/skills/mur-patterns.md (35KB, ~8,750 tokens)
+# After:  ~/.claude/skills/swift--testing-macro/SKILL.md (~150 tokens)
+
+mur sync                  # Uses new directory format (default)
+mur sync --format single  # Legacy format still available
+```
+
+This reduces token usage by **90%+** — Claude loads only the patterns it needs.
+
+### Configuration
+
+```yaml
+# ~/.mur/config.yaml
+search:
+  enabled: true
+  provider: ollama              # ollama | openai
+  model: nomic-embed-text       # embedding model
+  top_k: 3                      # results per search
+  min_score: 0.6                # minimum similarity
+  auto_inject: true             # auto-suggest in hooks
+```
 
 ## 🔧 Configuration
 
