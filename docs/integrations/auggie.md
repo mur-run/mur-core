@@ -11,15 +11,16 @@ Auggie is a free AI coding assistant from Augment Code.
 | **Tier** | Free |
 | **Capabilities** | coding |
 | **Config Path** | `~/.augment/settings.json` |
+| **Hooks Support** | ✅ Yes (v0.15.0+) |
 
 ## Status
 
-🔜 **Coming Soon** - Full integration is in development.
+✅ **Fully Supported** - Hooks, patterns, and MCP sync all work.
 
 Current support:
 
+- ✅ Hook sync (SessionStart, Stop events)
 - ✅ MCP server sync
-- ❌ Hook sync (not supported by Auggie)
 - ✅ Pattern sync
 - ✅ Skill sync
 
@@ -35,13 +36,25 @@ Verify:
 auggie --version
 ```
 
+## Quick Setup
+
+```bash
+# Install mur hooks for Auggie
+mur init --hooks
+```
+
+This configures `~/.augment/settings.json` with:
+
+- **SessionStart** hook — Injects context-aware patterns at session start
+- **Stop** hook — Extracts patterns and syncs when agent finishes
+
 ## Configuration in Murmur
 
 ```yaml
 # ~/.mur/config.yaml
 tools:
   auggie:
-    enabled: false  # Enable when ready
+    enabled: true
     binary: auggie
     tier: free
     capabilities: [coding]
@@ -49,6 +62,24 @@ tools:
 ```
 
 ## Sync Features
+
+### Hooks ✅
+
+```bash
+mur init --hooks
+```
+
+Auggie supports hooks via `~/.augment/settings.json`. Supported events:
+
+| Event | Description |
+|-------|-------------|
+| `SessionStart` | Runs when Auggie starts a new session |
+| `SessionEnd` | Runs when a session ends |
+| `PreToolUse` | Runs before a tool executes |
+| `PostToolUse` | Runs after a tool completes |
+| `Stop` | Runs when agent finishes responding |
+
+Mur uses `SessionStart` for pattern injection and `Stop` for pattern extraction.
 
 ### MCP Servers ✅
 
@@ -58,44 +89,74 @@ mur sync mcp
 
 Auggie supports MCP servers via `~/.augment/settings.json`.
 
-### Hooks ❌
-
-Auggie doesn't support hooks natively. When you run `mur sync hooks`, Auggie is skipped:
-
-```
-  ✗ Auggie: no event mapping defined for this target
-```
-
 ### Patterns ✅
 
-Patterns can be synced to Auggie's instruction context.
+Patterns sync to Auggie's instruction context.
 
 ### Skills ✅
 
 Skills sync to Auggie's configuration.
 
+## Hooks Configuration
+
+After running `mur init --hooks`, your `~/.augment/settings.json` will include:
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/YOU/.mur/hooks/on-prompt.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/YOU/.mur/hooks/on-stop.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+## Verify Hooks
+
+To verify hooks are working:
+
+```bash
+# Add debug logging
+echo 'echo "[mur] hook @ $(date)" >> /tmp/mur-hook.log' >> ~/.mur/hooks/on-prompt.sh
+
+# Run auggie
+auggie "test"
+
+# Check log
+cat /tmp/mur-hook.log
+```
+
 ## When to Use Auggie
 
 Auggie is good for:
 
-- Free coding assistance
+- Free coding assistance (uses GPT-5.2)
 - Quick code generation
-- Learning and experimentation
+- Project-aware assistance (auto-indexes your codebase)
 
-Currently, murmur prefers Gemini CLI for the free tier, but once Auggie integration is complete, you'll be able to:
+With murmur routing:
 
 ```yaml
 routing:
   prefer_free: [gemini, auggie]  # Try Gemini first, then Auggie
 ```
-
-## Roadmap
-
-1. ✅ Basic tool definition
-2. ✅ MCP sync support
-3. 🔜 Full routing integration
-4. 🔜 Pattern extraction from sessions
-5. 🔜 Advanced capabilities detection
 
 ## Direct Usage
 
@@ -103,7 +164,7 @@ routing:
 auggie "write a hello world in Rust"
 ```
 
-Through murmur (when enabled):
+Through murmur:
 
 ```bash
 mur run -t auggie -p "write a hello world in Rust"
@@ -112,4 +173,6 @@ mur run -t auggie -p "write a hello world in Rust"
 ## See Also
 
 - [Augment Code](https://www.augmentcode.com/)
+- [Auggie CLI Docs](https://docs.augmentcode.com/cli/)
+- [Auggie Hooks Docs](https://docs.augmentcode.com/cli/hooks)
 - [Smart Routing](../concepts/routing.md)

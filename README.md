@@ -278,10 +278,10 @@ mur
 **AI CLIs** (with hooks for real-time injection):
 - Claude Code
 - Gemini CLI
+- Auggie (Augment CLI)
 
 **AI CLIs** (static sync):
 - Codex
-- Auggie
 - Aider
 
 **IDEs** (static sync):

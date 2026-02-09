@@ -2,6 +2,17 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- **🎮 Auggie Hooks**: Full hook support for Augment CLI (SessionStart, Stop events)
+  - `mur init --hooks` now configures Auggie alongside Claude Code and Gemini CLI
+  - Hooks inject patterns at session start and extract patterns when agent stops
+
+### Changed
+- Auggie moved from "static sync" to "hooks supported" in README
+- Updated `docs/integrations/auggie.md` with full hooks documentation
+
 ## [1.1.0] - 2026-02-09
 
 ### Added
