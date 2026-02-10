@@ -72,6 +72,10 @@ func deviceCodeLogin(client *cloud.Client) error {
 	fmt.Println()
 	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 	fmt.Println()
+
+	// Auto-open browser
+	openBrowser(codeResp.VerificationURI)
+
 	fmt.Println("Waiting for authorization...")
 
 	// Poll for token
