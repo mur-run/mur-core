@@ -71,11 +71,11 @@ func (c *Client) Login(email, password string) (*AuthResponse, error) {
 		return nil, err
 	}
 
-	// Save tokens
+	// Save tokens (1 hour expiry, matching server)
 	authData := &AuthData{
 		AccessToken:  resp.AccessToken,
 		RefreshToken: resp.RefreshToken,
-		ExpiresAt:    time.Now().Add(15 * time.Minute),
+		ExpiresAt:    time.Now().Add(1 * time.Hour),
 		User:         resp.User,
 	}
 	if err := c.authStore.Save(authData); err != nil {
@@ -101,11 +101,11 @@ func (c *Client) Refresh() error {
 		return err
 	}
 
-	// Save new tokens
+	// Save new tokens (1 hour expiry, matching server)
 	authData := &AuthData{
 		AccessToken:  resp.AccessToken,
 		RefreshToken: resp.RefreshToken,
-		ExpiresAt:    time.Now().Add(15 * time.Minute),
+		ExpiresAt:    time.Now().Add(1 * time.Hour),
 		User:         resp.User,
 	}
 	return c.authStore.Save(authData)
