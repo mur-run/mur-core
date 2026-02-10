@@ -2,16 +2,30 @@
 
 All notable changes to mur-core will be documented in this file.
 
-## [Unreleased]
+## [1.2.0] - 2026-02-10
 
 ### Added
+- **📱 Device Tracking**: Automatic device ID generation and tracking
+  - Persistent device ID stored in `~/.mur/device_id`
+  - All API requests include `X-Device-ID/Name/OS` headers
+  - Device limit enforcement (Free: 1, Trial/Pro: 3, Team: 5)
+- **🌍 Community Patterns**: Browse and copy patterns from the community
+  - `mur community` — View popular patterns
+  - `mur community search <query>` — Search community
+  - `mur community copy <name>` — Copy pattern to your team
+  - `mur community recent` — View recent patterns
+- **📊 Referral System**: View referral stats and share link
+  - `mur referral` — View referral status and share link
+- **📱 Device Management**: List and manage connected devices
+  - `mur devices` — List all registered devices
+  - `mur devices logout <name>` — Force logout a device
 - **🎮 Auggie Hooks**: Full hook support for Augment CLI (SessionStart, Stop events)
   - `mur init --hooks` now configures Auggie alongside Claude Code and Gemini CLI
-  - Hooks inject patterns at session start and extract patterns when agent stops
 
 ### Changed
+- API client now sends device headers with all authenticated requests
+- 429 errors return structured `DeviceLimitError` with active device list
 - Auggie moved from "static sync" to "hooks supported" in README
-- Updated `docs/integrations/auggie.md` with full hooks documentation
 
 ## [1.1.0] - 2026-02-09
 
