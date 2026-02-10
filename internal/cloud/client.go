@@ -19,6 +19,7 @@ type Client struct {
 	baseURL    string
 	httpClient *http.Client
 	authStore  *AuthStore
+	deviceInfo *DeviceInfo
 }
 
 // NewClient creates a new API client
@@ -33,8 +34,9 @@ func NewClient(serverURL string) (*Client, error) {
 	}
 
 	return &Client{
-		baseURL:   serverURL,
-		authStore: authStore,
+		baseURL:    serverURL,
+		authStore:  authStore,
+		deviceInfo: GetDeviceInfo(),
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -252,6 +254,104 @@ func (c *Client) Push(teamID string, req PushRequest) (*PushResponse, error) {
 	return &resp, nil
 }
 
+// === Device Methods ===
+
+// ListDevices returns all devices for the current user
+func (c *Client) ListDevices() (*DeviceListResponse, error) {
+	var resp DeviceListResponse
+	if err := c.get("/api/v1/devices", &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// LogoutDevice force-logs out a device
+func (c *Client) LogoutDevice(deviceID string) error {
+	return c.delete(fmt.Sprintf("/api/v1/devices/%s", deviceID))
+}
+
+// === Community Methods ===
+
+// CommunityPattern represents a pattern in the community
+type CommunityPattern struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	AuthorName  string `json:"author_name"`
+	AuthorLogin string `json:"author_login,omitempty"`
+	CopyCount   int    `json:"copy_count"`
+	ViewCount   int    `json:"view_count"`
+}
+
+// CommunityListResponse is the response from community endpoints
+type CommunityListResponse struct {
+	Patterns []CommunityPattern `json:"patterns"`
+	Count    int                `json:"count"`
+}
+
+// GetCommunityPopular returns popular community patterns
+func (c *Client) GetCommunityPopular(limit int) (*CommunityListResponse, error) {
+	var resp CommunityListResponse
+	path := fmt.Sprintf("/api/v1/community/patterns/popular?limit=%d", limit)
+	if err := c.get(path, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// GetCommunityRecent returns recent community patterns
+func (c *Client) GetCommunityRecent(limit int) (*CommunityListResponse, error) {
+	var resp CommunityListResponse
+	path := fmt.Sprintf("/api/v1/community/patterns/recent?limit=%d", limit)
+	if err := c.get(path, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// SearchCommunity searches community patterns
+func (c *Client) SearchCommunity(query string, limit int) (*CommunityListResponse, error) {
+	var resp CommunityListResponse
+	path := fmt.Sprintf("/api/v1/community/patterns/search?q=%s&limit=%d", query, limit)
+	if err := c.get(path, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// CopyPattern copies a community pattern to user's team
+func (c *Client) CopyPattern(patternID, teamID string) (*Pattern, error) {
+	req := map[string]string{"team_id": teamID}
+	var pattern Pattern
+	path := fmt.Sprintf("/api/v1/community/patterns/%s/copy", patternID)
+	if err := c.post(path, req, &pattern); err != nil {
+		return nil, err
+	}
+	return &pattern, nil
+}
+
+// === Referral Methods ===
+
+// ReferralStats represents referral statistics
+type ReferralStats struct {
+	ReferralCode   string `json:"referral_code"`
+	ReferralLink   string `json:"referral_link"`
+	TotalShared    int    `json:"total_shared"`
+	TotalQualified int    `json:"total_qualified"`
+	TotalRewarded  int    `json:"total_rewarded"`
+	RewardsLeft    int    `json:"rewards_left"`
+	DaysEarned     int    `json:"days_earned"`
+}
+
+// GetReferralStats returns referral statistics
+func (c *Client) GetReferralStats() (*ReferralStats, error) {
+	var stats ReferralStats
+	if err := c.get("/api/v1/referral/stats", &stats); err != nil {
+		return nil, err
+	}
+	return &stats, nil
+}
+
 // HTTP helpers
 
 func (c *Client) get(path string, result interface{}) error {
@@ -260,6 +360,10 @@ func (c *Client) get(path string, result interface{}) error {
 
 func (c *Client) post(path string, body interface{}, result interface{}) error {
 	return c.do("POST", path, body, result)
+}
+
+func (c *Client) delete(path string) error {
+	return c.do("DELETE", path, nil, nil)
 }
 
 func (c *Client) do(method, path string, body interface{}, result interface{}) error {
@@ -284,6 +388,13 @@ func (c *Client) do(method, path string, body interface{}, result interface{}) e
 
 	req.Header.Set("Content-Type", "application/json")
 
+	// Add device headers
+	if c.deviceInfo != nil {
+		req.Header.Set("X-Device-ID", c.deviceInfo.DeviceID)
+		req.Header.Set("X-Device-Name", c.deviceInfo.DeviceName)
+		req.Header.Set("X-Device-OS", c.deviceInfo.OS)
+	}
+
 	// Add auth header if logged in
 	auth, _ := c.authStore.Load()
 	if auth != nil && auth.AccessToken != "" {
@@ -302,6 +413,23 @@ func (c *Client) do(method, path string, body interface{}, result interface{}) e
 	}
 
 	if resp.StatusCode >= 400 {
+		// Check for device limit error (429)
+		if resp.StatusCode == 429 {
+			var deviceErr struct {
+				Error   string   `json:"error"`
+				Message string   `json:"message"`
+				Limit   int      `json:"limit"`
+				Active  []Device `json:"active"`
+			}
+			if json.Unmarshal(respBody, &deviceErr) == nil && deviceErr.Error == "device_limit_exceeded" {
+				return &DeviceLimitError{
+					Limit:   deviceErr.Limit,
+					Active:  deviceErr.Active,
+					Message: deviceErr.Message,
+				}
+			}
+		}
+
 		var errResp struct {
 			Error string `json:"error"`
 		}
