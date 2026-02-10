@@ -541,6 +541,13 @@ func installGeminiHooks(home, promptScriptPath, stopScriptPath string) error {
 		fmt.Println("✓ Installed Auggie hooks")
 	}
 
+	// Install OpenClaw hooks
+	if err := murhooks.InstallOpenClawHooks(); err != nil {
+		fmt.Printf("  ⚠ OpenClaw hooks: %v\n", err)
+	} else {
+		fmt.Println("✓ Installed OpenClaw hooks")
+	}
+
 	return nil
 }
 
