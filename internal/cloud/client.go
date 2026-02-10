@@ -127,6 +127,102 @@ func (c *Client) Logout() error {
 	return c.authStore.Clear()
 }
 
+// DeviceCodeResponse represents device code response
+type DeviceCodeResponse struct {
+	DeviceCode      string `json:"device_code"`
+	UserCode        string `json:"user_code"`
+	VerificationURI string `json:"verification_uri"`
+	ExpiresIn       int    `json:"expires_in"`
+	Interval        int    `json:"interval"`
+}
+
+// DeviceTokenResponse represents device token response
+type DeviceTokenResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	TokenType    string `json:"token_type"`
+	ExpiresIn    int    `json:"expires_in"`
+	Error        string `json:"error,omitempty"`
+}
+
+// RequestDeviceCode starts device authorization flow
+func (c *Client) RequestDeviceCode() (*DeviceCodeResponse, error) {
+	var resp DeviceCodeResponse
+	if err := c.post("/api/v1/auth/device/code", nil, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// PollDeviceToken polls for device token
+func (c *Client) PollDeviceToken(deviceCode string) (*DeviceTokenResponse, error) {
+	req := map[string]string{"device_code": deviceCode}
+
+	var resp DeviceTokenResponse
+	if err := c.postRaw("/api/v1/auth/device/token", req, &resp); err != nil {
+		// Check for expected errors
+		if resp.Error != "" {
+			return nil, fmt.Errorf("%s", resp.Error)
+		}
+		return nil, err
+	}
+
+	if resp.Error != "" {
+		return nil, fmt.Errorf("%s", resp.Error)
+	}
+
+	// Save tokens
+	authData := &AuthData{
+		AccessToken:  resp.AccessToken,
+		RefreshToken: resp.RefreshToken,
+		ExpiresAt:    time.Now().Add(time.Duration(resp.ExpiresIn) * time.Second),
+	}
+	if err := c.authStore.Save(authData); err != nil {
+		return nil, fmt.Errorf("failed to save auth: %w", err)
+	}
+
+	return &resp, nil
+}
+
+// postRaw is like post but doesn't fail on non-2xx if response is valid JSON
+func (c *Client) postRaw(path string, body interface{}, result interface{}) error {
+	var reqBody io.Reader
+	if body != nil {
+		data, err := json.Marshal(body)
+		if err != nil {
+			return err
+		}
+		reqBody = bytes.NewReader(data)
+	}
+
+	req, err := http.NewRequest("POST", c.baseURL+path, reqBody)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	// Add device headers
+	if c.deviceInfo != nil {
+		req.Header.Set("X-Device-ID", c.deviceInfo.DeviceID)
+		req.Header.Set("X-Device-Name", c.deviceInfo.DeviceName)
+		req.Header.Set("X-Device-OS", c.deviceInfo.OS)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// Always try to decode response
+	if err := json.NewDecoder(resp.Body).Decode(result); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Team represents a team
 type Team struct {
 	ID        string    `json:"id"`
