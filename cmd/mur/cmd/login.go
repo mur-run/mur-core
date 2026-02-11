@@ -21,14 +21,17 @@ var loginCmd = &cobra.Command{
 
 By default, uses device code flow (OAuth) - you'll authorize in your browser.
 Use --password to login with email/password instead.
+Use --api-key to login with an API key (create one at app.mur.run/core/settings).
 
 Examples:
   mur login                           # OAuth login (recommended)
+  mur login --api-key mur_xxx_...     # API key login
   mur login --password                # Email/password login
   mur login --email user@example.com --password`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		usePassword, _ := cmd.Flags().GetBool("password")
 		email, _ := cmd.Flags().GetString("email")
+		apiKey, _ := cmd.Flags().GetString("api-key")
 		serverURL, _ := cmd.Flags().GetString("server")
 
 		// Get server URL from config if not specified
@@ -42,6 +45,11 @@ Examples:
 		client, err := cloud.NewClient(serverURL)
 		if err != nil {
 			return fmt.Errorf("failed to create client: %w", err)
+		}
+
+		// API key login
+		if apiKey != "" {
+			return apiKeyLogin(client, apiKey)
 		}
 
 		// Use device code flow by default
@@ -122,6 +130,33 @@ func deviceCodeLogin(client *cloud.Client) error {
 	}
 
 	return fmt.Errorf("authorization timed out")
+}
+
+func apiKeyLogin(client *cloud.Client, apiKey string) error {
+	if !strings.HasPrefix(apiKey, "mur_") {
+		return fmt.Errorf("invalid API key format (should start with mur_)")
+	}
+
+	fmt.Println("Validating API key...")
+
+	// Store the API key and verify it works
+	if err := client.LoginWithAPIKey(apiKey); err != nil {
+		return fmt.Errorf("invalid API key: %w", err)
+	}
+
+	// Get user info
+	user, err := client.Me()
+	if err != nil {
+		fmt.Println("✓ API key saved")
+	} else {
+		fmt.Printf("✓ Logged in as %s (%s)\n", user.Name, user.Email)
+	}
+	fmt.Println()
+	fmt.Println("Next steps:")
+	fmt.Println("  mur cloud teams     — List your teams")
+	fmt.Println("  mur cloud sync      — Sync patterns with server")
+
+	return nil
 }
 
 func passwordLogin(client *cloud.Client, email string) error {
@@ -221,6 +256,7 @@ func init() {
 
 	loginCmd.Flags().String("email", "", "Email address (for password login)")
 	loginCmd.Flags().Bool("password", false, "Use email/password login instead of OAuth")
+	loginCmd.Flags().String("api-key", "", "API key for authentication (create at app.mur.run)")
 	loginCmd.Flags().String("server", "", "Server URL (default: https://api.mur.run)")
 	whoamiCmd.Flags().String("server", "", "Server URL")
 }

@@ -19,6 +19,7 @@ type AuthData struct {
 	RefreshToken string    `json:"refresh_token"`
 	ExpiresAt    time.Time `json:"expires_at"`
 	User         *User     `json:"user,omitempty"`
+	APIKey       string    `json:"api_key,omitempty"` // API key for authentication (never expires)
 }
 
 // User represents a mur-server user
@@ -85,13 +86,30 @@ func (s *AuthStore) Clear() error {
 	return nil
 }
 
-// IsLoggedIn checks if user is logged in with valid token
+// IsLoggedIn checks if user is logged in with valid token or API key
 func (s *AuthStore) IsLoggedIn() bool {
 	data, err := s.Load()
 	if err != nil || data == nil {
 		return false
 	}
+	// API key never expires
+	if data.APIKey != "" {
+		return true
+	}
 	return data.AccessToken != "" && time.Now().Before(data.ExpiresAt)
+}
+
+// GetToken returns the token to use for authentication (API key or access token)
+func (s *AuthStore) GetToken() string {
+	data, err := s.Load()
+	if err != nil || data == nil {
+		return ""
+	}
+	// Prefer API key if set
+	if data.APIKey != "" {
+		return data.APIKey
+	}
+	return data.AccessToken
 }
 
 // NeedsRefresh checks if token needs refresh (expires in < 5 minutes)

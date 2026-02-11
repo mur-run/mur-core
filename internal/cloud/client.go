@@ -127,6 +127,29 @@ func (c *Client) Logout() error {
 	return c.authStore.Clear()
 }
 
+// LoginWithAPIKey authenticates using an API key
+func (c *Client) LoginWithAPIKey(apiKey string) error {
+	// Store the API key
+	authData := &AuthData{
+		APIKey: apiKey,
+	}
+	if err := c.authStore.Save(authData); err != nil {
+		return err
+	}
+
+	// Verify it works by calling /me
+	user, err := c.Me()
+	if err != nil {
+		// Clear the invalid key
+		c.authStore.Clear()
+		return err
+	}
+
+	// Update with user info
+	authData.User = user
+	return c.authStore.Save(authData)
+}
+
 // DeviceCodeResponse represents device code response
 type DeviceCodeResponse struct {
 	DeviceCode      string `json:"device_code"`
@@ -492,9 +515,9 @@ func (c *Client) do(method, path string, body interface{}, result interface{}) e
 	}
 
 	// Add auth header if logged in
-	auth, _ := c.authStore.Load()
-	if auth != nil && auth.AccessToken != "" {
-		req.Header.Set("Authorization", "Bearer "+auth.AccessToken)
+	token := c.authStore.GetToken()
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
 	}
 
 	resp, err := c.httpClient.Do(req)
