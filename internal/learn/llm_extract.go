@@ -48,40 +48,74 @@ func DefaultLLMOptions() LLMExtractOptions {
 }
 
 // extractionPrompt is the system prompt for pattern extraction.
-const extractionPrompt = `You are a pattern extraction assistant. Analyze the following coding session transcript and extract reusable patterns, lessons learned, and best practices.
+const extractionPrompt = `You are a pattern extraction assistant. Your job is to find VALUABLE, NON-OBVIOUS patterns from coding sessions.
 
-For each pattern you find, output a JSON object with these fields:
+## STEP 1: Classify the Session Type
+
+First, determine what type of session this is:
+- Q&A SESSION: User asks questions, AI explains concepts → Return []
+- TUTORIAL REQUEST: User wants to learn something general → Return []
+- ACTIVE DEVELOPMENT: User is building, debugging, or implementing → Proceed to Step 2
+
+If this is a Q&A or Tutorial session, STOP and return an empty array [].
+
+## STEP 2: Extract Patterns (Only for Active Development)
+
+For each pattern, output a JSON object with:
 - name: kebab-case identifier (e.g., "swift-async-error-handling")
-- title: human-readable title
+- title: human-readable title (NOT generic like "How to X")
 - confidence: "HIGH", "MEDIUM", or "LOW"
 - score: 0.0-1.0 confidence score
 - category: "pattern", "lesson", "decision", "template", or "debug"
 - domain: "dev", "devops", "mobile", "web", "backend", or "general"
-- problem: what problem this pattern solves
-- solution: the solution or pattern
-- why_non_obvious: why this is worth remembering (not obvious)
+- problem: the SPECIFIC problem encountered (with error messages if any)
+- solution: the solution that WORKED (not generic advice)
+- why_non_obvious: why this can't be easily Googled
 
-Only extract patterns that are:
-1. Reusable across projects
-2. Non-obvious (not basic/common knowledge)
-3. Specific enough to be actionable
+## MUST EXTRACT (High Value)
+✅ User encountered an ERROR → tried multiple approaches → found solution
+✅ Discovered WORKAROUND not documented officially
+✅ Project-specific CONFIGURATION decision with reasoning
+✅ Non-obvious BUG FIX requiring debugging
+✅ Integration issues between specific tools/libraries
 
-Output a JSON array of patterns. If no good patterns found, output an empty array [].
+## MUST NOT EXTRACT (Low Value)
+❌ Generic explanations from AI (tutorials, how-to guides)
+❌ Code examples that exist on Stack Overflow
+❌ Basic language/framework features (async/await basics, etc.)
+❌ AI answering "how do I do X?" without actual problem-solving
+❌ Theoretical discussions without implementation
 
-Example output:
+## Quality Check
+Before including a pattern, ask:
+1. Did the user actually encounter this problem? (not just ask about it)
+2. Was there debugging or multiple attempts?
+3. Is this specific to a project/context? (not generic knowledge)
+4. Would a developer NOT find this easily via Google?
+
+If ANY answer is NO, skip that pattern.
+
+Output a JSON array. If no valuable patterns found, output [].
+
+Example of GOOD pattern (from actual debugging):
 [
   {
-    "name": "swiftui-sheet-menubar-workaround",
-    "title": "SwiftUI Sheet in MenuBarExtra Workaround",
+    "name": "menubarextra-sheet-zstack-workaround",
+    "title": "MenuBarExtra Sheet Requires ZStack Overlay",
     "confidence": "HIGH",
-    "score": 0.85,
-    "category": "pattern",
+    "score": 0.90,
+    "category": "debug",
     "domain": "mobile",
-    "problem": "SwiftUI .sheet() doesn't work in MenuBarExtra popovers",
-    "solution": "Use ZStack overlay pattern with manual state management",
-    "why_non_obvious": "Apple docs don't mention this limitation; failure is silent"
+    "problem": "SwiftUI .sheet() modifier silently fails in MenuBarExtra popovers - sheets never appear",
+    "solution": "Use ZStack with overlay and manual isPresented state instead of .sheet()",
+    "why_non_obvious": "Apple docs don't mention this limitation. Error is silent - no console output."
   }
-]`
+]
+
+Example of BAD pattern (generic Q&A - DO NOT EXTRACT):
+User: "How do I test async in Swift?"
+AI: "Add async to your test method..."
+→ This is just a tutorial. Return []`
 
 // ExtractWithLLM uses an LLM to extract patterns from a session.
 func ExtractWithLLM(session *Session, opts LLMExtractOptions) ([]ExtractedPattern, error) {

@@ -13,11 +13,12 @@ import (
 
 // Session represents a Claude Code session.
 type Session struct {
-	ID        string
-	Project   string
-	Path      string
-	Messages  []SessionMessage
-	CreatedAt time.Time
+	ID           string
+	Project      string
+	Path         string
+	Messages     []SessionMessage
+	ToolUseCount int // Number of tool_use blocks in the session
+	CreatedAt    time.Time
 }
 
 // SessionMessage represents a message in a session.
@@ -152,7 +153,7 @@ func LoadSession(idOrPath string) (*Session, error) {
 	}
 
 	// Parse the JSONL file
-	messages, err := parseJSONL(sessionPath)
+	messages, toolUseCount, err := parseJSONL(sessionPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse session: %w", err)
 	}
@@ -163,11 +164,12 @@ func LoadSession(idOrPath string) (*Session, error) {
 	}
 
 	return &Session{
-		ID:        sessionID,
-		Project:   project,
-		Path:      sessionPath,
-		Messages:  messages,
-		CreatedAt: info.ModTime(),
+		ID:           sessionID,
+		Project:      project,
+		Path:         sessionPath,
+		Messages:     messages,
+		ToolUseCount: toolUseCount,
+		CreatedAt:    info.ModTime(),
 	}, nil
 }
 
@@ -191,14 +193,16 @@ func RecentSessions(days int) ([]Session, error) {
 }
 
 // parseJSONL parses a Claude Code session JSONL file.
-func parseJSONL(path string) ([]SessionMessage, error) {
+// Returns messages and tool use count.
+func parseJSONL(path string) ([]SessionMessage, int, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer func() { _ = file.Close() }()
 
 	var messages []SessionMessage
+	toolUseCount := 0
 	scanner := bufio.NewScanner(file)
 
 	// Increase buffer size for large lines
@@ -209,6 +213,11 @@ func parseJSONL(path string) ([]SessionMessage, error) {
 		line := scanner.Bytes()
 		if len(line) == 0 {
 			continue
+		}
+
+		// Count tool_use entries at the JSONL level
+		if strings.Contains(string(line), `"type":"tool_use"`) {
+			toolUseCount++
 		}
 
 		var msg jsonlMessage
@@ -254,7 +263,7 @@ func parseJSONL(path string) ([]SessionMessage, error) {
 		})
 	}
 
-	return messages, scanner.Err()
+	return messages, toolUseCount, scanner.Err()
 }
 
 // extractText extracts text from message content.
@@ -297,4 +306,25 @@ func (s *Session) AssistantMessages() []SessionMessage {
 		}
 	}
 	return msgs
+}
+
+// UserMessages returns only user messages.
+func (s *Session) UserMessages() []SessionMessage {
+	var msgs []SessionMessage
+	for _, m := range s.Messages {
+		if m.Role == "user" {
+			msgs = append(msgs, m)
+		}
+	}
+	return msgs
+}
+
+// FullTranscript returns the full conversation as a single string.
+func (s *Session) FullTranscript() string {
+	var sb strings.Builder
+	for _, m := range s.Messages {
+		sb.WriteString(m.Content)
+		sb.WriteString("\n")
+	}
+	return sb.String()
 }

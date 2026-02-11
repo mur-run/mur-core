@@ -283,13 +283,14 @@ Examples:
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
 		acceptAll, _ := cmd.Flags().GetBool("accept-all")
 		quiet, _ := cmd.Flags().GetBool("quiet")
+		strict, _ := cmd.Flags().GetBool("strict")
 		minConfidence, _ := cmd.Flags().GetFloat64("min-confidence")
 		llm, _ := cmd.Flags().GetString("llm")
 		llmModel, _ := cmd.Flags().GetString("llm-model")
 
 		// LLM mode
 		if llm != "" {
-			return runExtractLLM(sessionID, llm, llmModel, dryRun, acceptAll, quiet, minConfidence)
+			return runExtractLLM(sessionID, llm, llmModel, dryRun, acceptAll, quiet, strict, minConfidence)
 		}
 
 		if auto {
@@ -655,7 +656,10 @@ func runExtractAuto(dryRun, acceptAll, quiet bool, minConfidence float64) error 
 	return nil
 }
 
-func runExtractLLM(sessionID, provider, model string, dryRun, acceptAll, quiet bool, minConfidence float64) error {
+func runExtractLLM(sessionID, provider, model string, dryRun, acceptAll, quiet, strict bool, minConfidence float64) error {
+	// Setup quality config for strict mode
+	qualityCfg := learn.DefaultExtractionConfig()
+
 	// Setup LLM options
 	opts := learn.DefaultLLMOptions()
 	configuredProvider := false
@@ -858,8 +862,22 @@ func runExtractLLM(sessionID, provider, model string, dryRun, acceptAll, quiet b
 
 	totalExtracted := 0
 	savedCount := 0
+	skippedSessions := 0
 
 	for _, session := range sessions {
+		// Strict mode: pre-filter sessions by quality
+		if strict {
+			quality := learn.AnalyzeSessionQuality(session)
+			shouldExtract, reason := learn.ShouldExtract(quality, qualityCfg)
+			if !shouldExtract {
+				skippedSessions++
+				if !quiet {
+					fmt.Printf("⊘ Skipping %s: %s\n", session.ShortID(), reason)
+				}
+				continue
+			}
+		}
+
 		// Check if this session should use premium model
 		useOpts := opts
 		usePremium := false
@@ -905,6 +923,11 @@ func runExtractLLM(sessionID, provider, model string, dryRun, acceptAll, quiet b
 				}
 				continue
 			}
+		}
+
+		// Strict mode: filter patterns by quality
+		if strict {
+			patterns = learn.FilterPatterns(patterns, qualityCfg)
 		}
 
 		if len(patterns) == 0 {
@@ -965,6 +988,9 @@ func runExtractLLM(sessionID, provider, model string, dryRun, acceptAll, quiet b
 			fmt.Printf("Found %d patterns (dry-run, not saved)\n", totalExtracted)
 		} else {
 			fmt.Printf("Extracted %d patterns, saved %d\n", totalExtracted, savedCount)
+		}
+		if strict && skippedSessions > 0 {
+			fmt.Printf("Skipped %d low-quality sessions (strict mode)\n", skippedSessions)
 		}
 	}
 
@@ -1116,6 +1142,7 @@ func init() {
 	learnExtractCmd.Flags().Bool("dry-run", false, "Show what would be extracted without saving")
 	learnExtractCmd.Flags().Bool("accept-all", false, "Auto-save patterns above confidence threshold")
 	learnExtractCmd.Flags().Bool("quiet", false, "Silent mode (for hooks, minimal output)")
+	learnExtractCmd.Flags().Bool("strict", false, "Enable strict quality filtering (skip Q&A sessions, validate patterns)")
 	learnExtractCmd.Flags().Float64("min-confidence", 0.6, "Minimum confidence for auto-accept (default: 0.6)")
 	learnExtractCmd.Flags().StringP("llm", "l", "", "LLM provider: ollama, claude, openai, gemini (default from config)")
 	learnExtractCmd.Flags().Lookup("llm").NoOptDefVal = "default" // --llm without value uses config default
