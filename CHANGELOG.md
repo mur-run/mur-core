@@ -2,6 +2,14 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- **🔑 API Key Login**: `mur login --api-key mur_xxx_...` for CI/automation
+  - Create API keys at https://app.mur.run/core/settings
+  - API keys never expire (unless set during creation)
+  - Supports both JWT and API key authentication
+
 ## [1.2.0] - 2026-02-10
 
 ### Added

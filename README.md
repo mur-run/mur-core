@@ -590,8 +590,15 @@ Features:
 Sync patterns across devices and share with your team via [mur.run](https://mur.run).
 
 ```bash
-# Login to mur cloud
-mur cloud login
+# Login (OAuth - opens browser)
+mur login
+
+# Or login with API key (for CI/automation)
+# Create keys at: https://app.mur.run/core/settings
+mur login --api-key mur_xxx_...
+
+# Check who you're logged in as
+mur whoami
 
 # Push local patterns to cloud
 mur cloud sync push
@@ -600,7 +607,7 @@ mur cloud sync push
 mur cloud sync pull
 
 # Logout
-mur cloud logout
+mur logout
 ```
 
 ### Plans
