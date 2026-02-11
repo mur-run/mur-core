@@ -361,37 +361,21 @@ search:
 routing:
   mode: auto  # auto | manual | cost-first
 
-# Cloud Sync (mur.run)
-server:
-  # url: https://api.mur.run
-  # api_key: ""              # Create at https://app.mur.run/core/settings
+# Notifications (optional)
+# notifications:
+#   enabled: false
+#   slack:
+#     webhook_url: ""
+#     channel: ""
+#   discord:
+#     webhook_url: ""
 
-# Team Sync (git-based)
-team:
-  # repo: git@github.com:your-org/team-patterns.git
-  # branch: main
-  # auto_sync: false
-
-# MCP (Model Context Protocol) Integration
-mcp:
-  sync_enabled: false
-  # servers: {}
-
-# Notifications
-notifications:
-  enabled: false
-  # slack:
-  #   webhook_url: ""
-  #   channel: ""
-  # discord:
-  #   webhook_url: ""
-
-# Custom Hooks
-hooks:
-  # UserPromptSubmit: []
-  # Stop: []
-  # BeforeTool: []
-  # AfterTool: []
+# Custom Hooks (optional)
+# hooks:
+#   UserPromptSubmit: []
+#   Stop: []
+#   BeforeTool: []
+#   AfterTool: []
 `, defaultKey, toolsYaml)
 
 	return os.WriteFile(configPath, []byte(config), 0644)

@@ -2,6 +2,13 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [1.4.6] - 2026-02-11
+
+### Changed
+- **📝 Simplified Config Template**: Removed advanced sections from default init
+  - Removed: `server`, `team`, `mcp` (add manually when needed)
+  - Kept as comments: `notifications`, `hooks`
+
 ## [1.4.5] - 2026-02-11
 
 ### Added
