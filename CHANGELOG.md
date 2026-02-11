@@ -2,7 +2,7 @@
 
 All notable changes to mur-core will be documented in this file.
 
-## [Unreleased]
+## [1.4.1] - 2026-02-11
 
 ### Added
 - **🔑 API Key Login**: `mur login --api-key mur_xxx_...` for CI/automation
