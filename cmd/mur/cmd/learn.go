@@ -268,25 +268,59 @@ var learnExtractCmd = &cobra.Command{
 Examples:
   mur learn extract                      # Interactive: choose session
   mur learn extract --session abc123     # From specific session
-  mur learn extract --auto               # Scan recent sessions
+  mur learn extract --auto               # Auto mode (quiet, strict, accept-all)
   mur learn extract --auto --dry-run     # Preview without saving
-  mur learn extract --auto --accept-all  # Auto-save high-confidence patterns
-  mur learn extract --auto --quiet       # Silent mode for hooks
+  mur learn extract --auto --verbose     # Auto mode with output
+  mur learn extract --auto --no-strict   # Auto mode without quality filter
   mur learn extract --llm                # Use LLM (default from config)
   mur learn extract --llm ollama         # Use local Ollama
-  mur learn extract --llm openai         # Use OpenAI API
-  mur learn extract --llm gemini         # Use Gemini API
-  mur learn extract --llm claude         # Use Claude API`,
+
+When --auto is specified, these defaults apply:
+  --quiet       (use --verbose to override)
+  --strict      (use --no-strict to override)
+  --accept-all  (use --interactive to override)`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		sessionID, _ := cmd.Flags().GetString("session")
 		auto, _ := cmd.Flags().GetBool("auto")
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
-		acceptAll, _ := cmd.Flags().GetBool("accept-all")
-		quiet, _ := cmd.Flags().GetBool("quiet")
-		strict, _ := cmd.Flags().GetBool("strict")
 		minConfidence, _ := cmd.Flags().GetFloat64("min-confidence")
 		llm, _ := cmd.Flags().GetString("llm")
 		llmModel, _ := cmd.Flags().GetString("llm-model")
+
+		// Get explicit flag values
+		acceptAll, _ := cmd.Flags().GetBool("accept-all")
+		quiet, _ := cmd.Flags().GetBool("quiet")
+		strict, _ := cmd.Flags().GetBool("strict")
+		verbose, _ := cmd.Flags().GetBool("verbose")
+		noStrict, _ := cmd.Flags().GetBool("no-strict")
+		interactive, _ := cmd.Flags().GetBool("interactive")
+
+		// When --auto is specified, apply sensible defaults
+		if auto {
+			// Default to quiet unless --verbose is specified
+			if !cmd.Flags().Changed("quiet") && !verbose {
+				quiet = true
+			}
+			if verbose {
+				quiet = false
+			}
+
+			// Default to strict unless --no-strict is specified
+			if !cmd.Flags().Changed("strict") && !noStrict {
+				strict = true
+			}
+			if noStrict {
+				strict = false
+			}
+
+			// Default to accept-all unless --interactive is specified
+			if !cmd.Flags().Changed("accept-all") && !interactive {
+				acceptAll = true
+			}
+			if interactive {
+				acceptAll = false
+			}
+		}
 
 		// LLM mode
 		if llm != "" {
@@ -1138,11 +1172,14 @@ func init() {
 	learnSyncCmd.Flags().Bool("cleanup", false, "Remove orphaned synced patterns")
 
 	learnExtractCmd.Flags().StringP("session", "s", "", "Session ID to extract from")
-	learnExtractCmd.Flags().Bool("auto", false, "Automatically scan recent sessions")
+	learnExtractCmd.Flags().Bool("auto", false, "Automatically scan recent sessions (implies --quiet --strict --accept-all)")
 	learnExtractCmd.Flags().Bool("dry-run", false, "Show what would be extracted without saving")
 	learnExtractCmd.Flags().Bool("accept-all", false, "Auto-save patterns above confidence threshold")
 	learnExtractCmd.Flags().Bool("quiet", false, "Silent mode (for hooks, minimal output)")
 	learnExtractCmd.Flags().Bool("strict", false, "Enable strict quality filtering (skip Q&A sessions, validate patterns)")
+	learnExtractCmd.Flags().BoolP("verbose", "V", false, "Show detailed output (overrides --quiet in auto mode)")
+	learnExtractCmd.Flags().Bool("no-strict", false, "Disable strict quality filtering in auto mode")
+	learnExtractCmd.Flags().BoolP("interactive", "i", false, "Prompt for each pattern in auto mode (overrides --accept-all)")
 	learnExtractCmd.Flags().Float64("min-confidence", 0.6, "Minimum confidence for auto-accept (default: 0.6)")
 	learnExtractCmd.Flags().StringP("llm", "l", "", "LLM provider: ollama, claude, openai, gemini (default from config)")
 	learnExtractCmd.Flags().Lookup("llm").NoOptDefVal = "default" // --llm without value uses config default
