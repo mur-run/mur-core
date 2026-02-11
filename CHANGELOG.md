@@ -2,6 +2,13 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [1.4.4] - 2026-02-11
+
+### Added
+- **🔍 Search Config**: `mur init` now includes search configuration section
+  - Ollama embedding model settings
+  - Auto-inject option for search results
+
 ## [1.4.3] - 2026-02-11
 
 ### Changed
