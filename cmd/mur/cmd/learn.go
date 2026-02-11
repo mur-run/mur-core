@@ -898,9 +898,12 @@ func runExtractLLM(sessionID, provider, model string, dryRun, acceptAll, quiet, 
 	for _, session := range sessions {
 		// Stop if we get too many consecutive errors (likely config issue)
 		if consecutiveErrors >= 3 {
+			errMsg := fmt.Sprintf("LLM Error: %s", lastError)
 			fmt.Fprintln(os.Stderr, "⛔ Stopping: 3 consecutive extraction failures")
 			fmt.Fprintf(os.Stderr, "   Last error: %s\n", lastError)
 			fmt.Fprintln(os.Stderr, "   Check your LLM configuration in ~/.mur/config.yaml")
+			// Send system notification
+			_ = notify.NotifyCritical("mur: Extraction Failed", errMsg)
 			break
 		}
 
@@ -1038,6 +1041,11 @@ func runExtractLLM(sessionID, provider, model string, dryRun, acceptAll, quiet, 
 		if strict && skippedSessions > 0 {
 			fmt.Printf("Skipped %d low-quality sessions (strict mode)\n", skippedSessions)
 		}
+	}
+
+	// Send notification for successful extraction
+	if !dryRun && savedCount > 0 {
+		_ = notify.NotifySuccess(fmt.Sprintf("%d new patterns extracted", savedCount))
 	}
 
 	return nil

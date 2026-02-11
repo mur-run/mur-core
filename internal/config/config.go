@@ -33,9 +33,12 @@ type ServerConfig struct {
 
 // NotificationsConfig represents notification settings.
 type NotificationsConfig struct {
-	Enabled bool          `yaml:"enabled"`
-	Slack   SlackConfig   `yaml:"slack"`
-	Discord DiscordConfig `yaml:"discord"`
+	Enabled    bool          `yaml:"enabled"`
+	System     bool          `yaml:"system"`      // Enable macOS system notifications
+	OnError    bool          `yaml:"on_error"`    // Notify on errors
+	OnPatterns bool          `yaml:"on_patterns"` // Notify when patterns are extracted
+	Slack      SlackConfig   `yaml:"slack"`
+	Discord    DiscordConfig `yaml:"discord"`
 }
 
 // SlackConfig represents Slack webhook settings.
@@ -444,6 +447,12 @@ func defaultConfig() *Config {
 		MCP: MCPConfig{
 			SyncEnabled: true,
 			Servers:     make(map[string]interface{}),
+		},
+		Notifications: NotificationsConfig{
+			Enabled:    true,
+			System:     true,
+			OnError:    true,
+			OnPatterns: true,
 		},
 	}
 }
