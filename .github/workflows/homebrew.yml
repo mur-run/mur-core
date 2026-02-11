@@ -1,0 +1,77 @@
+name: Update Homebrew Formula
+
+on:
+  release:
+    types: [published]
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  update-formula:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Download and hash tarball
+        id: hash
+        run: |
+          curl -sL "https://github.com/mur-run/mur-core/archive/refs/tags/${{ steps.version.outputs.tag }}.tar.gz" -o source.tar.gz
+          SHA256=$(sha256sum source.tar.gz | cut -d ' ' -f1)
+          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
+
+      - name: Checkout homebrew-tap
+        uses: actions/checkout@v4
+        with:
+          repository: mur-run/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+
+      - name: Update formula
+        run: |
+          cd homebrew-tap
+          cat > Formula/mur.rb << 'EOF'
+          class Mur < Formula
+            desc "Invisible continuous learning system for AI coding assistants"
+            homepage "https://github.com/mur-run/mur-core"
+            url "https://github.com/mur-run/mur-core/archive/refs/tags/${{ steps.version.outputs.tag }}.tar.gz"
+            sha256 "${{ steps.hash.outputs.sha256 }}"
+            license "MIT"
+            head "https://github.com/mur-run/mur-core.git", branch: "main"
+
+            depends_on "go" => :build
+
+            def install
+              ENV["CGO_ENABLED"] = "0"
+              ldflags = %W[
+                -s -w
+                -X github.com/mur-run/mur-core/cmd/mur/cmd.Version=#{version}
+                -X github.com/mur-run/mur-core/cmd/mur/cmd.Commit=#{tap.user}
+                -X github.com/mur-run/mur-core/cmd/mur/cmd.BuildDate=#{time.iso8601}
+              ]
+              system "go", "build", *std_go_args(ldflags: ldflags.join(" ")), "./cmd/mur"
+            end
+
+            def post_install
+              ohai "mur installed! Run 'mur init --hooks' to get started."
+            end
+
+            test do
+              assert_match version.to_s, shell_output("#{bin}/mur version")
+            end
+          end
+          EOF
+
+      - name: Commit and push
+        run: |
+          cd homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/mur.rb
+          git commit -m "Update mur to ${{ steps.version.outputs.version }}"
+          git push
