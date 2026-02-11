@@ -2,6 +2,16 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [1.4.5] - 2026-02-11
+
+### Added
+- **📝 Complete Config Template**: `mur init` now generates full config with all sections
+  - `server`: Cloud sync (mur.run) settings
+  - `team`: Git-based team sync
+  - `mcp`: Model Context Protocol integration
+  - `notifications`: Slack/Discord webhooks
+  - `hooks`: Custom hook configuration
+
 ## [1.4.4] - 2026-02-11
 
 ### Added
