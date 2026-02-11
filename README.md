@@ -122,8 +122,10 @@ make install
 
 ### PATH Setup
 
+> **Note:** Only needed for `go install`. If you installed via **Homebrew**, skip this section — `brew` handles PATH automatically.
+
 <details>
-<summary>macOS / Linux</summary>
+<summary>macOS / Linux (go install only)</summary>
 
 ```bash
 # Zsh (macOS default)
