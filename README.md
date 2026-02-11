@@ -56,9 +56,11 @@ MUR Core captures patterns from your coding sessions and injects them back into 
 ## 🚀 Quick Start
 
 ```bash
-# Install (macOS/Linux)
+# Install (macOS)
+brew tap mur-run/tap && brew install mur
+
+# Or with Go (macOS/Linux)
 CGO_ENABLED=0 go install github.com/mur-run/mur-core/cmd/mur@latest
-export PATH="$HOME/go/bin:$PATH"
 
 # Setup
 mur init --hooks
@@ -69,14 +71,32 @@ claude "fix this bug"
 
 ## 📦 Installation
 
-### macOS / Linux
+### macOS (Recommended)
 
 ```bash
-CGO_ENABLED=0 go install github.com/mur-run/mur-core/cmd/mur@latest
+brew tap mur-run/tap
+brew install mur
 
 # Verify
 mur version
 ```
+
+### macOS / Linux (Go Install)
+
+```bash
+CGO_ENABLED=0 go install github.com/mur-run/mur-core/cmd/mur@latest
+
+# Add to PATH (if not already)
+export PATH="$HOME/go/bin:$PATH"
+
+mur version
+```
+
+> **📍 Path Differences:**
+> - Homebrew: `/opt/homebrew/bin/mur` (Apple Silicon) or `/usr/local/bin/mur` (Intel)
+> - Go install: `~/go/bin/mur`
+>
+> Make sure the correct path is in your `$PATH`. If you have both installed, Homebrew typically takes precedence.
 
 ### Windows
 

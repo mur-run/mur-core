@@ -2,6 +2,12 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [1.4.3] - 2026-02-11
+
+### Changed
+- **📚 README**: Improved installation docs with Homebrew as primary method
+- Added path difference notes for Homebrew vs Go install
+
 ## [1.4.2] - 2026-02-11
 
 ### Added
