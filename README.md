@@ -642,7 +642,7 @@ mur logout
 | Plan | Price | Features |
 |------|-------|----------|
 | **Free** | $0/mo | Unlimited local patterns, all tool integrations |
-| **Pro** | $19/mo | Cloud sync, cross-device patterns |
+| **Pro** | $9/mo | Cloud sync, cross-device patterns |
 | **Team** | $49/mo | 5 team members, shared pattern library |
 
 Learn more at [mur.run/products/core](https://mur.run/products/core)
