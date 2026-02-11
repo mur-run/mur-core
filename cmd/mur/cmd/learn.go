@@ -772,13 +772,9 @@ func runExtractLLM(sessionID, provider, model string, dryRun, acceptAll, quiet, 
 				fmt.Println()
 			}
 		} else {
-			// No LLM available - fall back to keyword extraction with warning
-			if !quiet {
-				fmt.Println("⚠️  No LLM available (Ollama not running, no API keys)")
-				fmt.Println("   Falling back to keyword extraction (lower quality)")
-				fmt.Println("   Tip: Start Ollama or configure an LLM in ~/.mur/config.yaml")
-				fmt.Println()
-			}
+			// No LLM available - always warn (even in quiet mode)
+			fmt.Fprintln(os.Stderr, "⚠️  No LLM available (Ollama not running, no API keys)")
+			fmt.Fprintln(os.Stderr, "   Falling back to keyword extraction (lower quality)")
 			// Call keyword-based extraction instead
 			return runExtractAuto(dryRun, acceptAll, quiet, minConfidence)
 		}
@@ -788,9 +784,8 @@ func runExtractLLM(sessionID, provider, model string, dryRun, acceptAll, quiet, 
 	switch opts.Provider {
 	case learn.LLMOllama:
 		if !learn.CheckOllamaAvailable(opts.OllamaURL) {
-			if !quiet {
-				fmt.Println("⚠️  Ollama not available, falling back to keyword extraction")
-			}
+			// Always warn (even in quiet mode)
+			fmt.Fprintln(os.Stderr, "⚠️  Ollama not available, falling back to keyword extraction")
 			return runExtractAuto(dryRun, acceptAll, quiet, minConfidence)
 		}
 	case learn.LLMClaude:
@@ -897,8 +892,18 @@ func runExtractLLM(sessionID, provider, model string, dryRun, acceptAll, quiet, 
 	totalExtracted := 0
 	savedCount := 0
 	skippedSessions := 0
+	consecutiveErrors := 0
+	var lastError string
 
 	for _, session := range sessions {
+		// Stop if we get too many consecutive errors (likely config issue)
+		if consecutiveErrors >= 3 {
+			fmt.Fprintln(os.Stderr, "⛔ Stopping: 3 consecutive extraction failures")
+			fmt.Fprintf(os.Stderr, "   Last error: %s\n", lastError)
+			fmt.Fprintln(os.Stderr, "   Check your LLM configuration in ~/.mur/config.yaml")
+			break
+		}
+
 		// Strict mode: pre-filter sessions by quality
 		if strict {
 			quality := learn.AnalyzeSessionQuality(session)
@@ -945,19 +950,26 @@ func runExtractLLM(sessionID, provider, model string, dryRun, acceptAll, quiet, 
 		if err != nil {
 			// If premium failed, fallback to default model
 			if usePremium {
+				fmt.Fprintf(os.Stderr, "⚠️  Premium model failed for %s: %v\n", session.ShortID(), err)
 				if !quiet {
-					fmt.Printf("   ⚠ Premium failed: %v\n", err)
 					fmt.Printf("   ↪ Falling back to %s...\n", opts.Provider)
 				}
 				patterns, err = learn.ExtractWithLLM(session, opts)
 			}
 			if err != nil {
-				if !quiet {
-					fmt.Printf("   ⚠ Extraction failed: %v\n", err)
+				// Track consecutive errors
+				consecutiveErrors++
+				lastError = err.Error()
+				// Only print first error of each type
+				if consecutiveErrors == 1 {
+					fmt.Fprintf(os.Stderr, "⚠️  Extraction failed: %v\n", err)
 				}
 				continue
 			}
 		}
+
+		// Reset consecutive error counter on success
+		consecutiveErrors = 0
 
 		// Strict mode: filter patterns by quality
 		if strict {
