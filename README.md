@@ -415,9 +415,14 @@ search:
   enabled: true
   provider: ollama              # ollama | openai
   model: nomic-embed-text       # embedding model (see table below)
-  top_k: 3                      # results per search
-  min_score: 0.5                # minimum similarity
-  auto_inject: true             # auto-suggest in hooks
+  ollama_url: http://localhost:11434   # for provider: ollama
+  # openai_url: https://api.openai.com/v1  # for provider: openai
+  # api_key_env: OPENAI_API_KEY            # env var name (not the key!)
+  top_k: 3                      # max results per search
+  min_score: 0.5                # minimum similarity (0.0-1.0)
+  auto_inject: false
+    # false = inject patterns by project/tags only (mur context)
+    # true  = also inject semantically similar patterns (mur search --inject)
 ```
 
 **Embedding models:**

@@ -354,8 +354,11 @@ learning:
 #   provider: ollama           # ollama | openai
 #   model: nomic-embed-text    # embedding model
 #   ollama_url: http://localhost:11434
-#   min_score: 0.5             # minimum similarity score
-#   auto_inject: false         # auto-inject search results into prompts
+#   top_k: 3                   # max results per search
+#   min_score: 0.5             # minimum similarity (0.0-1.0)
+#   auto_inject: false
+#     # false = inject patterns by project/tags only (mur context)
+#     # true  = also inject semantically similar patterns (mur search --inject)
 
 # Routing
 routing:
