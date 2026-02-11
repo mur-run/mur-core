@@ -348,14 +348,14 @@ learning:
     #   projects:               # Or these projects
     #     - important-project
 
-# Semantic Search (for pattern matching)
-search:
-  enabled: true
-  provider: ollama           # ollama | openai
-  model: nomic-embed-text    # embedding model
-  ollama_url: http://localhost:11434
-  min_score: 0.5             # minimum similarity score
-  auto_inject: false         # auto-inject search results into prompts
+# Semantic Search (requires Ollama with embedding model)
+# search:
+#   enabled: true
+#   provider: ollama           # ollama | openai
+#   model: nomic-embed-text    # embedding model
+#   ollama_url: http://localhost:11434
+#   min_score: 0.5             # minimum similarity score
+#   auto_inject: false         # auto-inject search results into prompts
 
 # Routing
 routing:

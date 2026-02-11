@@ -2,6 +2,11 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [1.4.7] - 2026-02-11
+
+### Changed
+- **📝 Config Template**: `search` section now commented by default (requires Ollama)
+
 ## [1.4.6] - 2026-02-11
 
 ### Changed
