@@ -2,6 +2,12 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [1.4.2] - 2026-02-11
+
+### Added
+- **🍺 Homebrew Install**: `brew tap mur-run/tap && brew install mur`
+- Auto-update Homebrew formula on new releases
+
 ## [1.4.1] - 2026-02-11
 
 ### Added
