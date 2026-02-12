@@ -2,6 +2,26 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [1.6.0] - 2026-02-12
+
+### Added
+- **📊 Pattern Analytics**: Track pattern usage and effectiveness
+  - `mur stats` — View analytics overview (usage counts, effectiveness scores)
+  - `mur stats <pattern>` — Detailed stats for a specific pattern
+  - `mur feedback` — Rate patterns (helpful/not helpful)
+  - SQLite-based local storage (pure Go, no CGO required)
+
+- **🔍 Claude Code Search Hooks**: Automatic pattern suggestions
+  - `mur init --hooks --search` — Enable search hooks
+  - Suggests relevant patterns when you submit prompts
+  - Runs `mur search --inject` on UserPromptSubmit
+
+### Changed
+- **🛠️ Hooks Infrastructure**: Unified hook installation system
+  - Added Claude Code hook support
+  - `HookOptions` for configurable hook behavior
+  - Silent fail for missing tools (doesn't break workflow)
+
 ## [1.5.1] - 2026-02-12
 
 ### Added
