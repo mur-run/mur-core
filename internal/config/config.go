@@ -96,10 +96,12 @@ type Tool struct {
 
 // SyncConfig represents sync-related settings.
 type SyncConfig struct {
-	Format        string `yaml:"format"`          // "directory" or "single"
-	PrefixDomain  *bool  `yaml:"prefix_domain"`   // use domain--name format (default: true)
-	L3Threshold   int    `yaml:"l3_threshold"`    // chars above which content goes to examples.md
-	CleanOld      bool   `yaml:"clean_old"`       // remove old single-file format on sync
+	Format          string `yaml:"format"`           // "directory" or "single"
+	PrefixDomain    *bool  `yaml:"prefix_domain"`    // use domain--name format (default: true)
+	L3Threshold     int    `yaml:"l3_threshold"`     // chars above which content goes to examples.md
+	CleanOld        bool   `yaml:"clean_old"`        // remove old single-file format on sync
+	Auto            bool   `yaml:"auto"`             // enable automatic sync
+	IntervalMinutes int    `yaml:"interval_minutes"` // sync interval in minutes (default: 30)
 }
 
 // SearchConfig represents semantic search settings.
