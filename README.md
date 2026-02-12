@@ -120,6 +120,38 @@ cd mur-core
 make install
 ```
 
+## 🔄 Updating
+
+### macOS (Homebrew)
+
+```bash
+brew upgrade mur
+```
+
+### macOS / Linux (Go)
+
+```bash
+CGO_ENABLED=0 go install github.com/mur-run/mur-core/cmd/mur@latest
+```
+
+### Windows
+
+**PowerShell:**
+```powershell
+$env:CGO_ENABLED=0; go install github.com/mur-run/mur-core/cmd/mur@latest
+```
+
+**CMD:**
+```cmd
+set CGO_ENABLED=0 && go install github.com/mur-run/mur-core/cmd/mur@latest
+```
+
+### Check Version
+
+```bash
+mur version
+```
+
 ### PATH Setup
 
 > **Note:** Only needed for `go install`. If you installed via **Homebrew**, skip this section — `brew` handles PATH automatically.
