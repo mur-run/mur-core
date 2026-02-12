@@ -37,9 +37,28 @@ func findMurBinary() (string, error) {
 	return "mur", nil
 }
 
+// HookOptions configures hook installation.
+type HookOptions struct {
+	EnableSearch bool // Enable search hook on prompt submit
+}
+
 // InstallAllHooks installs hooks for all supported AI tools.
 func InstallAllHooks() map[string]error {
+	return InstallAllHooksWithOptions(HookOptions{EnableSearch: false})
+}
+
+// InstallAllHooksWithOptions installs hooks with custom options.
+func InstallAllHooksWithOptions(opts HookOptions) map[string]error {
 	results := make(map[string]error)
+
+	// Claude Code
+	if ClaudeCodeInstalled() {
+		if err := InstallClaudeCodeHooks(opts.EnableSearch); err != nil {
+			results["Claude Code"] = err
+		} else {
+			results["Claude Code"] = nil
+		}
+	}
 
 	// OpenCode
 	if err := InstallOpenCodeHooks(); err != nil {

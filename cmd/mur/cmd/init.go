@@ -18,6 +18,7 @@ import (
 var (
 	initNonInteractive bool
 	initHooks          bool
+	initSearchHooks    bool
 )
 
 var initCmd = &cobra.Command{
@@ -39,6 +40,7 @@ func init() {
 	rootCmd.AddCommand(initCmd)
 	initCmd.Flags().BoolVar(&initNonInteractive, "non-interactive", false, "Skip interactive prompts, use defaults")
 	initCmd.Flags().BoolVar(&initHooks, "hooks", false, "Quick setup: install hooks with defaults (implies --non-interactive)")
+	initCmd.Flags().BoolVar(&initSearchHooks, "search", false, "Enable search hooks (suggest patterns on prompt)")
 }
 
 // CLI tool configuration
@@ -547,6 +549,19 @@ func installGeminiHooks(home, promptScriptPath, stopScriptPath string) error {
 	}
 
 	fmt.Println("✓ Installed Gemini CLI hooks")
+
+	// Install Claude Code hooks
+	if murhooks.ClaudeCodeInstalled() {
+		if err := murhooks.InstallClaudeCodeHooks(initSearchHooks); err != nil {
+			fmt.Printf("  ⚠ Claude Code hooks: %v\n", err)
+		} else {
+			if initSearchHooks {
+				fmt.Println("✓ Installed Claude Code hooks (learn + search)")
+			} else {
+				fmt.Println("✓ Installed Claude Code hooks (learn)")
+			}
+		}
+	}
 
 	// Install OpenCode hooks
 	if err := murhooks.InstallOpenCodeHooks(); err != nil {
