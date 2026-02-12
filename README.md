@@ -219,9 +219,12 @@ mur doctor
 |---------|-------------|
 | `mur init` | Interactive setup wizard |
 | `mur init --hooks` | Quick setup with CLI hooks |
-| `mur status` | Overview of patterns, sync status |
+| `mur status` | Overview of patterns, sync, cloud status |
 | `mur doctor` | Diagnose and fix issues |
-| `mur sync` | Sync patterns to all AI tools |
+| `mur sync` | Smart sync (cloud or git based on plan) |
+| `mur sync --cloud` | Force cloud sync |
+| `mur sync --git` | Force git sync |
+| `mur sync auto enable` | Enable automatic background sync |
 
 ### Patterns
 
@@ -266,9 +269,19 @@ mur doctor
 ```
 mur
 ├── init           # Setup wizard
-├── status         # Quick overview
+├── status         # Quick overview (+ cloud status)
 ├── doctor         # Diagnose issues
-├── sync           # Sync to AI tools
+├── sync           # Smart sync (cloud/git based on plan)
+│   ├── auto
+│   │   ├── enable   # Enable background sync
+│   │   ├── disable  # Disable background sync
+│   │   └── status   # Check auto-sync status
+├── cloud
+│   ├── teams      # List your teams
+│   ├── select     # Set active team
+│   ├── sync       # Bidirectional cloud sync
+│   ├── push       # Push to server
+│   └── pull       # Pull from server
 ├── new            # Create pattern
 ├── edit           # Edit pattern
 ├── search         # Search patterns
@@ -284,6 +297,9 @@ mur
 ├── clean          # Cleanup old files
 ├── version        # Show version
 ├── web            # Open docs/GitHub
+├── login          # Login to mur.run
+├── logout         # Logout
+├── whoami         # Show current user
 └── learn
     ├── list       # List patterns
     ├── get        # Show pattern
@@ -616,22 +632,94 @@ Features:
 
 Sync patterns across devices and share with your team via [mur.run](https://mur.run).
 
+### Quick Start
+
 ```bash
 # Login (OAuth - opens browser)
 mur login
 
-# Or login with API key (for CI/automation)
+# Smart sync - auto-detects your plan
+mur sync                    # Trial/Pro/Team → cloud, Free → git
+
+# Manual control
+mur sync --cloud            # Force cloud sync
+mur sync --git              # Force git sync
+mur sync --cli              # Only sync to local AI tools
+```
+
+### Push & Pull
+
+```bash
+# Push local patterns to server
+mur cloud push
+
+# Pull patterns from server
+mur cloud pull
+mur cloud pull --force      # Overwrite local
+
+# Full bidirectional sync
+mur cloud sync
+```
+
+### Interactive Conflict Resolution
+
+When conflicts occur, mur helps you resolve them interactively:
+
+```
+⚠️  3 conflict(s) detected
+
+? How do you want to resolve conflicts?
+  › [i] Interactive - choose for each pattern
+    [s] Accept all from server
+    [l] Accept all from local
+    [x] Skip all (no changes)
+```
+
+For each pattern, you can:
+- **[s]** Keep server version
+- **[l]** Keep local version
+- **[d]** View diff between versions
+- **[x]** Skip (no change)
+
+### Auto-Sync
+
+Set up automatic background sync:
+
+```bash
+# Enable auto-sync (interactive)
+mur sync auto enable
+
+? How often should mur sync?
+  › Every 15 minutes
+    Every 30 minutes
+    Every hour
+    Every 6 hours
+    Every 24 hours
+
+# Check status
+mur sync auto status
+
+# Disable
+mur sync auto disable
+```
+
+**Platform support:**
+| Platform | Implementation |
+|----------|---------------|
+| macOS | LaunchAgent |
+| Linux | systemd user timer |
+| Windows | Task Scheduler |
+
+### API Key Login
+
+For CI/automation, use API keys:
+
+```bash
 # Create keys at: https://app.mur.run/core/settings
 mur login --api-key mur_xxx_...
 
 # Check who you're logged in as
 mur whoami
-
-# Push local patterns to cloud
-mur cloud sync push
-
-# Pull patterns from cloud
-mur cloud sync pull
 
 # Logout
 mur logout
@@ -641,9 +729,10 @@ mur logout
 
 | Plan | Price | Features |
 |------|-------|----------|
-| **Free** | $0/mo | Unlimited local patterns, all tool integrations |
-| **Pro** | $9/mo | Cloud sync, cross-device patterns |
-| **Team** | $49/mo | 5 team members, shared pattern library |
+| **Free** | $0/mo | Local patterns, git sync, all AI tools |
+| **Trial** | $0 (3 mo) | Cloud sync trial for new users |
+| **Pro** | $9/mo | Cloud sync, 3 devices |
+| **Team** | $49/mo | 5 members, shared patterns, analytics |
 
 Learn more at [mur.run/products/core](https://mur.run/products/core)
 

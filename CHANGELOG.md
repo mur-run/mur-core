@@ -2,6 +2,19 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [1.5.1] - 2026-02-12
+
+### Added
+- **⏰ Auto-Sync**: Automatic background pattern sync
+  - `mur sync auto enable` — interactive setup
+  - `mur sync auto disable` — turn off
+  - `mur sync auto status` — check status
+  - Cross-platform: macOS (LaunchAgent), Linux (systemd), Windows (Task Scheduler)
+  - Configurable intervals: 15m, 30m, 1h, 6h, 24h
+
+### Changed
+- **📖 README**: Comprehensive update with all new sync features
+
 ## [1.5.0] - 2026-02-12
 
 ### Added
