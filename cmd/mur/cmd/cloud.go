@@ -320,20 +320,45 @@ Examples:
 			}
 
 			if !pushResp.OK {
-				fmt.Println("  ⚠️  Conflicts detected:")
-				for _, c := range pushResp.Conflicts {
-					fmt.Printf("    - %s\n", c.PatternName)
-				}
-
 				if forceLocal {
-					fmt.Println("  --force-local: Would overwrite server (not implemented)")
+					// TODO: Force push implementation
+					fmt.Println("  --force-local: Forcing local versions...")
+					// Re-push with force flag
 				} else if forceServer {
-					fmt.Println("  --force-server: Would overwrite local (not implemented)")
+					// Accept server versions - pull them
+					fmt.Println("  --force-server: Accepting server versions...")
+					// Pull and overwrite local
 				} else {
-					fmt.Println("")
-					fmt.Println("Resolve conflicts with:")
-					fmt.Println("  mur cloud sync --force-local   # Keep local versions")
-					fmt.Println("  mur cloud sync --force-server  # Keep server versions")
+					// Interactive conflict resolution
+					resolutions, err := ResolveConflictsInteractive(pushResp.Conflicts)
+					if err != nil {
+						return fmt.Errorf("conflict resolution cancelled: %w", err)
+					}
+
+					keepServer, keepLocal, skipped := ApplyResolutions(resolutions)
+					fmt.Printf("\n📊 Resolution summary: %d server, %d local, %d skipped\n", keepServer, keepLocal, skipped)
+
+					// Apply resolutions
+					if keepServer > 0 {
+						// Pull server versions for patterns marked as "keep server"
+						fmt.Println("Applying server versions...")
+						for _, c := range pushResp.Conflicts {
+							if resolutions[c.PatternName] == ResolutionKeepServer && c.ServerVersion != nil {
+								localP := convertCloudPattern(c.ServerVersion)
+								if store.Exists(localP.Name) {
+									store.Update(localP)
+								} else {
+									store.Create(localP)
+								}
+							}
+						}
+					}
+
+					if keepLocal > 0 {
+						// Need to force push local versions
+						fmt.Println("Note: Keeping local versions requires --force-local flag")
+						fmt.Println("Run: mur cloud sync --force-local")
+					}
 				}
 				return nil
 			}
@@ -587,18 +612,22 @@ Examples:
 		}
 
 		if !pushResp.OK {
-			fmt.Println("⚠️  Conflicts detected:")
-			for _, c := range pushResp.Conflicts {
-				fmt.Printf("  - %s\n", c.PatternName)
-			}
-
 			if force {
-				fmt.Println("")
 				fmt.Println("--force: Force push not yet implemented")
 				fmt.Println("Use 'mur cloud sync --force-local' instead")
 			} else {
-				fmt.Println("")
-				fmt.Println("Resolve with: mur cloud push --force")
+				// Interactive conflict resolution
+				resolutions, err := ResolveConflictsInteractive(pushResp.Conflicts)
+				if err != nil {
+					return fmt.Errorf("conflict resolution cancelled: %w", err)
+				}
+
+				keepServer, keepLocal, skipped := ApplyResolutions(resolutions)
+				fmt.Printf("\n📊 Resolution: %d server, %d local, %d skipped\n", keepServer, keepLocal, skipped)
+
+				if keepLocal > 0 {
+					fmt.Println("Note: Use --force to push local versions")
+				}
 			}
 			return nil
 		}
