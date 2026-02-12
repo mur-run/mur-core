@@ -60,6 +60,15 @@ func InstallAllHooksWithOptions(opts HookOptions) map[string]error {
 		}
 	}
 
+	// Gemini CLI
+	if GeminiCLIInstalled() {
+		if err := InstallGeminiHooks(opts.EnableSearch); err != nil {
+			results["Gemini CLI"] = err
+		} else {
+			results["Gemini CLI"] = nil
+		}
+	}
+
 	// OpenCode
 	if err := InstallOpenCodeHooks(); err != nil {
 		results["OpenCode"] = err
@@ -72,6 +81,24 @@ func InstallAllHooksWithOptions(opts HookOptions) map[string]error {
 		results["GitHub Copilot"] = err
 	} else {
 		results["GitHub Copilot"] = nil
+	}
+
+	// Continue.dev
+	if ContinueDevInstalled() {
+		if err := InstallContinueDevHooks(); err != nil {
+			results["Continue.dev"] = err
+		} else {
+			results["Continue.dev"] = nil
+		}
+	}
+
+	// Aider (optional - creates templates)
+	if AiderInstalled() {
+		if err := InstallAiderHooks(); err != nil {
+			results["Aider"] = err
+		} else {
+			results["Aider"] = nil
+		}
 	}
 
 	return results
