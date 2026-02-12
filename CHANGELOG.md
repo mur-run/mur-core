@@ -2,6 +2,14 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [1.4.9] - 2026-02-12
+
+### Added
+- **🧠 Smart `mur sync`**: Automatically detects plan and syncs accordingly
+  - Trial/Pro/Team/Enterprise → Cloud sync with mur.run
+  - Free users → Git sync (if configured)
+  - Added `--cloud`, `--git`, `--cli` flags to override
+
 ## [1.4.8] - 2026-02-12
 
 ### Added
