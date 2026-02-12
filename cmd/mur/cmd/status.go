@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mur-run/mur-core/internal/cloud"
 	"github.com/mur-run/mur-core/internal/config"
 	"github.com/mur-run/mur-core/internal/core/pattern"
 	"github.com/mur-run/mur-core/internal/stats"
@@ -80,6 +81,54 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	fmt.Printf("   Usage: %d injections\n", totalUsage)
 	if effectiveCount > 0 {
 		fmt.Printf("   Avg Effectiveness: %.0f%%\n", avgEffectiveness)
+	}
+
+	// Cloud status
+	fmt.Println()
+	fmt.Println("☁️  Cloud")
+	authStore, authErr := cloud.NewAuthStore()
+	authData, _ := authStore.Load()
+
+	if authErr == nil && authStore.IsLoggedIn() {
+		if authData != nil && authData.User != nil {
+			fmt.Printf("   Logged in as: %s\n", authData.User.Email)
+		} else {
+			fmt.Println("   Logged in (API key)")
+		}
+
+		// Show active team from config
+		cfg, _ := config.Load()
+		if cfg != nil && cfg.Server.Team != "" {
+			fmt.Printf("   Active team: %s\n", cfg.Server.Team)
+		}
+
+		// Show last sync time
+		syncStatePath := filepath.Join(home, ".mur", "sync-state.yaml")
+		if info, err := os.Stat(syncStatePath); err == nil {
+			syncAge := time.Since(info.ModTime())
+			var syncAgeStr string
+			if syncAge < time.Minute {
+				syncAgeStr = "just now"
+			} else if syncAge < time.Hour {
+				syncAgeStr = fmt.Sprintf("%d min ago", int(syncAge.Minutes()))
+			} else if syncAge < 24*time.Hour {
+				syncAgeStr = fmt.Sprintf("%d hours ago", int(syncAge.Hours()))
+			} else {
+				syncAgeStr = fmt.Sprintf("%d days ago", int(syncAge.Hours()/24))
+			}
+			fmt.Printf("   Last sync: %s\n", syncAgeStr)
+		}
+
+		if statusVerbose {
+			fmt.Println("   Commands: mur cloud teams, mur cloud sync")
+		}
+	} else if authData != nil && authData.AccessToken != "" {
+		// Has token but expired
+		fmt.Println("   ⚠️  Session expired")
+		fmt.Println("   Run: mur login")
+	} else {
+		fmt.Println("   Not logged in")
+		fmt.Println("   Run: mur login")
 	}
 
 	// Sync targets
