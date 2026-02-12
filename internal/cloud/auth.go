@@ -27,6 +27,7 @@ type User struct {
 	ID    string `json:"id"`
 	Email string `json:"email"`
 	Name  string `json:"name"`
+	Plan  string `json:"plan,omitempty"`
 }
 
 // NewAuthStore creates a new auth store

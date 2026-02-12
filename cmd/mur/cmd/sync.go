@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/mur-run/mur-core/internal/cloud"
 	"github.com/mur-run/mur-core/internal/config"
 	"github.com/mur-run/mur-core/internal/sync"
 	"github.com/spf13/cobra"
@@ -16,36 +17,43 @@ var (
 	syncQuiet    bool
 	syncFormat   string
 	syncCleanOld bool
+	syncCloud    bool
+	syncGit      bool
+	syncCLI      bool
 )
 
 var syncCmd = &cobra.Command{
 	Use:   "sync",
-	Short: "Sync patterns to all AI CLIs",
-	Long: `Sync learned patterns to all AI CLI tools.
+	Short: "Sync patterns (cloud, git, or to CLIs)",
+	Long: `Smart sync command that detects your plan and syncs accordingly.
 
-This command:
-  1. Pulls latest patterns from remote repo (if configured)
-  2. Syncs patterns to all CLI skill directories
+For Trial/Pro/Team/Enterprise users:
+  - Syncs patterns with mur.run cloud (bidirectional)
+  - Then syncs to local AI CLIs
 
-Sync formats:
-  directory  Individual skill directories (default, 90%+ token savings)
-  single     Single merged file (legacy format)
+For Free users:
+  - Syncs with git repo (if configured)
+  - Then syncs to local AI CLIs
+
+You can override the default behavior with flags.
 
 Examples:
-  mur sync                    # Pull + sync using configured format
-  mur sync --format directory # Use directory format
-  mur sync --format single    # Use legacy single-file format
-  mur sync --clean-old        # Remove old single-file format
-  mur sync --push             # Also push local changes to remote
-  mur sync --quiet            # Silent mode (for hooks)`,
+  mur sync                    # Smart sync based on your plan
+  mur sync --cloud            # Force cloud sync
+  mur sync --git              # Force git sync
+  mur sync --cli              # Only sync to local CLIs (no remote)
+  mur sync --quiet            # Silent mode`,
 	RunE: runSync,
 }
 
 func init() {
 	rootCmd.AddCommand(syncCmd)
-	syncCmd.Flags().BoolVar(&syncPush, "push", false, "Push local changes to remote repo")
+	syncCmd.Flags().BoolVar(&syncCloud, "cloud", false, "Force cloud sync (requires Trial/Pro/Team/Enterprise)")
+	syncCmd.Flags().BoolVar(&syncGit, "git", false, "Force git sync")
+	syncCmd.Flags().BoolVar(&syncCLI, "cli", false, "Only sync to local CLIs (no remote sync)")
+	syncCmd.Flags().BoolVar(&syncPush, "push", false, "Push local changes to remote (git mode)")
 	syncCmd.Flags().BoolVar(&syncQuiet, "quiet", false, "Silent mode (minimal output)")
-	syncCmd.Flags().StringVar(&syncFormat, "format", "", "Sync format: directory (default) or single")
+	syncCmd.Flags().StringVar(&syncFormat, "format", "", "CLI sync format: directory (default) or single")
 	syncCmd.Flags().BoolVar(&syncCleanOld, "clean-old", false, "Remove old single-file format files")
 }
 
@@ -58,7 +66,7 @@ func runSync(cmd *cobra.Command, args []string) error {
 	// Load config
 	cfg, err := config.Load()
 	if err != nil {
-		return fmt.Errorf("cannot load config: %w", err)
+		cfg = config.Default()
 	}
 
 	// Override config with flags
@@ -69,31 +77,75 @@ func runSync(cmd *cobra.Command, args []string) error {
 		cfg.Sync.CleanOld = true
 	}
 
-	patternsDir := filepath.Join(home, ".mur", "repo")
-	gitDir := filepath.Join(patternsDir, ".git")
+	// Determine sync mode
+	useCloud := syncCloud
+	useGit := syncGit
+	cliOnly := syncCLI
 
-	// Check if we have a git repo configured
-	hasRepo := false
-	if _, err := os.Stat(gitDir); err == nil {
-		hasRepo = true
+	// If no explicit flag, detect based on plan
+	if !useCloud && !useGit && !cliOnly {
+		authStore, err := cloud.NewAuthStore()
+		if err == nil && authStore.IsLoggedIn() {
+			// User is logged in, check plan via /me endpoint
+			client, err := cloud.NewClient(cfg.Server.URL)
+			if err == nil {
+				user, err := client.Me()
+				if err == nil {
+					plan := user.Plan
+					// Trial/Pro/Team/Enterprise get cloud sync
+					if plan == "trial" || plan == "pro" || plan == "team" || plan == "enterprise" {
+						useCloud = true
+						if !syncQuiet {
+							fmt.Printf("☁️  Cloud sync (%s plan)\n", plan)
+							fmt.Println()
+						}
+					}
+				}
+			}
+		}
+
+		// If not using cloud, check for git repo
+		if !useCloud {
+			patternsDir := filepath.Join(home, ".mur", "repo")
+			gitDir := filepath.Join(patternsDir, ".git")
+			if _, err := os.Stat(gitDir); err == nil {
+				useGit = true
+				if !syncQuiet {
+					fmt.Println("📦 Git sync (local repo)")
+					fmt.Println()
+				}
+			}
+		}
+
+		// If neither cloud nor git, just sync to CLIs
+		if !useCloud && !useGit {
+			cliOnly = true
+			if !syncQuiet {
+				fmt.Println("💻 Syncing to local CLIs only")
+				fmt.Println()
+			}
+		}
 	}
 
-	// Pull from remote if repo is configured
-	if hasRepo {
-		if !syncQuiet {
-			fmt.Println("Pulling from remote...")
-		}
-		pullCmd := exec.Command("git", "-C", patternsDir, "pull", "--rebase")
-		if !syncQuiet {
-			pullCmd.Stdout = os.Stdout
-			pullCmd.Stderr = os.Stderr
-		}
-		if err := pullCmd.Run(); err != nil {
+	// Execute cloud sync
+	if useCloud {
+		if err := runCloudSync(cmd, cfg); err != nil {
 			if !syncQuiet {
-				fmt.Printf("  ⚠ Pull failed (continuing with local patterns): %v\n", err)
+				fmt.Printf("⚠️  Cloud sync failed: %v\n", err)
 			}
-		} else if !syncQuiet {
-			fmt.Println("  ✓ Pulled latest patterns")
+			// Continue to CLI sync even if cloud fails
+		}
+		if !syncQuiet {
+			fmt.Println()
+		}
+	}
+
+	// Execute git sync
+	if useGit {
+		if err := runGitSync(home, cfg); err != nil {
+			if !syncQuiet {
+				fmt.Printf("⚠️  Git sync failed: %v\n", err)
+			}
 		}
 		if !syncQuiet {
 			fmt.Println()
@@ -124,26 +176,85 @@ func runSync(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Push if requested
-	if syncPush && hasRepo {
+	if !syncQuiet {
+		fmt.Println()
+		fmt.Println("✅ Sync complete")
+	}
+
+	return nil
+}
+
+// runCloudSync executes cloud sync with mur.run
+func runCloudSync(cmd *cobra.Command, cfg *config.Config) error {
+	client, err := cloud.NewClient(cfg.Server.URL)
+	if err != nil {
+		return err
+	}
+
+	if !client.AuthStore().IsLoggedIn() {
+		return fmt.Errorf("not logged in. Run 'mur login' first")
+	}
+
+	// Get team from config
+	teamSlug := cfg.Server.Team
+	if teamSlug == "" {
+		return fmt.Errorf("no team configured. Run 'mur cloud select <team>'")
+	}
+
+	// This calls the same logic as 'mur cloud sync'
+	// For now, we'll print a message and suggest using mur cloud sync
+	if !syncQuiet {
+		fmt.Printf("Syncing with cloud team: %s\n", teamSlug)
+	}
+
+	// Execute cloud sync by calling the cloud sync function directly
+	// Reuse cloudSyncCmd logic
+	cmd.Flags().Set("team", teamSlug)
+	return cloudSyncCmd.RunE(cmd, []string{})
+}
+
+// runGitSync executes git-based sync
+func runGitSync(home string, cfg *config.Config) error {
+	patternsDir := filepath.Join(home, ".mur", "repo")
+	gitDir := filepath.Join(patternsDir, ".git")
+
+	if _, err := os.Stat(gitDir); os.IsNotExist(err) {
+		return fmt.Errorf("no git repo configured at %s", patternsDir)
+	}
+
+	if !syncQuiet {
+		fmt.Println("Pulling from remote...")
+	}
+	pullCmd := exec.Command("git", "-C", patternsDir, "pull", "--rebase")
+	if !syncQuiet {
+		pullCmd.Stdout = os.Stdout
+		pullCmd.Stderr = os.Stderr
+	}
+	if err := pullCmd.Run(); err != nil {
 		if !syncQuiet {
-			fmt.Println()
+			fmt.Printf("  ⚠ Pull failed: %v\n", err)
+		}
+		return err
+	}
+	if !syncQuiet {
+		fmt.Println("  ✓ Pulled latest patterns")
+	}
+
+	// Push if requested
+	if syncPush {
+		if !syncQuiet {
 			fmt.Println("Pushing to remote...")
 		}
 
-		// Add all changes
 		addCmd := exec.Command("git", "-C", patternsDir, "add", "-A")
 		addCmd.Run()
 
-		// Check if there are changes to commit
 		diffCmd := exec.Command("git", "-C", patternsDir, "diff", "--cached", "--quiet")
 		if diffCmd.Run() != nil {
-			// There are changes, commit them
 			commitCmd := exec.Command("git", "-C", patternsDir, "commit", "-m", "mur: sync patterns")
 			commitCmd.Run()
 		}
 
-		// Push
 		pushCmd := exec.Command("git", "-C", patternsDir, "push")
 		if !syncQuiet {
 			pushCmd.Stdout = os.Stdout
@@ -156,11 +267,6 @@ func runSync(cmd *cobra.Command, args []string) error {
 		} else if !syncQuiet {
 			fmt.Println("  ✓ Pushed to remote")
 		}
-	}
-
-	if !syncQuiet {
-		fmt.Println()
-		fmt.Println("Done.")
 	}
 
 	return nil
