@@ -1,113 +1,282 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"text/tabwriter"
 	"time"
 
-	"github.com/mur-run/mur-core/internal/stats"
+	"github.com/mur-run/mur-core/internal/analytics"
 	"github.com/spf13/cobra"
 )
 
 var statsCmd = &cobra.Command{
-	Use:   "stats",
-	Short: "Show usage statistics",
-	Long: `Display usage statistics for murmur-ai.
+	Use:   "stats [pattern-name]",
+	Short: "Show pattern usage analytics",
+	Long: `Display analytics and effectiveness metrics for patterns.
 
-Shows tool usage counts, estimated costs, routing decisions,
-and usage trends over time.
-
-Examples:
-  mur stats                    # Show overall statistics
-  mur stats --tool claude      # Stats for specific tool
-  mur stats --period week      # Stats for last week
-  mur stats --json             # Output as JSON
-  mur stats reset              # Clear all statistics`,
-	RunE: statsExecute,
+Without arguments, shows overall statistics.
+With a pattern name, shows detailed stats for that pattern.`,
+	Example: `  mur stats                    # Show overall analytics
+  mur stats swift-testing      # Show detailed stats for a pattern`,
+	RunE: runStats,
 }
 
-var statsResetCmd = &cobra.Command{
-	Use:   "reset",
-	Short: "Clear all statistics",
-	Long:  `Remove all recorded usage data.`,
-	RunE:  statsResetExecute,
-}
-
-func statsExecute(cmd *cobra.Command, args []string) error {
-	tool, _ := cmd.Flags().GetString("tool")
-	period, _ := cmd.Flags().GetString("period")
-	jsonOutput, _ := cmd.Flags().GetBool("json")
-
-	// Build filter
-	filter := stats.QueryFilter{}
-
-	if tool != "" {
-		filter.Tool = tool
-	}
-
-	// Parse period
-	now := time.Now()
-	switch period {
-	case "day":
-		filter.StartTime = now.AddDate(0, 0, -1)
-	case "week":
-		filter.StartTime = now.AddDate(0, 0, -7)
-	case "month":
-		filter.StartTime = now.AddDate(0, -1, 0)
-	case "year":
-		filter.StartTime = now.AddDate(-1, 0, 0)
-	case "", "all":
-		// No time filter
-	default:
-		return fmt.Errorf("invalid period: %s (use day/week/month/year/all)", period)
-	}
-
-	// Query records
-	records, err := stats.Query(filter)
-	if err != nil {
-		return fmt.Errorf("failed to query stats: %w", err)
-	}
-
-	// If filtering by tool, show tool-specific stats
-	if tool != "" && !jsonOutput {
-		fmt.Print(stats.FormatToolStats(tool, records))
-		return nil
-	}
-
-	// Compute summary
-	summary := stats.Summarize(records)
-	summary.Period = period
-	if summary.Period == "" {
-		summary.Period = "all"
-	}
-
-	// Output
-	if jsonOutput {
-		data, err := json.MarshalIndent(summary, "", "  ")
-		if err != nil {
-			return fmt.Errorf("failed to serialize stats: %w", err)
-		}
-		fmt.Println(string(data))
-	} else {
-		fmt.Print(stats.FormatSummary(summary))
-	}
-
-	return nil
-}
-
-func statsResetExecute(cmd *cobra.Command, args []string) error {
-	if err := stats.Reset(); err != nil {
-		return fmt.Errorf("failed to reset stats: %w", err)
-	}
-	fmt.Println("✓ Statistics cleared")
-	return nil
-}
+var (
+	statsDays int
+)
 
 func init() {
 	rootCmd.AddCommand(statsCmd)
-	statsCmd.AddCommand(statsResetCmd)
+	statsCmd.Flags().IntVarP(&statsDays, "days", "d", 30, "Number of days to analyze")
+}
 
-	statsCmd.Flags().StringP("tool", "t", "", "Filter by tool (claude/gemini/auggie)")
-	statsCmd.Flags().StringP("period", "p", "", "Time period (day/week/month/year/all)")
-	statsCmd.Flags().Bool("json", false, "Output as JSON")
+func runStats(cmd *cobra.Command, args []string) error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("failed to get home directory: %w", err)
+	}
+
+	dataDir := filepath.Join(home, ".mur")
+	store, err := analytics.NewStore(dataDir)
+	if err != nil {
+		return fmt.Errorf("failed to open analytics store: %w", err)
+	}
+	defer store.Close()
+
+	if len(args) > 0 {
+		return showPatternStats(store, args[0])
+	}
+
+	return showOverallStats(store, statsDays)
+}
+
+func showOverallStats(store *analytics.Store, days int) error {
+	overall, err := store.GetOverallStats(days)
+	if err != nil {
+		return fmt.Errorf("failed to get overall stats: %w", err)
+	}
+
+	allStats, err := store.GetAllStats(100)
+	if err != nil {
+		return fmt.Errorf("failed to get pattern stats: %w", err)
+	}
+
+	// Calculate active patterns (used in last 7 days)
+	sevenDaysAgo := time.Now().AddDate(0, 0, -7)
+	activeCount := 0
+	for _, s := range allStats {
+		if s.LastUsed != nil && s.LastUsed.After(sevenDaysAgo) {
+			activeCount++
+		}
+	}
+
+	fmt.Printf("\n📊 Pattern Analytics (last %d days)\n", days)
+	fmt.Println("═══════════════════════════════════════════════════════")
+	fmt.Println()
+	fmt.Printf("Total Patterns: %d\n", overall.TotalPatterns)
+	fmt.Printf("Active Patterns: %d (used in last 7 days)\n", activeCount)
+	fmt.Printf("Total Injections: %d\n", overall.TotalInjections)
+	fmt.Println()
+
+	if len(allStats) == 0 {
+		fmt.Println("No usage data yet. Patterns will be tracked when injected.")
+		fmt.Println()
+		fmt.Println("💡 Tip: Run 'mur init --hooks' to set up automatic tracking.")
+		return nil
+	}
+
+	// Top 5 most used
+	fmt.Println("Top 5 Most Used:")
+	topCount := 5
+	if len(allStats) < topCount {
+		topCount = len(allStats)
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	for i := 0; i < topCount; i++ {
+		s := allStats[i]
+		effectiveness := "N/A"
+		if s.HelpfulCount+s.NotHelpfulCount > 0 {
+			effectiveness = fmt.Sprintf("%.0f%%", s.Effectiveness*100)
+		}
+		fmt.Fprintf(w, "  %d. %s\t│ %d uses\t│ %s effective\n",
+			i+1, truncateStr(s.PatternName, 25), s.UsageCount, effectiveness)
+	}
+	w.Flush()
+	fmt.Println()
+
+	// Patterns needing review (low effectiveness)
+	var needsReview []*analytics.PatternStats
+	for _, s := range allStats {
+		total := s.HelpfulCount + s.NotHelpfulCount
+		if total >= 5 && s.Effectiveness < 0.6 {
+			needsReview = append(needsReview, s)
+		}
+	}
+
+	if len(needsReview) > 0 {
+		fmt.Println("Needs Review (low effectiveness):")
+		for _, s := range needsReview {
+			fmt.Printf("  ⚠️  %s\t│ %d uses\t│ %.0f%% effective\n",
+				truncateStr(s.PatternName, 25), s.UsageCount, s.Effectiveness*100)
+		}
+		fmt.Println()
+	}
+
+	fmt.Println("💡 Tip: Run 'mur feedback' to rate patterns after use")
+	fmt.Println()
+
+	return nil
+}
+
+func showPatternStats(store *analytics.Store, patternName string) error {
+	// Try to find pattern by name or ID
+	allStats, err := store.GetAllStats(1000)
+	if err != nil {
+		return err
+	}
+
+	var found *analytics.PatternStats
+	for _, s := range allStats {
+		if strings.EqualFold(s.PatternName, patternName) || s.PatternID == patternName {
+			found = s
+			break
+		}
+		if strings.Contains(strings.ToLower(s.PatternName), strings.ToLower(patternName)) {
+			found = s
+			// Continue looking for exact match
+		}
+	}
+
+	if found == nil {
+		return fmt.Errorf("pattern '%s' not found in analytics data", patternName)
+	}
+
+	// Get detailed stats
+	stats, err := store.GetPatternStats(found.PatternID)
+	if err != nil {
+		return err
+	}
+
+	byTool, err := store.GetUsageByTool(found.PatternID)
+	if err != nil {
+		return err
+	}
+
+	byContext, err := store.GetUsageByContext(found.PatternID)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("\n📊 %s\n", stats.PatternName)
+	fmt.Println("═══════════════════════════════════════════════════════")
+	fmt.Println()
+
+	// Effectiveness
+	total := stats.HelpfulCount + stats.NotHelpfulCount
+	if total > 0 {
+		fmt.Printf("Effectiveness: %.0f%% (%d helpful / %d rated)\n",
+			stats.Effectiveness*100, stats.HelpfulCount, total)
+	} else {
+		fmt.Println("Effectiveness: N/A (no feedback yet)")
+	}
+
+	fmt.Printf("Total Uses: %d\n", stats.UsageCount)
+	if stats.LastUsed != nil {
+		fmt.Printf("Last Used: %s\n", formatTimeAgo(*stats.LastUsed))
+	}
+	fmt.Println()
+
+	// Usage by tool
+	if len(byTool) > 0 {
+		fmt.Println("Usage by Tool:")
+		maxCount := 0
+		for _, count := range byTool {
+			if count > maxCount {
+				maxCount = count
+			}
+		}
+		for tool, count := range byTool {
+			bar := makeBarInt(count, maxCount, 20)
+			pct := float64(count) / float64(stats.UsageCount) * 100
+			fmt.Printf("  %-10s %s %d (%.0f%%)\n", tool, bar, count, pct)
+		}
+		fmt.Println()
+	}
+
+	// Usage by context
+	if len(byContext) > 0 {
+		fmt.Println("Usage by Context:")
+		maxCount := 0
+		for _, count := range byContext {
+			if count > maxCount {
+				maxCount = count
+			}
+		}
+		for ctx, count := range byContext {
+			bar := makeBarInt(count, maxCount, 20)
+			pct := float64(count) / float64(stats.UsageCount) * 100
+			fmt.Printf("  %-10s %s %d (%.0f%%)\n", ctx, bar, count, pct)
+		}
+		fmt.Println()
+	}
+
+	return nil
+}
+
+func formatTimeAgo(t time.Time) string {
+	diff := time.Since(t)
+	switch {
+	case diff < time.Minute:
+		return "just now"
+	case diff < time.Hour:
+		mins := int(diff.Minutes())
+		if mins == 1 {
+			return "1 minute ago"
+		}
+		return fmt.Sprintf("%d minutes ago", mins)
+	case diff < 24*time.Hour:
+		hours := int(diff.Hours())
+		if hours == 1 {
+			return "1 hour ago"
+		}
+		return fmt.Sprintf("%d hours ago", hours)
+	case diff < 7*24*time.Hour:
+		days := int(diff.Hours() / 24)
+		if days == 1 {
+			return "yesterday"
+		}
+		return fmt.Sprintf("%d days ago", days)
+	default:
+		return t.Format("Jan 2, 2006")
+	}
+}
+
+// makeBar creates a progress bar (also used by cross_learn.go, embed.go, suggest.go)
+func makeBar(value float64, width int) string {
+	if value < 0 {
+		value = 0
+	}
+	if value > 1 {
+		value = 1
+	}
+	filled := int(value * float64(width))
+	if filled > width {
+		filled = width
+	}
+	return strings.Repeat("█", filled) + strings.Repeat("░", width-filled)
+}
+
+func makeBarInt(value, max, width int) string {
+	if max == 0 {
+		return strings.Repeat("░", width)
+	}
+	filled := value * width / max
+	if filled > width {
+		filled = width
+	}
+	return strings.Repeat("█", filled) + strings.Repeat("░", width-filled)
 }
