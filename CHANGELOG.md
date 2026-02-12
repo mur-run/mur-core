@@ -2,6 +2,14 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [1.4.8] - 2026-02-12
+
+### Added
+- **☁️ Cloud Status in `mur status`**: Shows login status, active team, and last sync time
+- **🔼 `mur cloud push`**: New command to upload local patterns to server
+- **🔽 `mur cloud pull`**: New command to download patterns from server
+- **⚠️ Session Expired Detection**: Clear message when cloud session has expired
+
 ## [1.4.7] - 2026-02-11
 
 ### Changed
