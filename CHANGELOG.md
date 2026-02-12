@@ -2,6 +2,16 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [1.5.0] - 2026-02-12
+
+### Added
+- **🔀 Interactive Conflict Resolution**: When sync conflicts occur, choose how to resolve
+  - `[i]` Interactive - choose for each pattern
+  - `[s]` Accept all from server
+  - `[l]` Accept all from local
+  - `[d]` View diff between versions
+  - Resolution summary after completion
+
 ## [1.4.9] - 2026-02-12
 
 ### Added
