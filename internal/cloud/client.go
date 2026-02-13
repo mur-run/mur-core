@@ -465,6 +465,64 @@ func (c *Client) GetUserProfile(login string) (*UserProfile, error) {
 	return &resp, nil
 }
 
+// Collection represents a pattern collection
+type Collection struct {
+	ID          string `json:"id"`
+	OwnerID     string `json:"owner_id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Visibility  string `json:"visibility"`
+	CopyCount   int    `json:"copy_count"`
+	CreatedAt   string `json:"created_at"`
+}
+
+// CollectionPattern represents a pattern in a collection
+type CollectionPattern struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	CopyCount   int    `json:"copy_count"`
+}
+
+// ListCollections returns public collections
+func (c *Client) ListCollections(limit int) ([]Collection, error) {
+	var resp struct {
+		Collections []Collection `json:"collections"`
+	}
+	path := fmt.Sprintf("/api/v1/community/collections?limit=%d", limit)
+	if err := c.get(path, &resp); err != nil {
+		return nil, err
+	}
+	return resp.Collections, nil
+}
+
+// GetCollection returns a collection with its patterns
+func (c *Client) GetCollection(id string) (*Collection, []CollectionPattern, error) {
+	var resp struct {
+		Collection Collection          `json:"collection"`
+		Patterns   []CollectionPattern `json:"patterns"`
+	}
+	path := fmt.Sprintf("/api/v1/community/collections/%s", id)
+	if err := c.get(path, &resp); err != nil {
+		return nil, nil, err
+	}
+	return &resp.Collection, resp.Patterns, nil
+}
+
+// CreateCollection creates a new collection
+func (c *Client) CreateCollection(name, description, visibility string) (*Collection, error) {
+	req := map[string]string{
+		"name":        name,
+		"description": description,
+		"visibility":  visibility,
+	}
+	var resp Collection
+	if err := c.post("/api/v1/community/collections", req, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
 // SearchCommunity searches community patterns
 func (c *Client) SearchCommunity(query string, limit int) (*CommunityListResponse, error) {
 	return c.SearchCommunityWithTech(query, nil, limit)
