@@ -166,7 +166,7 @@ func runServe(cmd *cobra.Command, args []string) error {
 	url := fmt.Sprintf("http://%s", addr)
 
 	fmt.Println()
-	fmt.Println("🌐 mur Dashboard")
+	fmt.Println("🌐 MUR Core Dashboard")
 	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 	fmt.Printf("   Running at: %s\n", url)
 	fmt.Println("   Press Ctrl+C to stop")
@@ -512,7 +512,7 @@ const dashboardHTML = `<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>mur Dashboard</title>
+    <title>MUR Core Dashboard</title>
     <style>
         :root {
             --bg-primary: #0f172a;
@@ -965,7 +965,7 @@ const dashboardHTML = `<!DOCTYPE html>
 <body>
     <div class="container">
         <header>
-            <div class="logo">mur<span>.dashboard</span></div>
+            <div class="logo">MUR<span> Core</span></div>
             <div class="header-right">
                 <span class="version">v{{.Version}}</span>
                 <span class="generated">{{.GeneratedAt}}</span>
