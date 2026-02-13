@@ -90,7 +90,9 @@ func runSearch(cmd *cobra.Command, args []string) error {
 	if searchCommunity || searchCommunityOnly {
 		client, err := cloud.NewClient(cfg.Server.URL)
 		if err == nil {
-			resp, err := client.SearchCommunity(query, topK)
+			// Use tech stack from config for filtering
+			techStack := cfg.GetTechStack()
+			resp, err := client.SearchCommunityWithTech(query, techStack, topK)
 			if err == nil {
 				communityResults = resp.Patterns
 			}

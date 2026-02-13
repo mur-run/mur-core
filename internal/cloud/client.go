@@ -430,8 +430,19 @@ func (c *Client) GetCommunityRecent(limit int) (*CommunityListResponse, error) {
 
 // SearchCommunity searches community patterns
 func (c *Client) SearchCommunity(query string, limit int) (*CommunityListResponse, error) {
+	return c.SearchCommunityWithTech(query, nil, limit)
+}
+
+// SearchCommunityWithTech searches community patterns with tech stack filter
+func (c *Client) SearchCommunityWithTech(query string, techStack []string, limit int) (*CommunityListResponse, error) {
 	var resp CommunityListResponse
 	path := fmt.Sprintf("/api/v1/community/patterns/search?q=%s&limit=%d", query, limit)
+	
+	// Add tech stack filter
+	if len(techStack) > 0 {
+		path += "&tech=" + strings.Join(techStack, ",")
+	}
+	
 	if err := c.get(path, &resp); err != nil {
 		return nil, err
 	}
