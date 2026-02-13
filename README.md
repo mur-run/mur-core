@@ -15,6 +15,8 @@ MUR Core captures patterns from your coding sessions and injects them back into 
 - **🔌 Zero Friction** — Install hooks once, then forget about it
 - **📊 Dashboard** — Web UI for pattern management and analytics
 - **🔒 Local First** — All data stays on your machine (optional git sync)
+- **🌍 Community** — Share and discover patterns from developers worldwide
+- **📚 Collections** — Curate and share pattern collections
 
 ## 📸 Screenshots
 
@@ -294,6 +296,31 @@ mur doctor
 | `mur serve` | Start web dashboard |
 | `mur dashboard` | Generate static HTML report |
 | `mur stats` | View usage statistics |
+
+### Community
+
+| Command | Description |
+|---------|-------------|
+| `mur community` | Browse popular community patterns |
+| `mur community search <query>` | Search community patterns |
+| `mur community copy <name>` | Copy a community pattern |
+| `mur community share <name>` | Share your pattern to community |
+| `mur community featured` | View featured patterns |
+| `mur community user <login>` | View a user's profile |
+
+### Collections
+
+| Command | Description |
+|---------|-------------|
+| `mur collection list` | List public collections |
+| `mur collection show <id>` | View a collection |
+| `mur collection create <name>` | Create a new collection |
+
+### Import
+
+| Command | Description |
+|---------|-------------|
+| `mur import gist <url>` | Import pattern from GitHub Gist |
 
 <details>
 <summary>📖 All Commands</summary>

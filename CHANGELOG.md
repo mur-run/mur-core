@@ -2,6 +2,32 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [1.7.0] - 2026-02-13
+
+### Added
+- **🌍 Community V3**: Full community features
+  - `mur community share <name>` — Share patterns to community
+  - `mur community featured` — View featured patterns
+  - `mur community user <login>` — View user profiles
+  - Category and tags support for patterns
+  
+- **📚 Collections**: Curate pattern collections
+  - `mur collection list` — List public collections
+  - `mur collection show <id>` — View collection contents
+  - `mur collection create <name>` — Create new collection
+  - `--visibility` flag for public/private collections
+
+- **📥 Import from Gist**: Import patterns from GitHub
+  - `mur import gist <url>` — Import from GitHub Gist
+  - Supports `pattern.yaml` or README + code files
+  - Auto-extracts name, description, content
+  - `--share` flag to share directly to community
+
+### Changed
+- **🔍 Enhanced Search**: Tech stack filtering
+  - `mur config set tech_stack "swift,go,docker"`
+  - Community search auto-filters by your stack
+
 ## [1.6.2] - 2026-02-13
 
 ### Added
