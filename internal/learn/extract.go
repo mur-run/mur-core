@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 )
@@ -583,11 +584,7 @@ func truncateEvidence(text string, maxLen int) string {
 
 // sortByConfidence sorts extracted patterns by confidence (descending).
 func sortByConfidence(patterns []ExtractedPattern) {
-	for i := 0; i < len(patterns)-1; i++ {
-		for j := i + 1; j < len(patterns); j++ {
-			if patterns[j].Confidence > patterns[i].Confidence {
-				patterns[i], patterns[j] = patterns[j], patterns[i]
-			}
-		}
-	}
+	sort.Slice(patterns, func(i, j int) bool {
+		return patterns[i].Confidence > patterns[j].Confidence
+	})
 }
