@@ -483,6 +483,47 @@ func (c *Client) CopyPattern(patternID, teamID string) (*Pattern, error) {
 	return &pattern, nil
 }
 
+// TeamPattern represents a pattern from a team
+type TeamPattern struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Content     string `json:"content"`
+	Version     int64  `json:"version"`
+	CreatedAt   string `json:"created_at"`
+	UpdatedAt   string `json:"updated_at"`
+}
+
+// TeamPatternsResponse is the response from listing team patterns
+type TeamPatternsResponse struct {
+	Patterns []TeamPattern `json:"patterns"`
+	Total    int           `json:"total"`
+}
+
+// ListTeamPatterns lists patterns in a team
+func (c *Client) ListTeamPatterns(teamSlug string, limit, offset int) ([]TeamPattern, int, error) {
+	var resp TeamPatternsResponse
+	path := fmt.Sprintf("/api/v1/teams/%s/patterns?limit=%d&offset=%d", teamSlug, limit, offset)
+	if err := c.get(path, &resp); err != nil {
+		return nil, 0, err
+	}
+	return resp.Patterns, resp.Total, nil
+}
+
+// SharePatternRequest represents a request to share a pattern
+type SharePatternRequest struct {
+	PatternID   string   `json:"pattern_id"`
+	Category    string   `json:"category,omitempty"`
+	Tags        []string `json:"tags,omitempty"`
+	Description string   `json:"description,omitempty"`
+}
+
+// SharePattern submits a pattern to community for review
+func (c *Client) SharePattern(req *SharePatternRequest) error {
+	path := fmt.Sprintf("/api/v1/community/patterns/%s/submit", req.PatternID)
+	return c.post(path, req, nil)
+}
+
 // === Referral Methods ===
 
 // ReferralStats represents referral statistics

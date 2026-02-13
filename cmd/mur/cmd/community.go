@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/mur-run/mur-core/internal/cloud"
+	"github.com/mur-run/mur-core/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -35,9 +36,27 @@ var communityRecentCmd = &cobra.Command{
 	RunE:  runCommunityRecent,
 }
 
+var communityShareCmd = &cobra.Command{
+	Use:   "share [pattern-name]",
+	Short: "Share a pattern to the community",
+	Long: `Share one of your patterns with the community.
+	
+The pattern will be submitted for review before being published.
+You can optionally specify a category and tags.
+
+Examples:
+  mur community share "API retry with backoff"
+  mur community share my-pattern --category "Error Handling" --tags "api,retry,resilience"`,
+	Args: cobra.ExactArgs(1),
+	RunE: runCommunityShare,
+}
+
 var (
-	communityLimit  int
-	communityTeamID string
+	communityLimit    int
+	communityTeamID   string
+	shareCategory     string
+	shareTags         string
+	shareDescription  string
 )
 
 func init() {
@@ -45,9 +64,15 @@ func init() {
 	communityCmd.AddCommand(communitySearchCmd)
 	communityCmd.AddCommand(communityCopyCmd)
 	communityCmd.AddCommand(communityRecentCmd)
+	communityCmd.AddCommand(communityShareCmd)
 
 	communityCmd.PersistentFlags().IntVarP(&communityLimit, "limit", "n", 10, "Number of results")
 	communityCopyCmd.Flags().StringVarP(&communityTeamID, "team", "t", "", "Target team ID")
+
+	// Share command flags
+	communityShareCmd.Flags().StringVarP(&shareCategory, "category", "c", "", "Pattern category (e.g., 'Error Handling', 'Testing')")
+	communityShareCmd.Flags().StringVarP(&shareTags, "tags", "t", "", "Comma-separated tags")
+	communityShareCmd.Flags().StringVarP(&shareDescription, "description", "d", "", "Override pattern description")
 }
 
 func runCommunity(cmd *cobra.Command, args []string) error {
@@ -227,6 +252,86 @@ func runCommunityCopy(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("✓ Copied \"%s\" to your patterns\n", pattern.Name)
 	fmt.Println("  Run 'mur sync' to download it locally")
+
+	return nil
+}
+
+func runCommunityShare(cmd *cobra.Command, args []string) error {
+	patternName := args[0]
+
+	// Load config
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	client, err := cloud.NewClient(cfg.Server.URL)
+	if err != nil {
+		return err
+	}
+
+	if !client.AuthStore().IsLoggedIn() {
+		return fmt.Errorf("not logged in. Run 'mur login' first")
+	}
+
+	// Get team from config
+	teamSlug := cfg.Server.Team
+	if teamSlug == "" {
+		return fmt.Errorf("no team configured. Run 'mur cloud select <team>' first")
+	}
+
+	// Pull patterns to find the one to share
+	pullResp, err := client.Pull(teamSlug, 0)
+	if err != nil {
+		return fmt.Errorf("failed to get patterns: %w", err)
+	}
+
+	var targetPattern *cloud.Pattern
+	for i, p := range pullResp.Patterns {
+		if p.Name == patternName && !p.Deleted {
+			targetPattern = &pullResp.Patterns[i]
+			break
+		}
+	}
+
+	if targetPattern == nil {
+		fmt.Printf("Pattern \"%s\" not found in your team. Available patterns:\n\n", patternName)
+		for _, p := range pullResp.Patterns {
+			if !p.Deleted {
+				fmt.Printf("  • %s\n", p.Name)
+			}
+		}
+		return nil
+	}
+
+	// Parse tags
+	var tags []string
+	if shareTags != "" {
+		for _, t := range strings.Split(shareTags, ",") {
+			t = strings.TrimSpace(t)
+			if t != "" {
+				tags = append(tags, t)
+			}
+		}
+	}
+
+	// Submit to community
+	req := &cloud.SharePatternRequest{
+		PatternID:   targetPattern.ID,
+		Category:    shareCategory,
+		Tags:        tags,
+		Description: shareDescription,
+	}
+
+	err = client.SharePattern(req)
+	if err != nil {
+		return fmt.Errorf("failed to share pattern: %w", err)
+	}
+
+	fmt.Printf("✓ Submitted \"%s\" for community review\n", targetPattern.Name)
+	fmt.Println()
+	fmt.Println("  Your pattern will be visible to everyone once approved.")
+	fmt.Println("  You'll be notified when it's published.")
 
 	return nil
 }
