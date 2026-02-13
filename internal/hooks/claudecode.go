@@ -69,7 +69,7 @@ func InstallClaudeCodeHooks(enableSearch bool) error {
 	// Learn hook (on Stop - captures learnings from session)
 	learnHook := ClaudeCodeHook{
 		Type:    "command",
-		Command: fmt.Sprintf("%s learn --from-transcript 2>/dev/null || true", murBin),
+		Command: fmt.Sprintf("%s learn extract --auto --quiet 2>/dev/null || true", murBin),
 	}
 	hooks.Stop = []ClaudeCodeHook{learnHook}
 

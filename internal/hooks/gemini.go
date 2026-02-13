@@ -63,7 +63,7 @@ func InstallGeminiHooks(enableSearch bool) error {
 	hooks["exit"] = []GeminiHook{
 		{
 			Type:    "command",
-			Command: fmt.Sprintf("%s learn --from-transcript 2>/dev/null || true", murBin),
+			Command: fmt.Sprintf("%s learn extract --auto --quiet 2>/dev/null || true", murBin),
 		},
 	}
 
