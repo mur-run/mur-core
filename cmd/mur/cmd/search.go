@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mur-run/mur-core/internal/cloud"
 	"github.com/mur-run/mur-core/internal/config"
 	"github.com/mur-run/mur-core/internal/core/analytics"
 	"github.com/mur-run/mur-core/internal/core/embed"
@@ -15,24 +16,30 @@ import (
 
 var searchCmd = &cobra.Command{
 	Use:   "search <query>",
-	Short: "Semantic search for patterns",
+	Short: "Search patterns (local + community)",
 	Long: `Search patterns using semantic similarity.
 
-Requires indexed patterns. Run 'mur index rebuild' first.
+By default, searches local patterns. Use --community to also search
+community patterns from mur.run.
 
 Examples:
-  mur search "Swift async testing"
-  mur search --top 5 "Docker compose best practices"
+  mur search "Swift async testing"           # Local only
+  mur search --community "API retry"         # Local + community
+  mur search --community-only "error handling"  # Community only
+  mur search --top 5 "Docker best practices"
   mur search --json "database optimization"
-  mur search --inject "$PROMPT"   # For hooks (outputs to stderr)`,
+  mur search --inject "$PROMPT"              # For hooks`,
 	Args: cobra.ExactArgs(1),
 	RunE: runSearch,
 }
 
 var (
-	searchTopK   int
-	searchJSON   bool
-	searchInject bool
+	searchTopK         int
+	searchJSON         bool
+	searchInject       bool
+	searchCommunity    bool
+	searchCommunityOnly bool
+	searchLocalOnly    bool
 )
 
 func init() {
@@ -40,6 +47,9 @@ func init() {
 	searchCmd.Flags().IntVar(&searchTopK, "top", 0, "Number of results (default: from config)")
 	searchCmd.Flags().BoolVar(&searchJSON, "json", false, "Output as JSON")
 	searchCmd.Flags().BoolVar(&searchInject, "inject", false, "Inject mode for hooks (output to stderr)")
+	searchCmd.Flags().BoolVar(&searchCommunity, "community", false, "Also search community patterns")
+	searchCmd.Flags().BoolVar(&searchCommunityOnly, "community-only", false, "Only search community patterns")
+	searchCmd.Flags().BoolVar(&searchLocalOnly, "local", false, "Only search local patterns (default)")
 }
 
 func runSearch(cmd *cobra.Command, args []string) error {
@@ -50,53 +60,47 @@ func runSearch(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if !cfg.Search.IsEnabled() {
-		if searchInject {
-			return nil // Silent fail for hooks
-		}
-		return fmt.Errorf("semantic search is disabled")
-	}
-
 	// Use config default if not specified
 	topK := searchTopK
 	if topK == 0 {
 		topK = cfg.Search.TopK
 	}
 	if topK == 0 {
-		topK = 3
+		topK = 5
 	}
 
-	indexer, err := embed.NewPatternIndexer(cfg)
-	if err != nil {
-		if searchInject {
-			return nil // Silent fail for hooks
+	var localMatches []embed.PatternMatch
+	var communityResults []cloud.CommunityPattern
+
+	// Search local patterns (unless community-only)
+	if !searchCommunityOnly {
+		if cfg.Search.IsEnabled() {
+			indexer, err := embed.NewPatternIndexer(cfg)
+			if err == nil {
+				status := indexer.Status()
+				if status.IndexedCount > 0 {
+					localMatches, _ = indexer.Search(query, topK)
+				}
+			}
 		}
-		return fmt.Errorf("cannot create indexer: %w", err)
 	}
 
-	// Check if we have indexed patterns
-	status := indexer.Status()
-	if status.IndexedCount == 0 {
-		if searchInject {
-			return nil // Silent fail
+	// Search community (if requested)
+	if searchCommunity || searchCommunityOnly {
+		client, err := cloud.NewClient(cfg.Server.URL)
+		if err == nil {
+			resp, err := client.SearchCommunity(query, topK)
+			if err == nil {
+				communityResults = resp.Patterns
+			}
 		}
-		return fmt.Errorf("no indexed patterns, run: mur index rebuild")
 	}
 
-	matches, err := indexer.Search(query, topK)
-	if err != nil {
-		if searchInject {
-			return nil // Silent fail for hooks
-		}
-		return fmt.Errorf("search failed: %w", err)
-	}
-
-	// Record analytics for matches
-	if len(matches) > 0 {
+	// Record analytics for local matches
+	if len(localMatches) > 0 {
 		home, _ := os.UserHomeDir()
 		tracker := analytics.NewTracker(filepath.Join(home, ".mur"))
-		for _, m := range matches {
-			// Only record if above min_score
+		for _, m := range localMatches {
 			if m.Score >= cfg.Search.MinScore {
 				_ = tracker.RecordSearch(m.Pattern.ID, m.Pattern.Name, m.Score, query)
 			}
@@ -105,17 +109,25 @@ func runSearch(cmd *cobra.Command, args []string) error {
 
 	// Inject mode - output to stderr for hooks
 	if searchInject {
-		if len(matches) == 0 {
+		if len(localMatches) == 0 && len(communityResults) == 0 {
 			return nil
 		}
 
 		var names []string
-		for _, m := range matches {
+		for _, m := range localMatches {
 			names = append(names, m.Pattern.Name)
+		}
+		for _, c := range communityResults {
+			names = append(names, c.Name+" 🌐")
 		}
 
 		hint := fmt.Sprintf("[mur] 🎯 Relevant patterns: %s\n", strings.Join(names, ", "))
-		hint += fmt.Sprintf("[mur] 💡 Consider loading /%s for this task\n", getSkillPath(matches[0]))
+		if len(localMatches) > 0 {
+			hint += fmt.Sprintf("[mur] 💡 Consider loading /%s for this task\n", getSkillPath(localMatches[0]))
+		}
+		if len(communityResults) > 0 && len(localMatches) == 0 {
+			hint += fmt.Sprintf("[mur] 💡 Community pattern available: mur community copy \"%s\"\n", communityResults[0].Name)
+		}
 
 		fmt.Fprint(os.Stderr, hint)
 		return nil
@@ -123,13 +135,28 @@ func runSearch(cmd *cobra.Command, args []string) error {
 
 	// JSON output
 	if searchJSON {
-		output := make([]map[string]interface{}, len(matches))
-		for i, m := range matches {
-			output[i] = map[string]interface{}{
+		output := map[string]interface{}{
+			"local":     make([]map[string]interface{}, len(localMatches)),
+			"community": make([]map[string]interface{}, len(communityResults)),
+		}
+		localOut := output["local"].([]map[string]interface{})
+		for i, m := range localMatches {
+			localOut[i] = map[string]interface{}{
 				"name":        m.Pattern.Name,
 				"description": m.Pattern.Description,
 				"score":       m.Score,
-				"skill_path":  getSkillPath(m),
+				"source":      "local",
+			}
+		}
+		communityOut := output["community"].([]map[string]interface{})
+		for i, c := range communityResults {
+			communityOut[i] = map[string]interface{}{
+				"id":          c.ID,
+				"name":        c.Name,
+				"description": c.Description,
+				"author":      c.AuthorName,
+				"copies":      c.CopyCount,
+				"source":      "community",
 			}
 		}
 		return json.NewEncoder(os.Stdout).Encode(output)
@@ -139,15 +166,51 @@ func runSearch(cmd *cobra.Command, args []string) error {
 	fmt.Println("🔍 Searching patterns...")
 	fmt.Println()
 
-	for i, m := range matches {
-		fmt.Printf("  %d. %s (%.2f)\n", i+1, m.Pattern.Name, m.Score)
-		if m.Pattern.Description != "" {
-			fmt.Printf("     %s\n", m.Pattern.Description)
+	if len(localMatches) > 0 {
+		fmt.Println("📍 Local patterns:")
+		for i, m := range localMatches {
+			fmt.Printf("  %d. %s (%.2f)\n", i+1, m.Pattern.Name, m.Score)
+			if m.Pattern.Description != "" {
+				desc := m.Pattern.Description
+				if len(desc) > 60 {
+					desc = desc[:57] + "..."
+				}
+				fmt.Printf("     %s\n", desc)
+			}
 		}
 		fmt.Println()
 	}
 
-	fmt.Printf("Found %d patterns matching %q\n", len(matches), query)
+	if len(communityResults) > 0 {
+		fmt.Println("🌐 Community patterns:")
+		for i, c := range communityResults {
+			author := c.AuthorName
+			if c.AuthorLogin != "" {
+				author = "@" + c.AuthorLogin
+			}
+			fmt.Printf("  %d. %s (⭐ %d) by %s\n", i+1, c.Name, c.CopyCount, author)
+			if c.Description != "" {
+				desc := c.Description
+				if len(desc) > 60 {
+					desc = desc[:57] + "..."
+				}
+				fmt.Printf("     %s\n", desc)
+			}
+		}
+		fmt.Println()
+		fmt.Println("  💡 Use 'mur community copy <name>' to add to your patterns")
+		fmt.Println()
+	}
+
+	total := len(localMatches) + len(communityResults)
+	if total == 0 {
+		fmt.Printf("No patterns found for %q\n", query)
+		if !searchCommunity && !searchCommunityOnly {
+			fmt.Println("💡 Try: mur search --community \"" + query + "\"")
+		}
+	} else {
+		fmt.Printf("Found %d patterns matching %q\n", total, query)
+	}
 
 	return nil
 }
