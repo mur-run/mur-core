@@ -23,6 +23,41 @@ type Config struct {
 	Team          TeamConfig          `yaml:"team"`
 	Server        ServerConfig        `yaml:"server"`
 	Notifications NotificationsConfig `yaml:"notifications"`
+	TechStack     []string            `yaml:"tech_stack"` // User's tech stack for filtering (e.g., ["swift", "go", "docker"])
+	Cache         CacheConfig         `yaml:"cache"`      // Local cache settings
+}
+
+// CacheConfig represents local cache settings for community patterns.
+type CacheConfig struct {
+	Community CommunityCacheConfig `yaml:"community"`
+}
+
+// CommunityCacheConfig represents community pattern cache settings.
+type CommunityCacheConfig struct {
+	Enabled   bool   `yaml:"enabled"`     // Enable caching (default: true)
+	TTLDays   int    `yaml:"ttl_days"`    // Days to keep cached patterns (default: 7)
+	MaxSizeMB int    `yaml:"max_size_mb"` // Max cache size in MB (default: 50)
+	Cleanup   string `yaml:"cleanup"`     // When to cleanup: on_sync | daily | manual (default: on_sync)
+}
+
+// GetTechStack returns the configured tech stack.
+func (c *Config) GetTechStack() []string {
+	return c.TechStack
+}
+
+// GetCacheConfig returns the cache config with defaults.
+func (c *Config) GetCacheConfig() CommunityCacheConfig {
+	cfg := c.Cache.Community
+	if cfg.TTLDays == 0 {
+		cfg.TTLDays = 7
+	}
+	if cfg.MaxSizeMB == 0 {
+		cfg.MaxSizeMB = 50
+	}
+	if cfg.Cleanup == "" {
+		cfg.Cleanup = "on_sync"
+	}
+	return cfg
 }
 
 // ServerConfig represents mur-server cloud sync settings.

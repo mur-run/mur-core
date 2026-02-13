@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -319,8 +320,19 @@ func setNestedValue(m map[string]interface{}, key string, value string) {
 	for i, part := range parts {
 		if i == len(parts)-1 {
 			// Last part - set value
-			// Try to parse as bool/int
-			if value == "true" {
+			// Special handling for tech_stack (comma-separated list)
+			if part == "tech_stack" || part == "tech-stack" {
+				// Parse comma-separated values into array
+				items := strings.Split(value, ",")
+				var arr []string
+				for _, item := range items {
+					item = strings.TrimSpace(item)
+					if item != "" {
+						arr = append(arr, item)
+					}
+				}
+				current["tech_stack"] = arr
+			} else if value == "true" {
 				current[part] = true
 			} else if value == "false" {
 				current[part] = false
