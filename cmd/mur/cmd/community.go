@@ -36,6 +36,12 @@ var communityRecentCmd = &cobra.Command{
 	RunE:  runCommunityRecent,
 }
 
+var communityFeaturedCmd = &cobra.Command{
+	Use:   "featured",
+	Short: "Show featured community patterns",
+	RunE:  runCommunityFeatured,
+}
+
 var communityShareCmd = &cobra.Command{
 	Use:   "share [pattern-name]",
 	Short: "Share a pattern to the community",
@@ -65,6 +71,7 @@ func init() {
 	communityCmd.AddCommand(communityCopyCmd)
 	communityCmd.AddCommand(communityRecentCmd)
 	communityCmd.AddCommand(communityShareCmd)
+	communityCmd.AddCommand(communityFeaturedCmd)
 
 	communityCmd.PersistentFlags().IntVarP(&communityLimit, "limit", "n", 10, "Number of results")
 	communityCopyCmd.Flags().StringVarP(&communityTeamID, "team", "t", "", "Target team ID")
@@ -194,6 +201,47 @@ func runCommunityRecent(cmd *cobra.Command, args []string) error {
 			fmt.Printf("    %s\n", desc)
 		}
 	}
+
+	return nil
+}
+
+func runCommunityFeatured(cmd *cobra.Command, args []string) error {
+	client, err := cloud.NewClient("")
+	if err != nil {
+		return err
+	}
+
+	resp, err := client.GetCommunityFeatured(communityLimit)
+	if err != nil {
+		return fmt.Errorf("failed to get featured patterns: %w", err)
+	}
+
+	fmt.Println("⭐ Featured Community Patterns")
+	fmt.Println(strings.Repeat("━", 50))
+	fmt.Println()
+
+	if len(resp.Patterns) == 0 {
+		fmt.Println("  No featured patterns yet.")
+		return nil
+	}
+
+	for _, p := range resp.Patterns {
+		author := p.AuthorName
+		if p.AuthorLogin != "" {
+			author = "@" + p.AuthorLogin
+		}
+		fmt.Printf("  ⭐ %s (⬇️ %d) by %s\n", p.Name, p.CopyCount, author)
+		if p.Description != "" {
+			desc := p.Description
+			if len(desc) > 60 {
+				desc = desc[:57] + "..."
+			}
+			fmt.Printf("     %s\n", desc)
+		}
+	}
+
+	fmt.Println()
+	fmt.Println("Use 'mur community copy <name>' to copy a pattern")
 
 	return nil
 }

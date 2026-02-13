@@ -428,6 +428,16 @@ func (c *Client) GetCommunityRecent(limit int) (*CommunityListResponse, error) {
 	return &resp, nil
 }
 
+// GetCommunityFeatured returns featured community patterns
+func (c *Client) GetCommunityFeatured(limit int) (*CommunityListResponse, error) {
+	var resp CommunityListResponse
+	path := fmt.Sprintf("/api/v1/community/patterns/featured?limit=%d", limit)
+	if err := c.get(path, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
 // SearchCommunity searches community patterns
 func (c *Client) SearchCommunity(query string, limit int) (*CommunityListResponse, error) {
 	return c.SearchCommunityWithTech(query, nil, limit)
