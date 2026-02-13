@@ -418,28 +418,33 @@ func syncMurIndex(home string, target PatternTarget, patternCount int, cfg *conf
 func generateLightweightIndex(patternCount int) string {
 	return fmt.Sprintf(`# mur-index
 
-Pattern library with %d learned patterns. **Do NOT load all patterns at once.**
+Pattern library with %d local patterns + community patterns. **Do NOT load all at once.**
 
 ## Usage
 
-When you encounter a problem or need guidance, search for relevant patterns:
+Search for relevant patterns before solving problems:
+
+%s
+
+For patterns you don't have locally, search the community:
 
 %s
 
 ## Examples
 
-- %s - Find API error handling patterns  
-- %s - Find Swift async patterns
-- %s - Find Git workflow patterns
+- %s - Search local patterns
+- %s - Include community patterns
+- %s - Only community patterns
 
 Patterns are loaded on-demand to save tokens and stay relevant.
 
 *Managed by [mur](https://github.com/mur-run/mur-core). Updated: %s*
 `, patternCount,
 		"`mur search \"<your query>\"`",
+		"`mur search --community \"<your query>\"`",
 		"`mur search \"API retry\"`",
-		"`mur search \"async await\"`",
-		"`mur search \"git branching\"`",
+		"`mur search --community \"Swift async\"`",
+		"`mur search --community-only \"error handling\"`",
 		time.Now().Format("2006-01-02 15:04"))
 }
 
