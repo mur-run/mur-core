@@ -48,6 +48,13 @@ func (c *Config) GetTechStack() []string {
 // GetCacheConfig returns the cache config with defaults.
 func (c *Config) GetCacheConfig() CommunityCacheConfig {
 	cfg := c.Cache.Community
+
+	// Default enabled to true if not explicitly set
+	// We use a pointer trick: if Enabled is false and no config exists, enable by default
+	if !cfg.Enabled && c.Cache.Community.TTLDays == 0 && c.Cache.Community.MaxSizeMB == 0 {
+		cfg.Enabled = true // Default to enabled
+	}
+
 	if cfg.TTLDays == 0 {
 		cfg.TTLDays = 7
 	}

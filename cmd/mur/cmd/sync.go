@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/mur-run/mur-core/internal/cache"
 	"github.com/mur-run/mur-core/internal/cloud"
 	"github.com/mur-run/mur-core/internal/config"
 	"github.com/mur-run/mur-core/internal/sync"
@@ -173,6 +174,17 @@ func runSync(cmd *cobra.Command, args []string) error {
 				status = "✗"
 			}
 			fmt.Printf("  %s %s: %s\n", status, r.Target, r.Message)
+		}
+	}
+
+	// Cleanup community cache (if configured)
+	cacheConfig := cfg.GetCacheConfig()
+	if cacheConfig.Cleanup == "on_sync" {
+		if communityCache, err := cache.DefaultCommunityCache(); err == nil {
+			removed, _ := communityCache.Cleanup()
+			if removed > 0 && !syncQuiet {
+				fmt.Printf("  🧹 Cleaned %d expired community cache entries\n", removed)
+			}
 		}
 	}
 

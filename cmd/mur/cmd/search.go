@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mur-run/mur-core/internal/cache"
 	"github.com/mur-run/mur-core/internal/cloud"
 	"github.com/mur-run/mur-core/internal/config"
 	"github.com/mur-run/mur-core/internal/core/analytics"
@@ -129,6 +130,11 @@ func runSearch(cmd *cobra.Command, args []string) error {
 			hint += fmt.Sprintf("[mur] 💡 Community pattern available: mur community copy \"%s\"\n", communityResults[0].Name)
 		}
 
+		// Cache community patterns for future use
+		if len(communityResults) > 0 {
+			go cacheCommunityPatterns(cfg, communityResults)
+		}
+
 		fmt.Fprint(os.Stderr, hint)
 		return nil
 	}
@@ -232,4 +238,51 @@ func getSkillPath(m embed.PatternMatch) string {
 	}
 
 	return domain + "--" + name
+}
+
+// cacheCommunityPatterns fetches and caches community pattern content.
+func cacheCommunityPatterns(cfg *config.Config, patterns []cloud.CommunityPattern) {
+	cacheConfig := cfg.GetCacheConfig()
+	if !cacheConfig.Enabled {
+		return
+	}
+
+	communityCache, err := cache.DefaultCommunityCache()
+	if err != nil {
+		return
+	}
+
+	client, err := cloud.NewClient(cfg.Server.URL)
+	if err != nil {
+		return
+	}
+
+	// Cache top 3 patterns (to not overwhelm the server)
+	limit := 3
+	if len(patterns) < limit {
+		limit = len(patterns)
+	}
+
+	for _, p := range patterns[:limit] {
+		// Check if already cached
+		cached, _ := communityCache.Get(p.ID)
+		if cached != nil {
+			continue // Already in cache
+		}
+
+		// Fetch full pattern
+		detail, err := client.GetCommunityPattern(p.ID)
+		if err != nil {
+			continue
+		}
+
+		// Cache it
+		communityCache.Save(&cache.CachedPattern{
+			ID:          detail.ID,
+			Name:        detail.Name,
+			Description: detail.Description,
+			Content:     detail.Content,
+			Author:      detail.AuthorName,
+		})
+	}
 }

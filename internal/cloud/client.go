@@ -438,6 +438,29 @@ func (c *Client) SearchCommunity(query string, limit int) (*CommunityListRespons
 	return &resp, nil
 }
 
+// CommunityPatternDetail represents full pattern details from community
+type CommunityPatternDetail struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Content     string `json:"content"`
+	AuthorName  string `json:"author_name"`
+	AuthorLogin string `json:"author_login,omitempty"`
+	CopyCount   int    `json:"copy_count"`
+	ViewCount   int    `json:"view_count"`
+	StarCount   int    `json:"star_count"`
+}
+
+// GetCommunityPattern gets full details of a community pattern
+func (c *Client) GetCommunityPattern(id string) (*CommunityPatternDetail, error) {
+	var resp CommunityPatternDetail
+	path := fmt.Sprintf("/api/v1/community/patterns/%s", id)
+	if err := c.get(path, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
 // CopyPattern copies a community pattern to user's team
 func (c *Client) CopyPattern(patternID, teamID string) (*Pattern, error) {
 	req := map[string]string{"team_id": teamID}
