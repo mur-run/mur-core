@@ -106,9 +106,9 @@ mur sync (Pro/Team)
 #### 使用 Community Pattern
 
 ```bash
-# 方式 1：臨時注入（不下載）
+# 方式 1：臨時注入（自動快取）
 mur search "API retry" --inject
-# → 直接把 community 結果注入 AI，用完即丟
+# → 注入 AI，同時存到本地 cache
 
 # 方式 2：複製到本地（永久）
 mur community copy abc123
@@ -118,6 +118,67 @@ mur community copy abc123
 mur search "API retry"
 # → 本地 + community 結果一起顯示
 ```
+
+#### Local Cache 機制
+
+Community patterns 注入後會暫存在本地，避免重複下載：
+
+```
+~/.mur/
+├── patterns/              ← 你的 patterns（永久）
+└── cache/
+    └── community/         ← Community patterns 快取
+        ├── abc123.yaml    ← TTL 後自動清除
+        ├── def456.yaml
+        └── .cache-meta.json  ← 記錄 last_used, expires
+```
+
+**快取設定：**
+```yaml
+# ~/.mur/config.yaml
+cache:
+  community:
+    enabled: true
+    ttl_days: 7          # 7 天沒用就清除
+    max_size_mb: 50      # 最多佔 50MB
+    cleanup: on_sync     # 何時清理：on_sync | daily | manual
+```
+
+**快取流程：**
+```
+mur search "API retry" --inject
+         │
+         ▼
+┌─────────────────────────────┐
+│ 1. 查 local cache           │
+│    ~/.mur/cache/community/  │
+└──────────────┬──────────────┘
+               │
+     ┌─────────┴─────────┐
+     │ Cache hit?        │
+     ▼                   ▼
+   有 ✅               沒有
+   直接用              │
+   更新 last_used      ▼
+                ┌─────────────────┐
+                │ 2. 從 API 下載   │
+                │    存到 cache    │
+                └─────────────────┘
+```
+
+**自動清理策略（LRU）：**
+```
+每次 mur sync 時：
+  1. 刪除 last_used > ttl_days 的 patterns
+  2. 若 cache_size > max_size_mb，刪除最久沒用的
+```
+
+**好處：**
+| 場景 | 無 cache | 有 cache |
+|------|----------|----------|
+| 同樣 pattern 用 3 次 | 下載 3 次 | 下載 1 次 |
+| 離線工作 | ❌ 無法用 community | ✅ 可用已快取的 |
+| 磁碟空間 | 0 | 最多 50MB（可控） |
 
 #### 頻寬對比
 
@@ -427,7 +488,7 @@ Phase 3: 評估 Voyage Code 3
 
 **Deliverable:** Community search API live
 
-### Phase 3: CLI Integration (Week 3-4)
+### Phase 3: CLI Integration + Local Cache (Week 3-4)
 
 | Task | Priority | Effort |
 |------|----------|--------|
@@ -436,8 +497,12 @@ Phase 3: 評估 Voyage Code 3
 | `mur config set tech-stack` | P1 | 0.5d |
 | `--inject` 臨時注入功能 | P1 | 1d |
 | 更新 mur-index/SKILL.md 模板 | P0 | 0.5d |
+| **Local Cache: 快取目錄結構** | P0 | 0.5d |
+| **Local Cache: LRU 清理邏輯** | P0 | 1d |
+| **Local Cache: 整合到 inject 流程** | P0 | 0.5d |
+| **Local Cache: config 設定 (ttl, max_size)** | P1 | 0.5d |
 
-**Deliverable:** CLI 支援 community search
+**Deliverable:** CLI 支援 community search + Local Cache
 
 ### Phase 4: Optimization (Week 4-5)
 
