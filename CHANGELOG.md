@@ -2,6 +2,20 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [1.6.1] - 2026-02-13
+
+### Changed
+- **🚀 Lightweight mur-index**: Patterns now load on-demand via `mur search`
+  - Skills folders only contain `mur-index/SKILL.md` (instructs AI to use search)
+  - Patterns stay in `~/.mur/patterns/` and load via semantic search
+  - Scales to millions of community patterns without polluting skills folders
+  - 90%+ token savings compared to loading all patterns upfront
+
+### Fixed
+- **🧹 Clean up old pattern directories**: `mur clean --force` removes legacy format
+  - Removes individual pattern directories from skills folders
+  - Sync now auto-cleans old patterns during sync
+
 ## [1.6.0] - 2026-02-12
 
 ### Added
