@@ -42,6 +42,13 @@ var communityFeaturedCmd = &cobra.Command{
 	RunE:  runCommunityFeatured,
 }
 
+var communityUserCmd = &cobra.Command{
+	Use:   "user <login>",
+	Short: "View a user's profile and patterns",
+	Args:  cobra.ExactArgs(1),
+	RunE:  runCommunityUser,
+}
+
 var communityShareCmd = &cobra.Command{
 	Use:   "share [pattern-name]",
 	Short: "Share a pattern to the community",
@@ -72,6 +79,7 @@ func init() {
 	communityCmd.AddCommand(communityRecentCmd)
 	communityCmd.AddCommand(communityShareCmd)
 	communityCmd.AddCommand(communityFeaturedCmd)
+	communityCmd.AddCommand(communityUserCmd)
 
 	communityCmd.PersistentFlags().IntVarP(&communityLimit, "limit", "n", 10, "Number of results")
 	communityCopyCmd.Flags().StringVarP(&communityTeamID, "team", "t", "", "Target team ID")
@@ -242,6 +250,58 @@ func runCommunityFeatured(cmd *cobra.Command, args []string) error {
 
 	fmt.Println()
 	fmt.Println("Use 'mur community copy <name>' to copy a pattern")
+
+	return nil
+}
+
+func runCommunityUser(cmd *cobra.Command, args []string) error {
+	login := args[0]
+
+	client, err := cloud.NewClient("")
+	if err != nil {
+		return err
+	}
+
+	profile, err := client.GetUserProfile(login)
+	if err != nil {
+		return fmt.Errorf("failed to get profile: %w", err)
+	}
+
+	fmt.Printf("👤 %s", profile.Name)
+	if profile.Login != "" {
+		fmt.Printf(" (@%s)", profile.Login)
+	}
+	fmt.Println()
+	fmt.Println(strings.Repeat("━", 50))
+
+	if profile.Bio != "" {
+		fmt.Printf("   %s\n", profile.Bio)
+	}
+
+	fmt.Println()
+	fmt.Printf("   📊 %d patterns | ⬇️ %d copies | ⭐ %d stars\n",
+		profile.PatternCount, profile.TotalCopies, profile.TotalStars)
+
+	if profile.Website != "" || profile.GitHub != "" || profile.Twitter != "" {
+		fmt.Println()
+		if profile.Website != "" {
+			fmt.Printf("   🌐 %s\n", profile.Website)
+		}
+		if profile.GitHub != "" {
+			fmt.Printf("   🐙 github.com/%s\n", profile.GitHub)
+		}
+		if profile.Twitter != "" {
+			fmt.Printf("   🐦 @%s\n", profile.Twitter)
+		}
+	}
+
+	if len(profile.Patterns) > 0 {
+		fmt.Println()
+		fmt.Println("Patterns:")
+		for _, p := range profile.Patterns {
+			fmt.Printf("   • %s (⬇️ %d)\n", p.Name, p.CopyCount)
+		}
+	}
 
 	return nil
 }

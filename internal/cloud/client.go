@@ -438,6 +438,33 @@ func (c *Client) GetCommunityFeatured(limit int) (*CommunityListResponse, error)
 	return &resp, nil
 }
 
+// UserProfile represents a user's public profile
+type UserProfile struct {
+	ID           string            `json:"id"`
+	Name         string            `json:"name"`
+	Login        string            `json:"login,omitempty"`
+	Bio          string            `json:"bio,omitempty"`
+	Website      string            `json:"website,omitempty"`
+	GitHub       string            `json:"github,omitempty"`
+	Twitter      string            `json:"twitter,omitempty"`
+	Plan         string            `json:"plan"`
+	PatternCount int               `json:"pattern_count"`
+	TotalCopies  int               `json:"total_copies"`
+	TotalStars   int               `json:"total_stars"`
+	Patterns     []CommunityPattern `json:"patterns"`
+	JoinedAt     string            `json:"joined_at"`
+}
+
+// GetUserProfile returns a user's public profile
+func (c *Client) GetUserProfile(login string) (*UserProfile, error) {
+	var resp UserProfile
+	path := fmt.Sprintf("/api/v1/community/users/%s", login)
+	if err := c.get(path, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
 // SearchCommunity searches community patterns
 func (c *Client) SearchCommunity(query string, limit int) (*CommunityListResponse, error) {
 	return c.SearchCommunityWithTech(query, nil, limit)
