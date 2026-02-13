@@ -24,6 +24,86 @@ const (
 // L3Threshold is the default character count above which content is split to examples.md.
 const L3Threshold = 500
 
+// CleanOldPatternDirs removes old pattern directories from all skills folders.
+// This cleans up the legacy format where each pattern had its own directory.
+func CleanOldPatternDirs() (int, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return 0, fmt.Errorf("cannot determine home directory: %w", err)
+	}
+
+	cleaned := 0
+	for _, target := range DefaultPatternTargets() {
+		if !supportsDirectoryFormat(target) {
+			continue
+		}
+
+		targetDir := filepath.Join(home, target.SkillsDir)
+		count := cleanOldPatternDirsInTarget(targetDir)
+		cleaned += count
+	}
+
+	return cleaned, nil
+}
+
+// cleanOldPatternDirsInTarget removes old pattern directories from a specific target.
+func cleanOldPatternDirsInTarget(targetDir string) int {
+	if _, err := os.Stat(targetDir); os.IsNotExist(err) {
+		return 0
+	}
+
+	entries, err := os.ReadDir(targetDir)
+	if err != nil {
+		return 0
+	}
+
+	cleaned := 0
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		// Skip mur-index (the new format)
+		if entry.Name() == "mur-index" {
+			continue
+		}
+		// Check if this looks like a mur pattern directory (has SKILL.md inside)
+		skillPath := filepath.Join(targetDir, entry.Name(), "SKILL.md")
+		if _, err := os.Stat(skillPath); err == nil {
+			// Read SKILL.md to confirm it's mur-generated
+			content, err := os.ReadFile(skillPath)
+			if err == nil && looksLikeMurPattern(string(content)) {
+				// This is an old mur pattern directory, remove it
+				if err := os.RemoveAll(filepath.Join(targetDir, entry.Name())); err == nil {
+					cleaned++
+				}
+			}
+		}
+	}
+
+	return cleaned
+}
+
+// looksLikeMurPattern checks if SKILL.md content looks like a mur-generated pattern.
+func looksLikeMurPattern(content string) bool {
+	// Check for common mur pattern markers
+	markers := []string{
+		"mur",
+		"pattern",
+		"Tags:",
+		"## Instructions",
+		"## Problem",
+		"## Solution",
+		"## Why This Is Non-Obvious",
+		"## Verification",
+	}
+	for _, marker := range markers {
+		if strings.Contains(content, marker) {
+			return true
+		}
+	}
+	return false
+}
+
 // PatternTarget defines where patterns are synced to for each CLI.
 type PatternTarget struct {
 	Name       string
@@ -243,14 +323,15 @@ func SyncPatternsWithFormat(cfg *config.Config) ([]SyncResult, error) {
 	}
 }
 
-// SyncPatternsDirectory syncs patterns as individual skill directories.
+// SyncPatternsDirectory syncs a lightweight mur-index skill that instructs AI to use `mur search`.
+// Patterns stay in ~/.mur/patterns/ and are loaded on-demand via semantic search.
 func SyncPatternsDirectory(cfg *config.Config) ([]SyncResult, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return nil, fmt.Errorf("cannot determine home directory: %w", err)
 	}
 
-	// Load patterns
+	// Load patterns to get count
 	store, err := pattern.DefaultStore()
 	if err != nil {
 		return nil, fmt.Errorf("cannot access pattern store: %w", err)
@@ -261,31 +342,22 @@ func SyncPatternsDirectory(cfg *config.Config) ([]SyncResult, error) {
 		return nil, fmt.Errorf("cannot load patterns: %w", err)
 	}
 
-	if len(patterns) == 0 {
-		return []SyncResult{{
-			Target:  "patterns",
-			Success: true,
-			Message: "No patterns to sync",
-		}}, nil
-	}
+	patternCount := len(patterns)
 
-	// Sort patterns by effectiveness
-	sort.Slice(patterns, func(i, j int) bool {
-		return patterns[i].Learning.Effectiveness > patterns[j].Learning.Effectiveness
-	})
-
-	// Sync to each target that supports directory format
+	// Sync to each target
 	var results []SyncResult
 	for _, target := range DefaultPatternTargets() {
-		// Only sync to targets that use skills directories (not single file like Codex)
+		// For single-file targets, use legacy format
 		if !supportsDirectoryFormat(target) {
-			// Fall back to single file for non-supporting targets
-			result := syncSingleFile(home, target, patterns)
-			results = append(results, result)
+			if patternCount > 0 {
+				result := syncSingleFile(home, target, patterns)
+				results = append(results, result)
+			}
 			continue
 		}
 
-		result := syncDirectoryFormat(home, target, patterns, cfg)
+		// For directory-supporting targets, create lightweight mur-index
+		result := syncMurIndex(home, target, patternCount, cfg)
 		results = append(results, result)
 	}
 
@@ -303,50 +375,72 @@ func supportsDirectoryFormat(target PatternTarget) bool {
 	return !noDirectory[target.Name]
 }
 
-// syncDirectoryFormat syncs patterns as individual directories to a target.
-func syncDirectoryFormat(home string, target PatternTarget, patterns []pattern.Pattern, cfg *config.Config) SyncResult {
+// syncMurIndex creates a lightweight mur-index skill that instructs AI to use `mur search`.
+func syncMurIndex(home string, target PatternTarget, patternCount int, cfg *config.Config) SyncResult {
 	targetDir := filepath.Join(home, target.SkillsDir)
+	indexDir := filepath.Join(targetDir, "mur-index")
 
-	// Clean old single-file format if requested
-	if cfg.Sync.CleanOld {
-		oldFile := filepath.Join(targetDir, target.FileName)
-		_ = os.Remove(oldFile)
-	}
+	// Clean old single-file format
+	oldFile := filepath.Join(targetDir, target.FileName)
+	_ = os.Remove(oldFile)
 
-	// Create target directory
-	if err := os.MkdirAll(targetDir, 0755); err != nil {
+	// Clean old pattern directories (legacy format)
+	cleanOldPatternDirsInTarget(targetDir)
+
+	// Create mur-index directory
+	if err := os.MkdirAll(indexDir, 0755); err != nil {
 		return SyncResult{
 			Target:  target.Name,
 			Success: false,
-			Message: fmt.Sprintf("Cannot create directory: %v", err),
+			Message: fmt.Sprintf("Cannot create mur-index directory: %v", err),
 		}
 	}
 
-	// Generate mur-index skill (L1)
-	if err := generateIndexSkill(targetDir, patterns); err != nil {
+	// Generate lightweight SKILL.md
+	skillContent := generateLightweightIndex(patternCount)
+	skillPath := filepath.Join(indexDir, "SKILL.md")
+	if err := os.WriteFile(skillPath, []byte(skillContent), 0644); err != nil {
 		return SyncResult{
 			Target:  target.Name,
 			Success: false,
-			Message: fmt.Sprintf("Cannot create index: %v", err),
-		}
-	}
-
-	// Generate individual pattern skills (L2/L3)
-	for _, p := range patterns {
-		if err := generatePatternSkillDir(targetDir, p, cfg); err != nil {
-			return SyncResult{
-				Target:  target.Name,
-				Success: false,
-				Message: fmt.Sprintf("Cannot create pattern %s: %v", p.Name, err),
-			}
+			Message: fmt.Sprintf("Cannot write SKILL.md: %v", err),
 		}
 	}
 
 	return SyncResult{
 		Target:  target.Name,
 		Success: true,
-		Message: fmt.Sprintf("Synced %d patterns (directory format)", len(patterns)),
+		Message: fmt.Sprintf("Synced mur-index (%d patterns available)", patternCount),
 	}
+}
+
+// generateLightweightIndex creates a minimal SKILL.md that tells AI to use mur search.
+func generateLightweightIndex(patternCount int) string {
+	return fmt.Sprintf(`# mur-index
+
+Pattern library with %d learned patterns. **Do NOT load all patterns at once.**
+
+## Usage
+
+When you encounter a problem or need guidance, search for relevant patterns:
+
+%s
+
+## Examples
+
+- %s - Find API error handling patterns  
+- %s - Find Swift async patterns
+- %s - Find Git workflow patterns
+
+Patterns are loaded on-demand to save tokens and stay relevant.
+
+*Managed by [mur](https://github.com/mur-run/mur-core). Updated: %s*
+`, patternCount,
+		"`mur search \"<your query>\"`",
+		"`mur search \"API retry\"`",
+		"`mur search \"async await\"`",
+		"`mur search \"git branching\"`",
+		time.Now().Format("2006-01-02 15:04"))
 }
 
 // syncSingleFile syncs patterns as a single file (legacy format).
@@ -384,177 +478,6 @@ func syncSingleFile(home string, target PatternTarget, patterns []pattern.Patter
 	}
 }
 
-// generateIndexSkill creates the mur-index/SKILL.md file (L1).
-func generateIndexSkill(targetDir string, patterns []pattern.Pattern) error {
-	indexDir := filepath.Join(targetDir, "mur-index")
-	if err := os.MkdirAll(indexDir, 0755); err != nil {
-		return err
-	}
-
-	var sb strings.Builder
-	sb.WriteString("# mur-index\n\n")
-	sb.WriteString("Pattern library managed by [mur](https://github.com/mur-run/mur-core).\n\n")
-	sb.WriteString("## Available Patterns\n\n")
-
-	// Group patterns by domain
-	domains := make(map[string][]pattern.Pattern)
-	for _, p := range patterns {
-		domain := p.GetPrimaryDomain()
-		domains[domain] = append(domains[domain], p)
-	}
-
-	// Sort domain names
-	var domainNames []string
-	for d := range domains {
-		domainNames = append(domainNames, d)
-	}
-	sort.Strings(domainNames)
-
-	for _, domain := range domainNames {
-		sb.WriteString(fmt.Sprintf("### %s\n\n", strings.Title(domain)))
-		for _, p := range domains[domain] {
-			skillName := getSkillDirName(p, true)
-			sb.WriteString(fmt.Sprintf("- **%s**: %s\n", skillName, p.Description))
-		}
-		sb.WriteString("\n")
-	}
-
-	sb.WriteString("## Usage\n\n")
-	sb.WriteString("These patterns are loaded on-demand. When your task matches a pattern,\n")
-	sb.WriteString("the relevant skill will be loaded automatically.\n\n")
-	sb.WriteString(fmt.Sprintf("*Updated: %s*\n", time.Now().Format("2006-01-02 15:04")))
-
-	skillPath := filepath.Join(indexDir, "SKILL.md")
-	return os.WriteFile(skillPath, []byte(sb.String()), 0644)
-}
-
-// generatePatternSkillDir creates an individual pattern skill directory (L2/L3).
-func generatePatternSkillDir(targetDir string, p pattern.Pattern, cfg *config.Config) error {
-	skillName := getSkillDirName(p, cfg.Sync.GetPrefixDomain())
-	skillDir := filepath.Join(targetDir, skillName)
-
-	if err := os.MkdirAll(skillDir, 0755); err != nil {
-		return err
-	}
-
-	// Determine if we need L3 split
-	threshold := cfg.Sync.L3Threshold
-	if threshold == 0 {
-		threshold = L3Threshold
-	}
-
-	needsL3 := len(p.Content) > threshold || strings.Count(p.Content, "```") >= 2
-
-	// Generate SKILL.md (L2)
-	skillContent := generateL2Skill(p, needsL3)
-	skillPath := filepath.Join(skillDir, "SKILL.md")
-	if err := os.WriteFile(skillPath, []byte(skillContent), 0644); err != nil {
-		return err
-	}
-
-	// Generate examples.md (L3) if needed
-	if needsL3 {
-		examplesPath := filepath.Join(skillDir, "examples.md")
-		if err := os.WriteFile(examplesPath, []byte(p.Content), 0644); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// generateL2Skill generates the SKILL.md content for a pattern.
-func generateL2Skill(p pattern.Pattern, hasExamples bool) string {
-	var sb strings.Builder
-
-	sb.WriteString(fmt.Sprintf("# %s\n\n", p.Name))
-
-	if p.Description != "" {
-		sb.WriteString(fmt.Sprintf("%s\n\n", p.Description))
-	}
-
-	// Tags
-	var tags []string
-	for _, t := range p.Tags.Confirmed {
-		tags = append(tags, t)
-	}
-	for _, ts := range p.Tags.Inferred {
-		if ts.Confidence >= 0.7 {
-			tags = append(tags, ts.Tag)
-		}
-	}
-	if len(tags) > 0 {
-		sb.WriteString(fmt.Sprintf("**Tags:** %s\n\n", strings.Join(tags, ", ")))
-	}
-
-	if hasExamples {
-		// L2: Summary only, point to L3
-		sb.WriteString("## Instructions\n\n")
-		// Extract first paragraph or first 300 chars as summary
-		summary := extractSummary(p.Content, 300)
-		sb.WriteString(summary)
-		sb.WriteString("\n\n")
-		sb.WriteString("For detailed examples and implementation, see `examples.md`.\n")
-	} else {
-		// Include full content in L2
-		sb.WriteString("## Instructions\n\n")
-		sb.WriteString(p.Content)
-		if !strings.HasSuffix(p.Content, "\n") {
-			sb.WriteString("\n")
-		}
-	}
-
-	return sb.String()
-}
-
-// getSkillDirName returns the directory name for a pattern skill.
-func getSkillDirName(p pattern.Pattern, prefixDomain bool) string {
-	name := strings.ToLower(p.Name)
-	name = strings.ReplaceAll(name, " ", "-")
-
-	if !prefixDomain {
-		return name
-	}
-
-	domain := p.GetPrimaryDomain()
-	if domain == "general" || domain == "" {
-		return name
-	}
-
-	// Avoid redundant prefix like "swift--swift-testing"
-	// If name already starts with domain prefix, just replace - with --
-	domainPrefix := domain + "-"
-	if strings.HasPrefix(name, domainPrefix) {
-		// swift-testing-macro -> swift--testing-macro
-		return domain + "--" + strings.TrimPrefix(name, domainPrefix)
-	}
-
-	return fmt.Sprintf("%s--%s", domain, name)
-}
-
-// extractSummary extracts a summary from content (first paragraph or maxLen chars).
-func extractSummary(content string, maxLen int) string {
-	// Try to find first paragraph
-	lines := strings.Split(content, "\n")
-	var para []string
-	for _, line := range lines {
-		if strings.TrimSpace(line) == "" && len(para) > 0 {
-			break
-		}
-		if strings.TrimSpace(line) != "" {
-			para = append(para, line)
-		}
-	}
-
-	summary := strings.Join(para, "\n")
-	if len(summary) > maxLen {
-		// Truncate at word boundary
-		summary = summary[:maxLen]
-		if idx := strings.LastIndex(summary, " "); idx > maxLen/2 {
-			summary = summary[:idx]
-		}
-		summary += "..."
-	}
-
-	return summary
-}
+// NOTE: Legacy functions generateIndexSkill, generatePatternSkillDir, generateL2Skill,
+// getSkillDirName, and extractSummary were removed in favor of the lightweight
+// mur-index approach. See git history if needed.

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mur-run/mur-core/internal/sync"
 	"github.com/spf13/cobra"
 )
 
@@ -125,6 +126,30 @@ func runClean(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Clean old pattern directories from skills folders (legacy format)
+	fmt.Println("📂 Old pattern directories:")
+	if cleanForce {
+		cleaned, err := sync.CleanOldPatternDirs()
+		if err != nil {
+			fmt.Printf("   Error cleaning: %v\n", err)
+		} else if cleaned > 0 {
+			fmt.Printf("   ✓ Removed %d old pattern directories\n", cleaned)
+			fileCount += cleaned
+		} else {
+			fmt.Println("   (none found)")
+		}
+	} else {
+		// Preview mode - count what would be cleaned
+		previewCount := countOldPatternDirs(home)
+		if previewCount > 0 {
+			fmt.Printf("   Would remove %d old pattern directories from skills folders\n", previewCount)
+			fileCount += previewCount
+		} else {
+			fmt.Println("   (none found)")
+		}
+	}
+	fmt.Println()
+
 	// Clean orphaned sync files
 	syncTargets := []struct {
 		name string
@@ -237,4 +262,58 @@ func formatSize(bytes int64) string {
 		exp++
 	}
 	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
+}
+
+// countOldPatternDirs counts old pattern directories for preview mode.
+func countOldPatternDirs(home string) int {
+	count := 0
+	skillsDirs := []string{
+		filepath.Join(home, ".claude", "skills"),
+		filepath.Join(home, ".gemini", "skills"),
+		filepath.Join(home, ".augment", "skills"),
+		filepath.Join(home, ".opencode", "skills"),
+		filepath.Join(home, ".continue", "rules"),
+		filepath.Join(home, ".cursor", "rules"),
+		filepath.Join(home, ".windsurf", "rules"),
+	}
+
+	for _, dir := range skillsDirs {
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			continue
+		}
+		for _, entry := range entries {
+			if !entry.IsDir() || entry.Name() == "mur-index" {
+				continue
+			}
+			skillPath := filepath.Join(dir, entry.Name(), "SKILL.md")
+			if _, err := os.Stat(skillPath); err == nil {
+				content, _ := os.ReadFile(skillPath)
+				if looksLikeMurPattern(string(content)) {
+					count++
+				}
+			}
+		}
+	}
+	return count
+}
+
+// looksLikeMurPattern checks if SKILL.md content looks like a mur-generated pattern.
+func looksLikeMurPattern(content string) bool {
+	markers := []string{
+		"mur",
+		"pattern",
+		"Tags:",
+		"## Instructions",
+		"## Problem",
+		"## Solution",
+		"## Why This Is Non-Obvious",
+		"## Verification",
+	}
+	for _, marker := range markers {
+		if strings.Contains(content, marker) {
+			return true
+		}
+	}
+	return false
 }
