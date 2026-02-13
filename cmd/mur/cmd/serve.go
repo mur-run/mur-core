@@ -377,28 +377,36 @@ func getSyncTargets() []SyncTarget {
 	home, _ := os.UserHomeDir()
 	targets := []SyncTarget{
 		// CLIs
-		{Name: "Claude Code", Type: "cli", Path: filepath.Join(home, ".claude", "skills", "mur")},
-		{Name: "Gemini CLI", Type: "cli", Path: filepath.Join(home, ".gemini", "skills", "mur")},
+		{Name: "Claude Code", Type: "cli", Path: filepath.Join(home, ".claude", "skills", "mur-index")},
+		{Name: "Gemini CLI", Type: "cli", Path: filepath.Join(home, ".gemini", "skills", "mur-index")},
 		{Name: "Codex CLI", Type: "cli", Path: filepath.Join(home, ".codex", "instructions.md")},
-		{Name: "Auggie", Type: "cli", Path: filepath.Join(home, ".augment", "skills", "mur")},
-		{Name: "Aider", Type: "cli", Path: filepath.Join(home, ".aider", "mur-patterns.md")},
+		{Name: "Auggie", Type: "cli", Path: filepath.Join(home, ".augment", "skills", "mur-index")},
+		{Name: "Aider", Type: "cli", Path: filepath.Join(home, ".aider", "conventions.md")},
 		// IDEs
-		{Name: "Continue", Type: "ide", Path: filepath.Join(home, ".continue", "rules", "mur")},
-		{Name: "Cursor", Type: "ide", Path: filepath.Join(home, ".cursor", "rules", "mur")},
-		{Name: "Windsurf", Type: "ide", Path: filepath.Join(home, ".windsurf", "rules", "mur")},
+		{Name: "Continue", Type: "ide", Path: filepath.Join(home, ".continue", "rules", "mur-index")},
+		{Name: "Cursor", Type: "ide", Path: filepath.Join(home, ".cursor", "rules", "mur-index")},
+		{Name: "Windsurf", Type: "ide", Path: filepath.Join(home, ".windsurf", "rules", "mur-index")},
 	}
 
 	for i := range targets {
 		info, err := os.Stat(targets[i].Path)
 		if err == nil {
 			targets[i].Exists = true
+			targets[i].LastMod = info.ModTime().Format("Jan 2 15:04")
 			if info.IsDir() {
-				files, _ := os.ReadDir(targets[i].Path)
-				targets[i].FileCount = len(files)
+				// Count pattern directories in parent (skills/rules dir)
+				parentDir := filepath.Dir(targets[i].Path)
+				entries, _ := os.ReadDir(parentDir)
+				count := 0
+				for _, e := range entries {
+					if e.IsDir() {
+						count++
+					}
+				}
+				targets[i].FileCount = count
 			} else {
 				targets[i].FileCount = 1
 			}
-			targets[i].LastMod = info.ModTime().Format("Jan 2 15:04")
 		}
 	}
 
