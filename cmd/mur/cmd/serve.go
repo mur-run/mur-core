@@ -377,15 +377,16 @@ func buildDashboardData(patterns []pattern.Pattern) DashboardData {
 func getSyncTargets() []SyncTarget {
 	home, _ := os.UserHomeDir()
 	
-	// Check which tools are installed (check directory or command)
-	claudeInstalled := fileExists(filepath.Join(home, ".claude")) || commandExists("claude")
-	geminiInstalled := fileExists(filepath.Join(home, ".gemini")) || commandExists("gemini")
-	codexInstalled := fileExists(filepath.Join(home, ".codex")) || commandExists("codex")
-	auggieInstalled := fileExists(filepath.Join(home, ".augment")) || commandExists("auggie")
-	aiderInstalled := fileExists(filepath.Join(home, ".aider")) || commandExists("aider")
-	cursorInstalled := fileExists(filepath.Join(home, ".cursor"))
-	windsurfInstalled := fileExists(filepath.Join(home, ".windsurf"))
-	continueInstalled := fileExists(filepath.Join(home, ".continue"))
+	// Strict tool detection: check for actual binaries or app bundles
+	claudeInstalled := commandExists("claude") || fileExists(filepath.Join(home, ".npm-global", "bin", "claude"))
+	geminiInstalled := commandExists("gemini") || fileExists(filepath.Join(home, ".npm-global", "bin", "gemini"))
+	codexInstalled := commandExists("codex") || fileExists(filepath.Join(home, ".npm-global", "bin", "codex"))
+	auggieInstalled := commandExists("auggie") || fileExists(filepath.Join(home, ".npm-global", "bin", "auggie"))
+	aiderInstalled := commandExists("aider")
+	// IDEs: check for app bundle or settings that indicate actual usage
+	cursorInstalled := fileExists("/Applications/Cursor.app") || fileExists(filepath.Join(home, "Applications", "Cursor.app"))
+	windsurfInstalled := fileExists("/Applications/Windsurf.app") || fileExists(filepath.Join(home, "Applications", "Windsurf.app"))
+	continueInstalled := fileExists(filepath.Join(home, ".continue", "config.json"))
 	
 	targets := []SyncTarget{
 		// CLIs
