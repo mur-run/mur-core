@@ -965,7 +965,7 @@ const dashboardHTML = `<!DOCTYPE html>
 <body>
     <div class="container">
         <header>
-            <div class="logo">MUR<span> Core</span></div>
+            <div class="logo">MUR<span> Core Dashboard</span></div>
             <div class="header-right">
                 <span class="version">v{{.Version}}</span>
                 <span class="generated">{{.GeneratedAt}}</span>

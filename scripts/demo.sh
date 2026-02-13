@@ -68,23 +68,11 @@ scene "6. Status"
 run_cmd "mur status"
 wait_key
 
-# ===== Scene 7 =====
-scene "7. Dashboard"
-echo -e "${GREEN}${BOLD}\$ mur serve${NC}"
-echo ""
-echo "Starting dashboard at http://localhost:3377"
-mur serve &
-PID=$!
-sleep 2
-open http://localhost:3377
-
-echo ""
-echo "Press Enter when done with dashboard..."
-read
-kill $PID 2>/dev/null || true
-
 # ===== Done =====
-clear
-scene "✅ Demo Complete!"
-echo "Now open: https://app.mur.run"
+echo ""
+scene "✅ Terminal Demo Complete!"
+echo ""
+echo "Next: Record browser manually"
+echo "  1. mur serve  → http://localhost:3377"
+echo "  2. https://app.mur.run"
 echo ""
