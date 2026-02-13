@@ -121,6 +121,7 @@ type SyncTarget struct {
 	Exists    bool
 	FileCount int
 	LastMod   string
+	Installed bool // Tool is installed on system
 }
 
 func runServe(cmd *cobra.Command, args []string) error {
@@ -375,17 +376,28 @@ func buildDashboardData(patterns []pattern.Pattern) DashboardData {
 
 func getSyncTargets() []SyncTarget {
 	home, _ := os.UserHomeDir()
+	
+	// Check which tools are installed (check directory or command)
+	claudeInstalled := fileExists(filepath.Join(home, ".claude")) || commandExists("claude")
+	geminiInstalled := fileExists(filepath.Join(home, ".gemini")) || commandExists("gemini")
+	codexInstalled := fileExists(filepath.Join(home, ".codex")) || commandExists("codex")
+	auggieInstalled := fileExists(filepath.Join(home, ".augment")) || commandExists("auggie")
+	aiderInstalled := fileExists(filepath.Join(home, ".aider")) || commandExists("aider")
+	cursorInstalled := fileExists(filepath.Join(home, ".cursor"))
+	windsurfInstalled := fileExists(filepath.Join(home, ".windsurf"))
+	continueInstalled := fileExists(filepath.Join(home, ".continue"))
+	
 	targets := []SyncTarget{
 		// CLIs
-		{Name: "Claude Code", Type: "cli", Path: filepath.Join(home, ".claude", "skills", "mur-index")},
-		{Name: "Gemini CLI", Type: "cli", Path: filepath.Join(home, ".gemini", "skills", "mur-index")},
-		{Name: "Codex CLI", Type: "cli", Path: filepath.Join(home, ".codex", "instructions.md")},
-		{Name: "Auggie", Type: "cli", Path: filepath.Join(home, ".augment", "skills", "mur-index")},
-		{Name: "Aider", Type: "cli", Path: filepath.Join(home, ".aider", "conventions.md")},
+		{Name: "Claude Code", Type: "cli", Path: filepath.Join(home, ".claude", "skills", "mur-index"), Installed: claudeInstalled},
+		{Name: "Gemini CLI", Type: "cli", Path: filepath.Join(home, ".gemini", "skills", "mur-index"), Installed: geminiInstalled},
+		{Name: "Codex CLI", Type: "cli", Path: filepath.Join(home, ".codex", "instructions.md"), Installed: codexInstalled},
+		{Name: "Auggie", Type: "cli", Path: filepath.Join(home, ".augment", "skills", "mur-index"), Installed: auggieInstalled},
+		{Name: "Aider", Type: "cli", Path: filepath.Join(home, ".aider", "conventions.md"), Installed: aiderInstalled},
 		// IDEs
-		{Name: "Continue", Type: "ide", Path: filepath.Join(home, ".continue", "rules", "mur-index")},
-		{Name: "Cursor", Type: "ide", Path: filepath.Join(home, ".cursor", "rules", "mur-index")},
-		{Name: "Windsurf", Type: "ide", Path: filepath.Join(home, ".windsurf", "rules", "mur-index")},
+		{Name: "Continue", Type: "ide", Path: filepath.Join(home, ".continue", "rules", "mur-index"), Installed: continueInstalled},
+		{Name: "Cursor", Type: "ide", Path: filepath.Join(home, ".cursor", "rules", "mur-index"), Installed: cursorInstalled},
+		{Name: "Windsurf", Type: "ide", Path: filepath.Join(home, ".windsurf", "rules", "mur-index"), Installed: windsurfInstalled},
 	}
 
 	for i := range targets {
@@ -482,6 +494,11 @@ func openBrowser(url string) {
 		execCmd := exec.Command(cmd, args...)
 		execCmd.Run()
 	}()
+}
+
+func commandExists(cmd string) bool {
+	_, err := exec.LookPath(cmd)
+	return err == nil
 }
 
 func fileExists(path string) bool {
@@ -1044,6 +1061,7 @@ const dashboardHTML = `<!DOCTYPE html>
                     </div>
                     <div class="sync-grid">
                         {{range .SyncTargets}}
+                        {{if .Installed}}
                         <div class="sync-item">
                             <div class="sync-icon {{.Type}}">
                                 {{if eq .Type "cli"}}⌨️{{else}}🖥️{{end}}
@@ -1056,6 +1074,7 @@ const dashboardHTML = `<!DOCTYPE html>
                             </div>
                             <div class="sync-status {{if not .Exists}}inactive{{end}}"></div>
                         </div>
+                        {{end}}
                         {{end}}
                     </div>
                 </div>
