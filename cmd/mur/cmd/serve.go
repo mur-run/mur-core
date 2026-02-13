@@ -203,7 +203,9 @@ func serveDashboard(w http.ResponseWriter, r *http.Request, store *pattern.Store
 	}
 
 	tmpl := template.Must(template.New("dashboard").Funcs(funcMap).Parse(dashboardHTML))
-	tmpl.Execute(w, data)
+	if err := tmpl.Execute(w, data); err != nil {
+		fmt.Printf("Template error: %v\n", err)
+	}
 }
 
 func servePatterns(w http.ResponseWriter, r *http.Request, store *pattern.Store) {
@@ -1133,7 +1135,7 @@ const dashboardHTML = `<!DOCTYPE html>
                 <div class="pattern-card" onclick="showPattern('{{.Name}}')">
                     <div class="pattern-header">
                         <span class="pattern-name">{{.Name}}</span>
-                        {{if gt .Effectiveness 0}}
+                        {{if gt .Effectiveness 0.0}}
                         <span class="pattern-effectiveness {{if lt .Effectiveness 0.5}}low{{end}}">{{printf "%.0f" (mul .Effectiveness 100)}}%</span>
                         {{end}}
                     </div>
@@ -1187,7 +1189,7 @@ const dashboardHTML = `<!DOCTYPE html>
                      onclick="showPattern('{{.Name}}')">
                     <div class="pattern-header">
                         <span class="pattern-name">{{.Name}}</span>
-                        {{if gt .Effectiveness 0}}
+                        {{if gt .Effectiveness 0.0}}
                         <span class="pattern-effectiveness {{if lt .Effectiveness 0.5}}low{{end}}">{{printf "%.0f" (mul .Effectiveness 100)}}%</span>
                         {{end}}
                     </div>
@@ -1352,10 +1354,16 @@ const dashboardHTML = `<!DOCTYPE html>
             try {
                 const res = await fetch('/api/sync', { method: 'POST' });
                 const result = await res.json();
-                showToast(result.success ? 'Sync completed!' : 'Sync failed', result.success ? 'success' : 'error');
+                if (result.success) {
+                    showToast('Sync completed! Refreshing...', 'success');
+                    setTimeout(() => window.location.reload(), 1500);
+                } else {
+                    showToast('Sync failed: ' + (result.output || 'Unknown error'), 'error');
+                    btn.disabled = false;
+                    btn.textContent = 'Sync Now';
+                }
             } catch (err) {
                 showToast('Sync error: ' + err.message, 'error');
-            } finally {
                 btn.disabled = false;
                 btn.textContent = 'Sync Now';
             }
