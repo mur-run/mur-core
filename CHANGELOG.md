@@ -2,6 +2,31 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [1.6.2] - 2026-02-13
+
+### Added
+- **🔍 Community Search**: Search community patterns from CLI
+  - `mur search --community "query"` — Include community in search
+  - `mur search --community-only "query"` — Search only community
+  - `mur search --local "query"` — Search only local patterns
+  - Tech stack filtering via `tech_stack` config
+
+- **⚙️ Tech Stack Config**: Filter community results by your stack
+  - `mur config set tech_stack "swift,go,docker"`
+  - Automatically filters community search results
+
+- **💾 Community Cache**: Local cache for injected community patterns
+  - Auto-caches top patterns when using `--inject`
+  - 7-day TTL, 50MB max, LRU cleanup
+  - `mur config set cache.community.enabled true/false`
+  - Cleanup on `mur sync` (configurable)
+
+### Changed
+- **🚀 Hybrid Search (Server)**: BM25 + keyword with RRF fusion
+  - Full-text search using PostgreSQL tsvector
+  - Weighted ranking: name (A) > description (B) > content (C)
+  - ~84% precision target (up from ~62% ILIKE-only)
+
 ## [1.6.1] - 2026-02-13
 
 ### Changed
