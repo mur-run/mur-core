@@ -14,17 +14,19 @@ import (
 
 var transcriptsCmd = &cobra.Command{
 	Use:   "transcripts",
-	Short: "Browse Claude Code session transcripts",
-	Long: `List and view Claude Code session transcripts.
+	Short: "Browse AI coding session transcripts",
+	Long: `List and view AI coding session transcripts.
 
-Transcripts are stored in ~/.claude/projects/ and contain
-conversation history that can be used for pattern extraction.
+Supported sources:
+  - Claude Code: ~/.claude/projects/
+  - OpenClaw:    ~/.openclaw/agents/main/sessions/
 
 Examples:
   mur transcripts                    # List recent sessions
   mur transcripts --all              # List all sessions
   mur transcripts show <session>     # View a session
-  mur transcripts --project BitL     # Filter by project name`,
+  mur transcripts --project BitL     # Filter by project name
+  mur transcripts --source openclaw  # Filter by source`,
 	RunE: runTranscripts,
 }
 
@@ -39,6 +41,7 @@ var (
 	transcriptsAll     bool
 	transcriptsProject string
 	transcriptsLimit   int
+	transcriptsSource  string
 )
 
 func init() {
@@ -48,6 +51,7 @@ func init() {
 	transcriptsCmd.Flags().BoolVar(&transcriptsAll, "all", false, "Show all sessions")
 	transcriptsCmd.Flags().StringVar(&transcriptsProject, "project", "", "Filter by project name")
 	transcriptsCmd.Flags().IntVarP(&transcriptsLimit, "limit", "n", 20, "Max sessions to show")
+	transcriptsCmd.Flags().StringVar(&transcriptsSource, "source", "", "Filter by source (claude, openclaw)")
 }
 
 // Session represents a Claude Code session
@@ -74,20 +78,35 @@ func runTranscripts(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	projectsDir := filepath.Join(home, ".claude", "projects")
-	if _, err := os.Stat(projectsDir); os.IsNotExist(err) {
-		fmt.Println("No Claude Code sessions found.")
-		fmt.Println("Sessions are stored in ~/.claude/projects/")
-		return nil
+	var sessions []Session
+
+	// Collect Claude Code sessions
+	if transcriptsSource == "" || transcriptsSource == "claude" {
+		claudeDir := filepath.Join(home, ".claude", "projects")
+		if _, err := os.Stat(claudeDir); err == nil {
+			claudeSessions, err := findClaudeSessions(claudeDir)
+			if err == nil {
+				sessions = append(sessions, claudeSessions...)
+			}
+		}
 	}
 
-	sessions, err := findSessions(projectsDir)
-	if err != nil {
-		return fmt.Errorf("failed to scan sessions: %w", err)
+	// Collect OpenClaw sessions
+	if transcriptsSource == "" || transcriptsSource == "openclaw" {
+		openclawDir := filepath.Join(home, ".openclaw", "agents", "main", "sessions")
+		if _, err := os.Stat(openclawDir); err == nil {
+			openclawSessions, err := findOpenClawSessions(openclawDir)
+			if err == nil {
+				sessions = append(sessions, openclawSessions...)
+			}
+		}
 	}
 
 	if len(sessions) == 0 {
 		fmt.Println("No sessions found.")
+		fmt.Println("Supported sources:")
+		fmt.Println("  - Claude Code: ~/.claude/projects/")
+		fmt.Println("  - OpenClaw:    ~/.openclaw/agents/main/sessions/")
 		return nil
 	}
 
@@ -114,19 +133,19 @@ func runTranscripts(cmd *cobra.Command, args []string) error {
 
 	// Display
 	fmt.Println()
-	fmt.Println("📜 Claude Code Sessions")
-	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	fmt.Printf("%-20s %-30s %6s %s\n", "SESSION", "PROJECT", "MSGS", "LAST MODIFIED")
-	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+	fmt.Println("📜 AI Coding Sessions")
+	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+	fmt.Printf("%-20s %-24s %6s %s\n", "SESSION", "PROJECT", "MSGS", "LAST MODIFIED")
+	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
 	for _, s := range sessions {
 		project := s.Project
-		if len(project) > 28 {
-			project = project[:25] + "..."
+		if len(project) > 22 {
+			project = project[:19] + "..."
 		}
 
 		age := formatAge(s.LastModified)
-		fmt.Printf("%-20s %-30s %6d %s\n", s.ID[:min(20, len(s.ID))], project, s.MessageCount, age)
+		fmt.Printf("%-20s %-24s %6d %s\n", s.ID[:min(20, len(s.ID))], project, s.MessageCount, age)
 	}
 
 	fmt.Println()
@@ -151,10 +170,19 @@ func runTranscriptsShow(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	projectsDir := filepath.Join(home, ".claude", "projects")
-	sessions, err := findSessions(projectsDir)
-	if err != nil {
-		return err
+	var sessions []Session
+
+	// Collect from all sources
+	claudeDir := filepath.Join(home, ".claude", "projects")
+	if _, err := os.Stat(claudeDir); err == nil {
+		claudeSessions, _ := findClaudeSessions(claudeDir)
+		sessions = append(sessions, claudeSessions...)
+	}
+
+	openclawDir := filepath.Join(home, ".openclaw", "agents", "main", "sessions")
+	if _, err := os.Stat(openclawDir); err == nil {
+		openclawSessions, _ := findOpenClawSessions(openclawDir)
+		sessions = append(sessions, openclawSessions...)
 	}
 
 	// Find matching session
@@ -220,7 +248,7 @@ func runTranscriptsShow(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func findSessions(projectsDir string) ([]Session, error) {
+func findClaudeSessions(projectsDir string) ([]Session, error) {
 	var sessions []Session
 
 	entries, err := os.ReadDir(projectsDir)
@@ -269,6 +297,56 @@ func findSessions(projectsDir string) ([]Session, error) {
 				Size:         info.Size(),
 			})
 		}
+	}
+
+	return sessions, nil
+}
+
+func findOpenClawSessions(sessionsDir string) ([]Session, error) {
+	var sessions []Session
+
+	entries, err := os.ReadDir(sessionsDir)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".jsonl") {
+			continue
+		}
+
+		// Skip lock files
+		if strings.HasSuffix(entry.Name(), ".lock") {
+			continue
+		}
+
+		tf := filepath.Join(sessionsDir, entry.Name())
+		info, err := os.Stat(tf)
+		if err != nil {
+			continue
+		}
+
+		// Count messages (fast: just count lines)
+		content, _ := os.ReadFile(tf)
+		lines := strings.Split(string(content), "\n")
+		msgCount := 0
+		for _, line := range lines {
+			if strings.TrimSpace(line) != "" {
+				msgCount++
+			}
+		}
+
+		// Session ID is the filename without extension
+		sessionID := strings.TrimSuffix(entry.Name(), ".jsonl")
+
+		sessions = append(sessions, Session{
+			ID:           sessionID,
+			Project:      "OpenClaw",
+			Path:         tf,
+			LastModified: info.ModTime(),
+			MessageCount: msgCount,
+			Size:         info.Size(),
+		})
 	}
 
 	return sessions, nil

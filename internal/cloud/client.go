@@ -271,6 +271,29 @@ func (c *Client) ListTeams() ([]Team, error) {
 	return resp.Teams, nil
 }
 
+// ResolveTeamID resolves a team slug or ID to a team ID
+// If input looks like a UUID, returns it as-is; otherwise looks up by slug
+func (c *Client) ResolveTeamID(slugOrID string) (string, error) {
+	// Check if it's already a UUID
+	if len(slugOrID) == 36 && strings.Count(slugOrID, "-") == 4 {
+		return slugOrID, nil
+	}
+
+	// Look up by slug
+	teams, err := c.ListTeams()
+	if err != nil {
+		return "", err
+	}
+
+	for _, t := range teams {
+		if t.Slug == slugOrID {
+			return t.ID, nil
+		}
+	}
+
+	return "", fmt.Errorf("team '%s' not found", slugOrID)
+}
+
 // CreateTeam creates a new team
 func (c *Client) CreateTeam(name string) (*Team, error) {
 	req := map[string]string{"name": name}

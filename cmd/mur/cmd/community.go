@@ -388,8 +388,14 @@ func runCommunityShare(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("no team configured. Run 'mur cloud select <team>' first")
 	}
 
+	// Resolve team slug to ID
+	teamID, err := client.ResolveTeamID(teamSlug)
+	if err != nil {
+		return fmt.Errorf("failed to resolve team: %w", err)
+	}
+
 	// Pull patterns to find the one to share
-	pullResp, err := client.Pull(teamSlug, 0)
+	pullResp, err := client.Pull(teamID, 0)
 	if err != nil {
 		return fmt.Errorf("failed to get patterns: %w", err)
 	}
