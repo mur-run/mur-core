@@ -58,8 +58,32 @@ func ClaudeProjectsDir() (string, error) {
 	return filepath.Join(home, ".claude", "projects"), nil
 }
 
-// ListSessions returns available sessions from ~/.claude/projects/
+// ListSessions returns available sessions from Claude Code and OpenClaw.
 func ListSessions() ([]Session, error) {
+	var sessions []Session
+
+	// Get Claude Code sessions
+	claudeSessions, err := listClaudeSessions()
+	if err == nil {
+		sessions = append(sessions, claudeSessions...)
+	}
+
+	// Get OpenClaw sessions
+	openclawSessions, err := ListOpenClawSessions()
+	if err == nil {
+		sessions = append(sessions, openclawSessions...)
+	}
+
+	// Sort by creation time (newest first)
+	sort.Slice(sessions, func(i, j int) bool {
+		return sessions[i].CreatedAt.After(sessions[j].CreatedAt)
+	})
+
+	return sessions, nil
+}
+
+// listClaudeSessions returns sessions from ~/.claude/projects/
+func listClaudeSessions() ([]Session, error) {
 	projectsDir, err := ClaudeProjectsDir()
 	if err != nil {
 		return nil, err
@@ -109,11 +133,6 @@ func ListSessions() ([]Session, error) {
 			})
 		}
 	}
-
-	// Sort by creation time (newest first)
-	sort.Slice(sessions, func(i, j int) bool {
-		return sessions[i].CreatedAt.After(sessions[j].CreatedAt)
-	})
 
 	return sessions, nil
 }
@@ -205,9 +224,9 @@ func parseJSONL(path string) ([]SessionMessage, int, error) {
 	toolUseCount := 0
 	scanner := bufio.NewScanner(file)
 
-	// Increase buffer size for large lines
-	buf := make([]byte, 0, 64*1024)
-	scanner.Buffer(buf, 1024*1024)
+	// Increase buffer size for large lines (OpenClaw can have huge messages)
+	buf := make([]byte, 0, 1024*1024)
+	scanner.Buffer(buf, 10*1024*1024) // 10MB max per line
 
 	for scanner.Scan() {
 		line := scanner.Bytes()
@@ -225,25 +244,45 @@ func parseJSONL(path string) ([]SessionMessage, int, error) {
 			continue // Skip malformed lines
 		}
 
-		// Only process user and assistant messages
-		if msg.Type != "user" && msg.Type != "assistant" {
+		var role string
+		var text string
+		var timestamp time.Time
+
+		// Handle OpenClaw format: type="message" with nested message.role
+		if msg.Type == "message" && msg.Message != nil {
+			var content messageContent
+			if err := json.Unmarshal(msg.Message, &content); err != nil {
+				continue
+			}
+
+			// Only process user and assistant messages
+			if content.Role != "user" && content.Role != "assistant" {
+				continue
+			}
+
+			role = content.Role
+			text = extractText(content.Content)
+			timestamp, _ = time.Parse(time.RFC3339, msg.Timestamp)
+
+		} else if msg.Type == "user" || msg.Type == "assistant" {
+			// Handle Claude Code format: type="user" or type="assistant"
+			role = msg.Type
+			timestamp, _ = time.Parse(time.RFC3339, msg.Timestamp)
+
+			if msg.Message == nil {
+				continue
+			}
+
+			var content messageContent
+			if err := json.Unmarshal(msg.Message, &content); err != nil {
+				continue
+			}
+
+			text = extractText(content.Content)
+		} else {
 			continue
 		}
 
-		timestamp, _ := time.Parse(time.RFC3339, msg.Timestamp)
-
-		// Parse message content
-		if msg.Message == nil {
-			continue
-		}
-
-		var content messageContent
-		if err := json.Unmarshal(msg.Message, &content); err != nil {
-			continue
-		}
-
-		// Extract text content
-		text := extractText(content.Content)
 		if text == "" {
 			continue
 		}
@@ -257,13 +296,20 @@ func parseJSONL(path string) ([]SessionMessage, int, error) {
 
 		messages = append(messages, SessionMessage{
 			Type:      msg.Type,
-			Role:      content.Role,
+			Role:      role,
 			Content:   text,
 			Timestamp: timestamp,
 		})
 	}
 
 	return messages, toolUseCount, scanner.Err()
+}
+
+// contentBlockExt extends contentBlock with thinking support.
+type contentBlockExt struct {
+	Type     string `json:"type"`
+	Text     string `json:"text,omitempty"`
+	Thinking string `json:"thinking,omitempty"`
 }
 
 // extractText extracts text from message content.
@@ -274,13 +320,21 @@ func extractText(raw json.RawMessage) string {
 		return str
 	}
 
-	// Try as array of content blocks
-	var blocks []contentBlock
+	// Try as array of content blocks (with thinking support)
+	var blocks []contentBlockExt
 	if err := json.Unmarshal(raw, &blocks); err == nil {
 		var texts []string
 		for _, block := range blocks {
-			if block.Type == "text" && block.Text != "" {
-				texts = append(texts, block.Text)
+			switch block.Type {
+			case "text":
+				if block.Text != "" {
+					texts = append(texts, block.Text)
+				}
+			case "thinking":
+				// Include thinking for pattern extraction
+				if block.Thinking != "" {
+					texts = append(texts, "[Thinking] "+block.Thinking)
+				}
 			}
 		}
 		return strings.Join(texts, "\n")
