@@ -2,6 +2,23 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [1.7.2] - 2026-02-15
+
+### Added
+- **🍺 Smart Update**: Auto-detect installation method
+  - `mur update` now detects Homebrew vs Go installation
+  - Homebrew users: runs `brew upgrade mur`
+  - Go users: runs `go install ...@latest`
+  - No more manual detection needed
+
+- **🔐 Team Subscription Check**: Cloud sync validates subscription
+  - Warns when team subscription is expired
+  - Graceful degradation for expired teams
+
+### Documentation
+- Rewrote README for better onboarding experience
+- Added demo GIF showing core workflow
+
 ## [1.7.1] - 2026-02-14
 
 ### Added
