@@ -8,8 +8,7 @@
 
 MUR captures patterns from your coding sessions and injects them into your AI tools. Your AI assistant learns your conventions, remembers your fixes, and gets smarter over time — automatically.
 
-<!-- TODO: Add demo GIF here -->
-<!-- ![Demo](assets/demo.gif) -->
+![Demo](assets/demo.gif)
 
 ## 🤔 Why MUR?
 
