@@ -248,13 +248,17 @@ func (c *Client) postRaw(path string, body interface{}, result interface{}) erro
 
 // Team represents a team
 type Team struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	Slug      string    `json:"slug"`
-	OwnerID   string    `json:"owner_id"`
-	Plan      string    `json:"plan"`
-	Role      string    `json:"role,omitempty"`
-	CreatedAt time.Time `json:"created_at"`
+	ID                 string    `json:"id"`
+	Name               string    `json:"name"`
+	Slug               string    `json:"slug"`
+	OwnerID            string    `json:"owner_id"`
+	Plan               string    `json:"plan"`
+	Role               string    `json:"role,omitempty"`
+	CreatedAt          time.Time `json:"created_at"`
+	SubscriptionStatus string    `json:"subscription_status,omitempty"`
+	IsActive           bool      `json:"is_active"`
+	CanSync            bool      `json:"can_sync"`
+	CanInvite          bool      `json:"can_invite"`
 }
 
 // TeamsResponse represents teams list response
@@ -292,6 +296,22 @@ func (c *Client) ResolveTeamID(slugOrID string) (string, error) {
 	}
 
 	return "", fmt.Errorf("team '%s' not found", slugOrID)
+}
+
+// GetTeamBySlug returns team details by slug, including subscription status
+func (c *Client) GetTeamBySlug(slug string) (*Team, error) {
+	teams, err := c.ListTeams()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, t := range teams {
+		if t.Slug == slug {
+			return &t, nil
+		}
+	}
+
+	return nil, fmt.Errorf("team '%s' not found", slug)
 }
 
 // CreateTeam creates a new team

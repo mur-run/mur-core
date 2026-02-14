@@ -187,24 +187,36 @@ Examples:
 			return fmt.Errorf("no team specified. Use --team or run 'mur cloud select <team>'")
 		}
 
-		// Find team ID
+		// Find team ID and check subscription
 		teams, err := client.ListTeams()
 		if err != nil {
 			return fmt.Errorf("failed to list teams: %w", err)
 		}
 
-		var teamID string
+		var team *cloud.Team
 		for _, t := range teams {
 			if t.Slug == teamSlug || t.ID == teamSlug {
-				teamID = t.ID
+				team = &t
 				break
 			}
 		}
 
-		if teamID == "" {
+		if team == nil {
 			return fmt.Errorf("team not found: %s", teamSlug)
 		}
 
+		// Check team subscription status
+		if !team.CanSync {
+			fmt.Println("❌ Team subscription expired")
+			fmt.Println("")
+			fmt.Println("Cloud sync is disabled because the team subscription has expired.")
+			fmt.Println("Contact your team owner to renew the subscription.")
+			fmt.Println("")
+			fmt.Println("You can still use local patterns and sync to CLIs.")
+			return fmt.Errorf("team subscription expired - sync disabled")
+		}
+
+		teamID := team.ID
 		fmt.Printf("Syncing with team: %s\n", teamSlug)
 		fmt.Println("")
 
