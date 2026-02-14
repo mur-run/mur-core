@@ -131,6 +131,30 @@ export GEMINI_API_KEY="..."
 export ANTHROPIC_API_KEY="sk-ant-..."
 ```
 
+## Discover Community Patterns
+
+Browse and copy patterns shared by developers worldwide:
+
+```bash
+# See popular patterns
+mur community
+
+# Search community
+mur community search "error handling"
+
+# Copy a pattern to your collection
+mur community copy "API retry with backoff"
+mur sync
+```
+
+Import from GitHub Gists:
+
+```bash
+mur import gist https://gist.github.com/user/abc123
+```
+
+See [Community](community.md) and [Collections](collections.md) for more.
+
 ## Common Commands
 
 | Command | Description |
@@ -140,6 +164,10 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 | `mur sync` | Sync patterns to all AI tools |
 | `mur new <name>` | Create new pattern |
 | `mur search <query>` | Search patterns |
+| `mur community` | Browse community patterns |
+| `mur community search` | Search community patterns |
+| `mur collection list` | Browse pattern collections |
+| `mur import gist <url>` | Import from GitHub Gist |
 | `mur transcripts` | Browse Claude Code sessions |
 | `mur learn extract --llm` | Extract patterns with AI |
 | `mur serve` | Web dashboard |
@@ -147,6 +175,7 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 ## What's Next?
 
 - **View stats**: `mur stats`
+- **Browse community**: `mur community`
 - **Web dashboard**: `mur serve`
 - **All commands**: `mur --help`
 - **GitHub**: https://github.com/mur-run/mur-core

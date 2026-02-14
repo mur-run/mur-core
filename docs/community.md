@@ -11,11 +11,37 @@ mur community
 # Search community
 mur community search "API error handling"
 
-# View featured patterns
+# View featured patterns (curated by maintainers)
 mur community featured
 
-# View recent patterns
+# View recently shared patterns
 mur community recent
+```
+
+### Example Output
+
+```
+🌍 Community Patterns
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Popular:
+  1. Swift Error Handling (⭐ 142) by @karajanchang
+     Use Result types and async/await for clean error handling
+  2. API Retry with Backoff (⭐ 98) by @johndoe
+     Exponential backoff strategy for resilient API calls
+```
+
+## Searching Patterns
+
+```bash
+# Basic search
+mur community search "error handling"
+
+# Limit results
+mur community search "testing" --limit 5
+
+# Include community in local semantic search
+mur search --community "best practices"
 ```
 
 ## Copying Patterns
@@ -24,7 +50,12 @@ Found a pattern you like? Copy it to your collection:
 
 ```bash
 mur community copy "API retry with backoff"
-mur sync  # Sync to your CLIs
+
+# Copy to a specific team
+mur community copy "my-pattern" --team my-team-id
+
+# Then sync to your CLIs
+mur sync
 ```
 
 ## Sharing Your Patterns
@@ -32,28 +63,49 @@ mur sync  # Sync to your CLIs
 Share your patterns with the community:
 
 ```bash
-# Basic share
+# Basic share (submits for review)
 mur community share "my-awesome-pattern"
 
 # With category and tags
 mur community share "my-pattern" \
   --category "Error Handling" \
   --tags "api,retry,resilience"
+
+# With custom description
+mur community share "my-pattern" \
+  --description "A better way to handle API errors"
 ```
+
+### Requirements
+
+- Must be logged in: `mur login`
+- Pattern must exist in your team
+- Patterns are reviewed before being published
 
 ### Categories
 
 Choose from these categories when sharing:
-- Error Handling
-- Testing
-- API Design
-- Performance
-- Security
-- Code Quality
-- Debugging
-- Documentation
-- DevOps
-- AI/ML
+
+| Category | Description |
+|----------|-------------|
+| Error Handling | Error handling, recovery, resilience |
+| Testing | Unit tests, integration tests, mocking |
+| API Design | REST, GraphQL, API patterns |
+| Performance | Optimization, caching, profiling |
+| Security | Auth, encryption, secure coding |
+| Code Quality | Linting, formatting, best practices |
+| Debugging | Logging, tracing, debugging techniques |
+| Documentation | Comments, docs, README patterns |
+| DevOps | CI/CD, deployment, infrastructure |
+| AI/ML | Machine learning, AI integrations |
+
+### Tags
+
+Add comma-separated tags for discoverability:
+
+```bash
+--tags "swift,ios,concurrency,async-await"
+```
 
 ## User Profiles
 
@@ -63,43 +115,28 @@ View other developers' profiles and their shared patterns:
 mur community user karajanchang
 ```
 
-## Collections
+### Example Output
 
-Collections are curated groups of patterns:
-
-```bash
-# Browse public collections
-mur collection list
-
-# View a collection
-mur collection show <collection-id>
-
-# Create your own collection
-mur collection create "Swift Best Practices" --visibility public
 ```
+👤 Karajan Chang (@karajanchang)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   Swift developer, AI enthusiast
 
-## Import from GitHub Gist
+   📊 12 patterns | ⬇️ 1,234 copies | ⭐ 89 stars
 
-Import patterns directly from GitHub Gists:
+   🌐 example.com
+   🐙 github.com/karajanchang
+   🐦 @karajanchang
 
-```bash
-# From URL
-mur import gist https://gist.github.com/user/abc123
-
-# Just the ID
-mur import gist abc123
-
-# Import and share immediately
-mur import gist abc123 --share
+Patterns:
+   • Swift Error Handling (⬇️ 142)
+   • Async/Await Best Practices (⬇️ 98)
+   • SwiftUI State Management (⬇️ 76)
 ```
-
-The gist should contain either:
-- A `pattern.yaml` file (mur format)
-- A `README.md` with description + code files
 
 ## Search Options
 
-Fine-tune your community searches:
+Fine-tune your searches:
 
 ```bash
 # Include community in local search
@@ -123,17 +160,24 @@ mur config set tech_stack "swift,go,docker"
 mur search --community "best practices"
 ```
 
-## Dashboard
+## Web Dashboard
 
 Visit [app.mur.run](https://app.mur.run) to:
+
 - Browse and search patterns with a visual interface
 - Manage your collections
 - View user profiles
 - Star and copy patterns
 - Track your contribution stats
 
-## Privacy
+## Privacy & Moderation
 
 - Your local patterns are **never** shared unless you explicitly use `mur community share`
 - Shared patterns are reviewed before being published
-- You can make collections private or public
+- You can report inappropriate patterns via the web dashboard
+- Authors can update or unpublish their patterns anytime
+
+## Related Commands
+
+- [Collections](collections.md) - Curate groups of patterns
+- [Import](import.md) - Import patterns from GitHub Gists
