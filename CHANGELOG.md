@@ -2,6 +2,28 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [1.7.1] - 2026-02-14
+
+### Added
+- **🦞 OpenClaw Integration**: Learn from OpenClaw conversations
+  - OpenClaw transcript support (`~/.openclaw/agents/*/sessions/*.jsonl`)
+  - Unified session list shows both Claude Code and OpenClaw sessions
+  - Auto-detection of OpenClaw sessions
+
+- **🏷️ Pattern Tags**: Better organization
+  - LLM extracts 2-5 relevant tags per pattern
+  - Tags help categorize and discover patterns
+
+### Fixed
+- `--accept-all` flag now works without interactive prompts
+- Claude Code and Gemini hooks use correct `learn` command
+
+### Changed
+- Performance: replaced bubble sort with `sort.Slice`
+
+### Documentation
+- Added Community V3, Collections, and Import documentation
+
 ## [1.7.0] - 2026-02-13
 
 ### Added
