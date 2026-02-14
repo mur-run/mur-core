@@ -101,15 +101,98 @@ func init() {
 }
 
 func updateBinary() error {
-	cmd := exec.Command("go", "install", "github.com/mur-run/mur-core/cmd/mur@latest")
+	// Detect installation method by checking binary path
+	installMethod := detectInstallMethod()
+	
+	var cmd *exec.Cmd
+	switch installMethod {
+	case "homebrew":
+		fmt.Println("  📦 Detected Homebrew installation")
+		cmd = exec.Command("brew", "upgrade", "mur")
+	case "go":
+		fmt.Println("  🐹 Detected Go installation")
+		cmd = exec.Command("go", "install", "github.com/mur-run/mur-core/cmd/mur@latest")
+	default:
+		fmt.Println("  🐹 Using Go install (default)")
+		cmd = exec.Command("go", "install", "github.com/mur-run/mur-core/cmd/mur@latest")
+	}
+	
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to update binary: %w", err)
+		// If homebrew upgrade fails (e.g., already latest), try update first
+		if installMethod == "homebrew" {
+			fmt.Println("  ℹ️  Running brew update first...")
+			updateCmd := exec.Command("brew", "update")
+			updateCmd.Run()
+			
+			// Retry upgrade
+			retryCmd := exec.Command("brew", "upgrade", "mur")
+			retryCmd.Stdout = os.Stdout
+			retryCmd.Stderr = os.Stderr
+			if retryErr := retryCmd.Run(); retryErr != nil {
+				// Check if already up to date
+				fmt.Println("  ✓ mur is already up to date")
+				return nil
+			}
+		} else {
+			return fmt.Errorf("failed to update binary: %w", err)
+		}
 	}
 	fmt.Println("  ✓ mur binary updated to latest")
 	return nil
+}
+
+// detectInstallMethod checks how mur was installed
+func detectInstallMethod() string {
+	// Get the path of the current executable
+	exePath, err := exec.LookPath("mur")
+	if err != nil {
+		return "unknown"
+	}
+	
+	// Resolve symlinks to get the real path
+	realPath, err := filepath.EvalSymlinks(exePath)
+	if err != nil {
+		realPath = exePath
+	}
+	
+	// Check for Homebrew paths
+	homebrewPaths := []string{
+		"/opt/homebrew/",      // Apple Silicon
+		"/usr/local/Cellar/",  // Intel Mac
+		"/home/linuxbrew/",    // Linux Homebrew
+	}
+	
+	for _, prefix := range homebrewPaths {
+		if len(realPath) >= len(prefix) && realPath[:len(prefix)] == prefix {
+			return "homebrew"
+		}
+	}
+	
+	// Check for Go bin paths
+	home, _ := os.UserHomeDir()
+	goPaths := []string{
+		filepath.Join(home, "go", "bin"),
+		"/usr/local/go/bin",
+	}
+	
+	for _, goPath := range goPaths {
+		if len(realPath) >= len(goPath) && realPath[:len(goPath)] == goPath {
+			return "go"
+		}
+	}
+	
+	// Check GOPATH/bin
+	if gopath := os.Getenv("GOPATH"); gopath != "" {
+		gopathBin := filepath.Join(gopath, "bin")
+		if len(realPath) >= len(gopathBin) && realPath[:len(gopathBin)] == gopathBin {
+			return "go"
+		}
+	}
+	
+	return "unknown"
 }
 
 func updateSkillDefinitions() error {
