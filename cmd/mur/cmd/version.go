@@ -9,7 +9,7 @@ import (
 
 // Version info (set by ldflags during build)
 var (
-	Version   = "1.6.2"
+	Version   = "1.7.1"
 	Commit    = "dev"
 	BuildDate = "unknown"
 )
