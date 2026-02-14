@@ -9,6 +9,13 @@ Set Height 500
 Set Theme "Catppuccin Mocha"
 Set Padding 20
 
+# Clear screen before recording
+Hide
+Type "clear"
+Enter
+Sleep 500ms
+Show
+
 # Title
 Type "# MUR - Continuous learning for AI assistants"
 Enter
