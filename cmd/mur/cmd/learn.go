@@ -332,7 +332,7 @@ When --auto is specified, these defaults apply:
 		}
 
 		if sessionID != "" {
-			return runExtractSession(sessionID, dryRun)
+			return runExtractSession(sessionID, dryRun, acceptAll, minConfidence)
 		}
 
 		// Interactive mode: list sessions and let user choose
@@ -1051,7 +1051,7 @@ func runExtractLLM(sessionID, provider, model string, dryRun, acceptAll, quiet, 
 	return nil
 }
 
-func runExtractSession(sessionID string, dryRun bool) error {
+func runExtractSession(sessionID string, dryRun, acceptAll bool, minConfidence float64) error {
 	session, err := learn.LoadSession(sessionID)
 	if err != nil {
 		return fmt.Errorf("failed to load session: %w", err)
@@ -1074,16 +1074,35 @@ func runExtractSession(sessionID string, dryRun bool) error {
 
 	fmt.Printf("Found %d potential patterns:\n\n", len(patterns))
 
+	saved := 0
+	skipped := 0
+
 	for i, ep := range patterns {
 		fmt.Printf("%d. ", i+1)
 		displayExtractedPattern(ep)
 
 		if !dryRun {
-			if confirmSave(ep.Pattern.Name) {
+			shouldSave := false
+
+			if acceptAll {
+				// Auto-accept if confidence meets threshold
+				if ep.Confidence >= minConfidence {
+					shouldSave = true
+				} else {
+					fmt.Printf("   Skipped (confidence %.0f%% < %.0f%%)\n", ep.Confidence*100, minConfidence*100)
+					skipped++
+				}
+			} else {
+				// Interactive mode
+				shouldSave = confirmSave(ep.Pattern.Name)
+			}
+
+			if shouldSave {
 				if err := learn.Add(ep.Pattern); err != nil {
 					fmt.Printf("  ✗ Failed to save: %v\n", err)
 				} else {
 					fmt.Printf("  ✓ Saved as '%s'\n", ep.Pattern.Name)
+					saved++
 				}
 			}
 		}
@@ -1092,6 +1111,8 @@ func runExtractSession(sessionID string, dryRun bool) error {
 
 	if dryRun {
 		fmt.Println("(dry-run mode, patterns not saved)")
+	} else if acceptAll {
+		fmt.Printf("Saved %d patterns, skipped %d (below %.0f%% confidence)\n", saved, skipped, minConfidence*100)
 	}
 
 	return nil
@@ -1145,7 +1166,8 @@ func runExtractInteractive(dryRun bool) error {
 	selected := sessions[idx-1]
 	fmt.Println("")
 
-	return runExtractSession(selected.ID, dryRun)
+	// In interactive mode, don't auto-accept (user chose to interact)
+	return runExtractSession(selected.ID, dryRun, false, 0.6)
 }
 
 func displayExtractedPattern(ep learn.ExtractedPattern) {
