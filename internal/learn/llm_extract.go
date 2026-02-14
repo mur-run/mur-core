@@ -68,6 +68,7 @@ For each pattern, output a JSON object with:
 - score: 0.0-1.0 confidence score
 - category: "pattern", "lesson", "decision", "template", or "debug"
 - domain: "dev", "devops", "mobile", "web", "backend", or "general"
+- tags: array of 2-5 relevant tags (e.g., ["swift", "swiftui", "macos", "menubar"])
 - problem: the SPECIFIC problem encountered (with error messages if any)
 - solution: the solution that WORKED (not generic advice)
 - why_non_obvious: why this can't be easily Googled
@@ -106,6 +107,7 @@ Example of GOOD pattern (from actual debugging):
     "score": 0.90,
     "category": "debug",
     "domain": "mobile",
+    "tags": ["swift", "swiftui", "macos", "menubar", "workaround"],
     "problem": "SwiftUI .sheet() modifier silently fails in MenuBarExtra popovers - sheets never appear",
     "solution": "Use ZStack with overlay and manual isPresented state instead of .sheet()",
     "why_non_obvious": "Apple docs don't mention this limitation. Error is silent - no console output."

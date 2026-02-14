@@ -91,19 +91,20 @@ func ExtractFromSession(sessionPath string) ([]ExtractedPattern, error) {
 
 // JSONPattern represents a pattern in JSON format from Claude's response.
 type JSONPattern struct {
-	Name         string  `json:"name"`
-	Title        string  `json:"title"`
-	Confidence   string  `json:"confidence"`
-	Score        float64 `json:"score"`
-	Category     string  `json:"category"`
-	Domain       string  `json:"domain"`
-	Project      string  `json:"project"`
-	Problem      string  `json:"problem"`
-	Solution     string  `json:"solution"`
-	Verification string  `json:"verification"`
-	WhyNonObvious string `json:"why_non_obvious"`
-	Description  string  `json:"description"` // Alternative field
-	Content      string  `json:"content"`     // Alternative field
+	Name          string   `json:"name"`
+	Title         string   `json:"title"`
+	Confidence    string   `json:"confidence"`
+	Score         float64  `json:"score"`
+	Category      string   `json:"category"`
+	Domain        string   `json:"domain"`
+	Project       string   `json:"project"`
+	Problem       string   `json:"problem"`
+	Solution      string   `json:"solution"`
+	Verification  string   `json:"verification"`
+	WhyNonObvious string   `json:"why_non_obvious"`
+	Description   string   `json:"description"` // Alternative field
+	Content       string   `json:"content"`     // Alternative field
+	Tags          []string `json:"tags"`        // Pattern tags for categorization
 }
 
 // extractJSONPatterns attempts to parse JSON pattern arrays from text.
@@ -206,6 +207,7 @@ func extractJSONPatterns(text string, sourceID string) []ExtractedPattern {
 				Content:     content,
 				Domain:      domain,
 				Category:    category,
+				Tags:        jp.Tags,
 				Confidence:  confidence,
 				CreatedAt:   time.Now().Format(time.RFC3339),
 				UpdatedAt:   time.Now().Format(time.RFC3339),

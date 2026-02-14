@@ -14,15 +14,16 @@ import (
 
 // Pattern represents a learned pattern.
 type Pattern struct {
-	Name        string  `yaml:"name"`
-	Description string  `yaml:"description"`
-	Content     string  `yaml:"content"`
-	Domain      string  `yaml:"domain"`      // dev, devops, business
-	Category    string  `yaml:"category"`    // pattern, decision, lesson
-	Confidence  float64 `yaml:"confidence"`  // 0.0 - 1.0
-	TeamShared  bool    `yaml:"team_shared"` // share to team repo
-	CreatedAt   string  `yaml:"created_at"`
-	UpdatedAt   string  `yaml:"updated_at"`
+	Name        string   `yaml:"name"`
+	Description string   `yaml:"description"`
+	Content     string   `yaml:"content"`
+	Domain      string   `yaml:"domain"`      // dev, devops, business
+	Category    string   `yaml:"category"`    // pattern, decision, lesson
+	Tags        []string `yaml:"tags"`        // pattern tags for categorization
+	Confidence  float64  `yaml:"confidence"`  // 0.0 - 1.0
+	TeamShared  bool     `yaml:"team_shared"` // share to team repo
+	CreatedAt   string   `yaml:"created_at"`
+	UpdatedAt   string   `yaml:"updated_at"`
 }
 
 // ValidDomains returns the list of valid domains.
