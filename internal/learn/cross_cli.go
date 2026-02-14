@@ -78,6 +78,12 @@ func DefaultCLISources() []CLISource {
 			FilePattern: "*.json",
 			Parser:      &ContinueParser{},
 		},
+		{
+			Name:        "OpenClaw",
+			SessionDir:  filepath.Join(home, ".openclaw", "agents", "main", "sessions"),
+			FilePattern: "*.jsonl",
+			Parser:      &OpenClawParser{},
+		},
 	}
 }
 
