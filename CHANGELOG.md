@@ -2,6 +2,13 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [1.8.1] - 2026-02-15
+
+### Fixed
+- `mur update` now auto-refreshes Homebrew tap before upgrade
+  - Ensures users always get the latest version
+  - No more "already up to date" when new version exists
+
 ## [1.8.0] - 2026-02-15
 
 ### Added
