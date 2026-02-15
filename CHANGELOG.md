@@ -2,6 +2,34 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [1.8.0] - 2026-02-15
+
+### Added
+- **🌍 Community Auto-Share**: Share patterns with the community
+  - `mur init` now asks about community sharing (default: enabled)
+  - Auto-share on `mur sync --push` when enabled
+  - Patterns help 10,000+ developers worldwide
+  - Get ⭐ recognition and a public profile
+
+- **🔐 Secret Scanning**: Automatic security protection
+  - Scans patterns for API keys, passwords, tokens before sharing
+  - Supports 30+ secret types (AWS, GitHub, OpenAI, Stripe, etc.)
+  - Patterns with secrets are automatically blocked
+  - Server-side validation for defense in depth
+
+- **🔄 Config Migration**: Smooth upgrades between versions
+  - `schema_version` tracking for config files
+  - `mur update config` migrates to latest schema
+  - `mur init` now merges new fields (preserves existing settings)
+  - `mur init --force` for clean reinstall
+
+### Changed
+- `mur init` no longer overwrites existing config (use `--force` to override)
+- Config defaults now include community sharing settings
+
+### Fixed
+- MergeConfig preserves schema version for proper migration detection
+
 ## [1.7.2] - 2026-02-15
 
 ### Added
