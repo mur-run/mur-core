@@ -9,6 +9,8 @@ import (
 	"github.com/mur-run/mur-core/internal/cache"
 	"github.com/mur-run/mur-core/internal/cloud"
 	"github.com/mur-run/mur-core/internal/config"
+	"github.com/mur-run/mur-core/internal/learn"
+	"github.com/mur-run/mur-core/internal/security"
 	"github.com/mur-run/mur-core/internal/sync"
 	"github.com/spf13/cobra"
 )
@@ -153,6 +155,15 @@ func runSync(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Community auto-share (if enabled and pushing)
+	if syncPush && cfg.Community.ShareEnabled && cfg.Community.AutoShareOnPush {
+		if err := runCommunityAutoShare(cfg); err != nil {
+			if !syncQuiet {
+				fmt.Printf("⚠️  Community share: %v\n", err)
+			}
+		}
+	}
+
 	// Sync patterns to all CLIs
 	if !syncQuiet {
 		format := cfg.Sync.Format
@@ -278,6 +289,105 @@ func runGitSync(home string, cfg *config.Config) error {
 			}
 		} else if !syncQuiet {
 			fmt.Println("  ✓ Pushed to remote")
+		}
+	}
+
+	return nil
+}
+
+// runCommunityAutoShare shares patterns to community with secret scanning
+func runCommunityAutoShare(cfg *config.Config) error {
+	if !syncQuiet {
+		fmt.Println()
+		fmt.Println("🌍 Community sharing...")
+	}
+
+	// Check if logged in
+	client, err := cloud.NewClient(cfg.Server.URL)
+	if err != nil {
+		return fmt.Errorf("failed to create client: %w", err)
+	}
+
+	if !client.AuthStore().IsLoggedIn() {
+		if !syncQuiet {
+			fmt.Println("  ⏭ Skipped (not logged in)")
+		}
+		return nil
+	}
+
+	// Load all patterns
+	patterns, err := learn.List()
+	if err != nil {
+		return fmt.Errorf("failed to load patterns: %w", err)
+	}
+
+	if len(patterns) == 0 {
+		if !syncQuiet {
+			fmt.Println("  ⏭ No patterns to share")
+		}
+		return nil
+	}
+
+	// Initialize scanner
+	scanner := security.NewScanner()
+
+	var shared, skipped int
+	for _, p := range patterns {
+		// Skip patterns without content
+		if p.Content == "" {
+			continue
+		}
+
+		// Build content to scan (name + description + content)
+		contentToScan := p.Name + "\n" + p.Description + "\n" + p.Content
+
+		// Scan for secrets
+		result := scanner.ScanContent(contentToScan)
+		if !result.Safe {
+			if !syncQuiet {
+				fmt.Printf("  ⚠️ %s → skipped (secrets detected)\n", p.Name)
+				for _, f := range result.Findings {
+					fmt.Printf("     └─ %s at line %d: %s\n", f.Type, f.Line, f.Match)
+				}
+			}
+			skipped++
+			continue
+		}
+
+		// Share to community
+		req := &cloud.ShareLocalPatternRequest{
+			Name:        p.Name,
+			Description: p.Description,
+			Content:     p.Content,
+			Domain:      p.Domain,
+			Category:    p.Category,
+			Tags:        p.Tags,
+		}
+
+		resp, err := client.ShareLocalPattern(req)
+		if err != nil {
+			if !syncQuiet {
+				fmt.Printf("  ✗ %s → failed: %v\n", p.Name, err)
+			}
+			continue
+		}
+
+		if !syncQuiet {
+			status := "shared"
+			if resp.Status == "pending" {
+				status = "pending review"
+			}
+			fmt.Printf("  ✓ %s → %s\n", p.Name, status)
+		}
+		shared++
+	}
+
+	if !syncQuiet {
+		if shared > 0 {
+			fmt.Printf("\n✨ %d patterns shared! You're helping developers worldwide.\n", shared)
+		}
+		if skipped > 0 {
+			fmt.Printf("   %d patterns skipped due to detected secrets.\n", skipped)
 		}
 	}
 

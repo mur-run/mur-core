@@ -25,11 +25,28 @@ type Config struct {
 	Notifications NotificationsConfig `yaml:"notifications"`
 	TechStack     []string            `yaml:"tech_stack"` // User's tech stack for filtering (e.g., ["swift", "go", "docker"])
 	Cache         CacheConfig         `yaml:"cache"`      // Local cache settings
+	Community     CommunityConfig     `yaml:"community"`  // Community sharing settings
 }
 
 // CacheConfig represents local cache settings for community patterns.
 type CacheConfig struct {
 	Community CommunityCacheConfig `yaml:"community"`
+}
+
+// CommunityConfig represents community sharing settings.
+type CommunityConfig struct {
+	ShareEnabled    bool `yaml:"share_enabled"`     // Enable community sharing
+	AutoShareOnPush bool `yaml:"auto_share_on_push"` // Auto-share when pushing
+	ShareExtracted  bool `yaml:"share_extracted"`   // Share extracted patterns (may contain secrets)
+}
+
+// DefaultCommunityConfig returns default community settings.
+func DefaultCommunityConfig() CommunityConfig {
+	return CommunityConfig{
+		ShareEnabled:    false, // Will be asked during init, default N until confirmed
+		AutoShareOnPush: true,  // If sharing enabled, auto-share on push
+		ShareExtracted:  false, // Extracted patterns may contain secrets
+	}
 }
 
 // CommunityCacheConfig represents community pattern cache settings.
@@ -43,6 +60,11 @@ type CommunityCacheConfig struct {
 // GetTechStack returns the configured tech stack.
 func (c *Config) GetTechStack() []string {
 	return c.TechStack
+}
+
+// GetCommunityConfig returns the community config.
+func (c *Config) GetCommunityConfig() CommunityConfig {
+	return c.Community
 }
 
 // GetCacheConfig returns the cache config with defaults.

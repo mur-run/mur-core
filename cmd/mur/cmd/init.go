@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -550,6 +551,9 @@ func installGeminiHooks(home, promptScriptPath, stopScriptPath string) error {
 
 	fmt.Println("✓ Installed Gemini CLI hooks")
 
+	// Ask about community sharing after all hooks are installed
+	askCommunitySharing()
+
 	// Install Claude Code hooks
 	if murhooks.ClaudeCodeInstalled() {
 		if err := murhooks.InstallClaudeCodeHooks(initSearchHooks); err != nil {
@@ -601,4 +605,49 @@ func contains(slice []string, item string) bool {
 		}
 	}
 	return false
+}
+
+// askCommunitySharing prompts user about community pattern sharing.
+func askCommunitySharing() {
+	fmt.Println()
+	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+	fmt.Println()
+	fmt.Println("🌍 Community Sharing")
+	fmt.Println()
+	fmt.Println("Share your patterns with 10,000+ developers worldwide!")
+	fmt.Println()
+	fmt.Println("  • Your patterns help others solve problems faster")
+	fmt.Println("  • Get ⭐ recognition and a public profile")
+	fmt.Println("  • AI tools improve for everyone")
+	fmt.Println()
+	fmt.Println("🔒 All patterns are scanned for secrets before sharing.")
+	fmt.Println("   API keys, passwords, tokens are automatically blocked.")
+	fmt.Println()
+
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("Enable community sharing? [Y/n]: ")
+	input, _ := reader.ReadString('\n')
+	input = strings.TrimSpace(strings.ToLower(input))
+
+	enabled := input == "" || input == "y" || input == "yes"
+
+	cfg, err := config.Load()
+	if err != nil {
+		cfg = config.Default()
+	}
+	cfg.Community.ShareEnabled = enabled
+	cfg.Community.AutoShareOnPush = enabled
+	if err := cfg.Save(); err != nil {
+		fmt.Printf("  ⚠ Warning: could not save config: %v\n", err)
+	}
+
+	fmt.Println()
+	if enabled {
+		fmt.Println("✓ Community sharing enabled!")
+		fmt.Println("  Change anytime: mur config set community.share_enabled false")
+	} else {
+		fmt.Println("✓ Community sharing disabled.")
+		fmt.Println("  Enable anytime: mur config set community.share_enabled true")
+	}
+	fmt.Println()
 }

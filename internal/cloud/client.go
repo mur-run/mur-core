@@ -662,6 +662,33 @@ func (c *Client) SharePattern(req *SharePatternRequest) error {
 	return c.post(path, req, nil)
 }
 
+// ShareLocalPatternRequest represents a request to share a local pattern directly
+type ShareLocalPatternRequest struct {
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Content     string   `json:"content"`
+	Domain      string   `json:"domain,omitempty"`
+	Category    string   `json:"category,omitempty"`
+	Tags        []string `json:"tags,omitempty"`
+}
+
+// ShareLocalPatternResponse is the response when sharing a local pattern
+type ShareLocalPatternResponse struct {
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Status  string `json:"status"` // pending, approved, rejected
+	Message string `json:"message,omitempty"`
+}
+
+// ShareLocalPattern uploads a local pattern directly to community
+func (c *Client) ShareLocalPattern(req *ShareLocalPatternRequest) (*ShareLocalPatternResponse, error) {
+	var resp ShareLocalPatternResponse
+	if err := c.post("/api/v1/community/patterns/share", req, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
 // === Referral Methods ===
 
 // ReferralStats represents referral statistics
