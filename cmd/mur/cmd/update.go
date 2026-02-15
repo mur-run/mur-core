@@ -131,6 +131,10 @@ func updateBinary() error {
 	switch installMethod {
 	case "homebrew":
 		fmt.Println("  📦 Detected Homebrew installation")
+		// Update tap first to ensure we have the latest formula
+		fmt.Println("  ↻ Updating tap...")
+		updateTap := exec.Command("brew", "update", "mur-run/tap")
+		updateTap.Run() // Ignore errors, upgrade will still work with cached version
 		cmd = exec.Command("brew", "upgrade", "mur")
 	case "go":
 		fmt.Println("  🐹 Detected Go installation")
