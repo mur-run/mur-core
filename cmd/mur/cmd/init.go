@@ -338,6 +338,8 @@ func createConfig(murDir string, selectedCLIs []string, defaultCLI string) error
 	config := fmt.Sprintf(`# mur Configuration
 # https://github.com/mur-run/mur-core
 
+schema_version: 2
+
 # Default AI CLI
 default_tool: %s
 
