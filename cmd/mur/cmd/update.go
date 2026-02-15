@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/mur-run/mur-core/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -24,24 +25,33 @@ Examples:
 
 var updateAllCmd = &cobra.Command{
 	Use:   "all",
-	Short: "Update everything (binary + skills + hooks)",
+	Short: "Update everything (binary + config + skills + hooks)",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		fmt.Println("🔄 Updating mur...")
 		fmt.Println()
 
-		// Update binary
+		// 1. Update binary
+		fmt.Println("1. Binary")
 		if err := updateBinary(); err != nil {
-			fmt.Printf("⚠ Binary update failed: %v\n", err)
+			fmt.Printf("   ⚠ Binary update failed: %v\n", err)
 		}
 
-		// Update skills
+		// 2. Update config
+		fmt.Println("\n2. Config")
+		if err := updateConfig(); err != nil {
+			fmt.Printf("   ⚠ Config update failed: %v\n", err)
+		}
+
+		// 3. Update skills
+		fmt.Println("\n3. Skills")
 		if err := updateSkillDefinitions(); err != nil {
-			fmt.Printf("⚠ Skills update failed: %v\n", err)
+			fmt.Printf("   ⚠ Skills update failed: %v\n", err)
 		}
 
-		// Update hooks
+		// 4. Update hooks
+		fmt.Println("\n4. Hooks")
 		if err := updateHookTemplates(); err != nil {
-			fmt.Printf("⚠ Hooks update failed: %v\n", err)
+			fmt.Printf("   ⚠ Hooks update failed: %v\n", err)
 		}
 
 		fmt.Println()
@@ -89,12 +99,25 @@ var updateHooksCmd = &cobra.Command{
 	},
 }
 
+var updateConfigCmd = &cobra.Command{
+	Use:   "config",
+	Short: "Migrate config to latest schema",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		fmt.Println("🔄 Updating config...")
+		if err := updateConfig(); err != nil {
+			return err
+		}
+		return nil
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(updateCmd)
 	updateCmd.AddCommand(updateAllCmd)
 	updateCmd.AddCommand(updateBinaryCmd)
 	updateCmd.AddCommand(updateSkillsCmd)
 	updateCmd.AddCommand(updateHooksCmd)
+	updateCmd.AddCommand(updateConfigCmd)
 
 	// Make "mur update" without subcommand run "all"
 	updateCmd.RunE = updateAllCmd.RunE
@@ -193,6 +216,32 @@ func detectInstallMethod() string {
 	}
 	
 	return "unknown"
+}
+
+func updateConfig() error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	oldVersion := cfg.SchemaVersion
+	defaults := config.Default()
+	merged := config.MergeConfig(cfg, defaults)
+
+	changed, changes := config.MigrateConfig(merged)
+	if changed {
+		if err := merged.Save(); err != nil {
+			return fmt.Errorf("failed to save config: %w", err)
+		}
+		fmt.Printf("   ✓ Migrated: v%d → v%d\n", oldVersion, merged.SchemaVersion)
+		for _, c := range changes {
+			fmt.Printf("   + Added: %s (%s)\n", c.Field, c.Description)
+		}
+	} else {
+		fmt.Println("   ✓ Config already up to date")
+	}
+
+	return nil
 }
 
 func updateSkillDefinitions() error {

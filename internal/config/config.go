@@ -9,8 +9,13 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// CurrentSchemaVersion is the latest config schema version.
+// Increment this when adding new config fields that need migration.
+const CurrentSchemaVersion = 2
+
 // Config represents the murmur configuration structure.
 type Config struct {
+	SchemaVersion int                 `yaml:"schema_version" json:"schema_version"`
 	DefaultTool   string              `yaml:"default_tool"`
 	Tools         map[string]Tool     `yaml:"tools"`
 	Routing       RoutingConfig       `yaml:"routing"`
@@ -422,7 +427,8 @@ func Default() *Config {
 // defaultConfig returns a default configuration.
 func defaultConfig() *Config {
 	return &Config{
-		DefaultTool: "claude",
+		SchemaVersion: CurrentSchemaVersion,
+		DefaultTool:   "claude",
 		Tools: map[string]Tool{
 			"claude": {
 				Enabled:      true,
@@ -520,5 +526,6 @@ func defaultConfig() *Config {
 			OnError:    true,
 			OnPatterns: true,
 		},
+		Community: DefaultCommunityConfig(),
 	}
 }

@@ -20,6 +20,7 @@ var (
 	initNonInteractive bool
 	initHooks          bool
 	initSearchHooks    bool
+	initForce          bool
 )
 
 var initCmd = &cobra.Command{
@@ -42,6 +43,7 @@ func init() {
 	initCmd.Flags().BoolVar(&initNonInteractive, "non-interactive", false, "Skip interactive prompts, use defaults")
 	initCmd.Flags().BoolVar(&initHooks, "hooks", false, "Quick setup: install hooks with defaults (implies --non-interactive)")
 	initCmd.Flags().BoolVar(&initSearchHooks, "search", false, "Enable search hooks (suggest patterns on prompt)")
+	initCmd.Flags().BoolVar(&initForce, "force", false, "Force overwrite existing config (ignore existing settings)")
 }
 
 // CLI tool configuration
@@ -234,12 +236,44 @@ func runNonInteractiveInit(home, murDir string) error {
 		}
 	}
 
-	// Create default config
-	if err := createConfig(murDir, []string{"Claude Code"}, "Claude Code"); err != nil {
-		return err
-	}
+	// Check if config exists
+	configPath := filepath.Join(murDir, "config.yaml")
+	configExists := fileExists(configPath)
 
-	fmt.Println("✓ mur initialized at ~/.mur (using defaults)")
+	if configExists && !initForce {
+		// Existing config - merge new fields and migrate
+		existing, err := config.Load()
+		if err != nil {
+			return fmt.Errorf("failed to load existing config: %w", err)
+		}
+
+		oldVersion := existing.SchemaVersion
+		defaults := config.Default()
+		merged := config.MergeConfig(existing, defaults)
+
+		changed, changes := config.MigrateConfig(merged)
+		if changed {
+			fmt.Printf("✓ Config migrated: v%d → v%d\n", oldVersion, merged.SchemaVersion)
+			for _, c := range changes {
+				fmt.Printf("  + Added: %s (%s)\n", c.Field, c.Description)
+			}
+		}
+
+		if err := merged.Save(); err != nil {
+			return fmt.Errorf("failed to save config: %w", err)
+		}
+		fmt.Println("✓ Config updated (preserved your settings)")
+	} else {
+		// First time or force - create new config
+		if err := createConfig(murDir, []string{"Claude Code"}, "Claude Code"); err != nil {
+			return err
+		}
+		if initForce && configExists {
+			fmt.Println("✓ Config overwritten (--force)")
+		} else {
+			fmt.Println("✓ mur initialized at ~/.mur (using defaults)")
+		}
+	}
 
 	// Install hooks if flag set
 	if initHooks {
