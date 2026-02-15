@@ -5,8 +5,8 @@ package config
 func MergeConfig(existing, defaults *Config) *Config {
 	result := *existing
 
-	// Schema version is always updated to latest
-	result.SchemaVersion = defaults.SchemaVersion
+	// NOTE: Don't update SchemaVersion here - let MigrateConfig handle it
+	// This preserves the original version for migration detection
 
 	// Merge DefaultTool (if not set)
 	if result.DefaultTool == "" {

@@ -32,9 +32,9 @@ func TestMergeConfig_PreservesExisting(t *testing.T) {
 		t.Errorf("expected ComplexityThreshold 0.8, got %f", merged.Routing.ComplexityThreshold)
 	}
 
-	// Schema version should be updated to latest
-	if merged.SchemaVersion != CurrentSchemaVersion {
-		t.Errorf("expected SchemaVersion %d, got %d", CurrentSchemaVersion, merged.SchemaVersion)
+	// Schema version should be preserved (MigrateConfig handles the upgrade)
+	if merged.SchemaVersion != 1 {
+		t.Errorf("expected SchemaVersion to be preserved as 1, got %d", merged.SchemaVersion)
 	}
 }
 
