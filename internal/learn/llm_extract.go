@@ -96,6 +96,12 @@ Before including a pattern, ask:
 
 If ANY answer is NO, skip that pattern.
 
+## LANGUAGE REQUIREMENT
+**IMPORTANT: Output ALL patterns in English, regardless of the transcript language.**
+- Translate problem descriptions, solutions, and explanations to English
+- Keep code snippets, error messages, and technical terms in their original form
+- Preserve technical accuracy while translating
+
 Output a JSON array. If no valuable patterns found, output [].
 
 Example of GOOD pattern (from actual debugging):

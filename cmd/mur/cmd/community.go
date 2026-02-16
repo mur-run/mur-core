@@ -6,6 +6,7 @@ import (
 
 	"github.com/mur-run/mur-core/internal/cloud"
 	"github.com/mur-run/mur-core/internal/config"
+	"github.com/mur-run/mur-core/internal/core/pattern"
 	"github.com/spf13/cobra"
 )
 
@@ -70,6 +71,7 @@ var (
 	shareCategory     string
 	shareTags         string
 	shareDescription  string
+	shareAutoTranslate bool
 )
 
 func init() {
@@ -88,6 +90,7 @@ func init() {
 	communityShareCmd.Flags().StringVarP(&shareCategory, "category", "c", "", "Pattern category (e.g., 'Error Handling', 'Testing')")
 	communityShareCmd.Flags().StringVarP(&shareTags, "tags", "t", "", "Comma-separated tags")
 	communityShareCmd.Flags().StringVarP(&shareDescription, "description", "d", "", "Override pattern description")
+	communityShareCmd.Flags().BoolVar(&shareAutoTranslate, "translate", true, "Auto-translate non-English patterns to English")
 }
 
 func runCommunity(cmd *cobra.Command, args []string) error {
@@ -416,6 +419,36 @@ func runCommunityShare(cmd *cobra.Command, args []string) error {
 			}
 		}
 		return nil
+	}
+
+	// Check if translation is needed
+	if shareAutoTranslate {
+		localPattern := &pattern.Pattern{
+			Name:        targetPattern.Name,
+			Description: targetPattern.Description,
+			Content:     targetPattern.Content,
+		}
+		if pattern.NeedsTranslation(localPattern) {
+			fmt.Println("🌐 Detected non-English content, translating...")
+			
+			translateReq := &cloud.TranslatePatternRequest{
+				Name:        targetPattern.Name,
+				Description: targetPattern.Description,
+				Content:     targetPattern.Content,
+			}
+			
+			translated, err := client.TranslatePattern(translateReq)
+			if err != nil {
+				fmt.Printf("⚠️  Translation failed: %v\n", err)
+				fmt.Println("   Sharing original content instead.")
+			} else {
+				// Update pattern with translated content
+				targetPattern.Name = translated.Name
+				targetPattern.Description = translated.Description
+				targetPattern.Content = translated.Content
+				fmt.Println("✓ Translated to English")
+			}
+		}
 	}
 
 	// Parse tags

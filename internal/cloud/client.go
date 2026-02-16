@@ -681,9 +681,33 @@ type ShareLocalPatternResponse struct {
 }
 
 // ShareLocalPattern uploads a local pattern directly to community
+// Automatically translates non-English content before sharing
 func (c *Client) ShareLocalPattern(req *ShareLocalPatternRequest) (*ShareLocalPatternResponse, error) {
 	var resp ShareLocalPatternResponse
 	if err := c.post("/api/v1/community/patterns/share", req, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// TranslatePatternRequest represents a request to translate pattern content
+type TranslatePatternRequest struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Content     string `json:"content"`
+}
+
+// TranslatePatternResponse represents translated pattern content
+type TranslatePatternResponse struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Content     string `json:"content"`
+}
+
+// TranslatePattern translates pattern content to English using the server's LLM
+func (c *Client) TranslatePattern(req *TranslatePatternRequest) (*TranslatePatternResponse, error) {
+	var resp TranslatePatternResponse
+	if err := c.post("/api/v1/community/translate", req, &resp); err != nil {
 		return nil, err
 	}
 	return &resp, nil
