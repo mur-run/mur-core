@@ -2,6 +2,16 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [1.8.2] - 2026-02-17
+
+### Added
+- **🌐 English Pattern Extraction**: Patterns now extracted in English
+  - LLM prompt explicitly requires English output
+  - CJK/non-English patterns auto-translated before community share
+  - Server-side `/api/v1/community/translate` endpoint (Gemini-powered)
+  - `--translate` flag on `mur community share` (default: true)
+  - Ensures global community patterns are accessible to all developers
+
 ## [1.8.1] - 2026-02-15
 
 ### Fixed
