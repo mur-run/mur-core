@@ -69,7 +69,7 @@ func (c *Client) Login(email, password string) (*AuthResponse, error) {
 	}
 
 	var resp AuthResponse
-	if err := c.post("/api/v1/auth/login", req, &resp); err != nil {
+	if err := c.post("/api/v1/core/auth/login", req, &resp); err != nil {
 		return nil, err
 	}
 
@@ -99,7 +99,7 @@ func (c *Client) Refresh() error {
 	}
 
 	var resp AuthResponse
-	if err := c.post("/api/v1/auth/refresh", req, &resp); err != nil {
+	if err := c.post("/api/v1/core/auth/refresh", req, &resp); err != nil {
 		return err
 	}
 
@@ -116,7 +116,7 @@ func (c *Client) Refresh() error {
 // Me returns the current user
 func (c *Client) Me() (*User, error) {
 	var user User
-	if err := c.get("/api/v1/auth/me", &user); err != nil {
+	if err := c.get("/api/v1/core/auth/me", &user); err != nil {
 		return nil, err
 	}
 	return &user, nil
@@ -171,7 +171,7 @@ type DeviceTokenResponse struct {
 // RequestDeviceCode starts device authorization flow
 func (c *Client) RequestDeviceCode() (*DeviceCodeResponse, error) {
 	var resp DeviceCodeResponse
-	if err := c.post("/api/v1/auth/device/code", nil, &resp); err != nil {
+	if err := c.post("/api/v1/core/auth/device/code", nil, &resp); err != nil {
 		return nil, err
 	}
 	return &resp, nil
@@ -182,7 +182,7 @@ func (c *Client) PollDeviceToken(deviceCode string) (*DeviceTokenResponse, error
 	req := map[string]string{"device_code": deviceCode}
 
 	var resp DeviceTokenResponse
-	if err := c.postRaw("/api/v1/auth/device/token", req, &resp); err != nil {
+	if err := c.postRaw("/api/v1/core/auth/device/token", req, &resp); err != nil {
 		// Check for expected errors
 		if resp.Error != "" {
 			return nil, fmt.Errorf("%s", resp.Error)
@@ -269,7 +269,7 @@ type TeamsResponse struct {
 // ListTeams returns user's teams
 func (c *Client) ListTeams() ([]Team, error) {
 	var resp TeamsResponse
-	if err := c.get("/api/v1/teams", &resp); err != nil {
+	if err := c.get("/api/v1/core/teams", &resp); err != nil {
 		return nil, err
 	}
 	return resp.Teams, nil
@@ -318,7 +318,7 @@ func (c *Client) GetTeamBySlug(slug string) (*Team, error) {
 func (c *Client) CreateTeam(name string) (*Team, error) {
 	req := map[string]string{"name": name}
 	var team Team
-	if err := c.post("/api/v1/teams", req, &team); err != nil {
+	if err := c.post("/api/v1/core/teams", req, &team); err != nil {
 		return nil, err
 	}
 	return &team, nil
@@ -333,7 +333,7 @@ type SyncStatus struct {
 // GetSyncStatus returns sync status
 func (c *Client) GetSyncStatus(teamID string, version int64) (*SyncStatus, error) {
 	var status SyncStatus
-	path := fmt.Sprintf("/api/v1/teams/%s/sync/status?version=%d", teamID, version)
+	path := fmt.Sprintf("/api/v1/core/teams/%s/sync/status?version=%d", teamID, version)
 	if err := c.get(path, &status); err != nil {
 		return nil, err
 	}
@@ -371,7 +371,7 @@ type PullResponse struct {
 // Pull pulls patterns since a version
 func (c *Client) Pull(teamID string, sinceVersion int64) (*PullResponse, error) {
 	var resp PullResponse
-	path := fmt.Sprintf("/api/v1/teams/%s/sync/pull?since=%d", teamID, sinceVersion)
+	path := fmt.Sprintf("/api/v1/core/teams/%s/sync/pull?since=%d", teamID, sinceVersion)
 	if err := c.get(path, &resp); err != nil {
 		return nil, err
 	}
@@ -409,7 +409,7 @@ type PushResponse struct {
 // Push pushes changes
 func (c *Client) Push(teamID string, req PushRequest) (*PushResponse, error) {
 	var resp PushResponse
-	path := fmt.Sprintf("/api/v1/teams/%s/sync/push", teamID)
+	path := fmt.Sprintf("/api/v1/core/teams/%s/sync/push", teamID)
 	if err := c.post(path, req, &resp); err != nil {
 		return nil, err
 	}
@@ -421,7 +421,7 @@ func (c *Client) Push(teamID string, req PushRequest) (*PushResponse, error) {
 // ListDevices returns all devices for the current user
 func (c *Client) ListDevices() (*DeviceListResponse, error) {
 	var resp DeviceListResponse
-	if err := c.get("/api/v1/devices", &resp); err != nil {
+	if err := c.get("/api/v1/core/devices", &resp); err != nil {
 		return nil, err
 	}
 	return &resp, nil
@@ -429,7 +429,7 @@ func (c *Client) ListDevices() (*DeviceListResponse, error) {
 
 // LogoutDevice force-logs out a device
 func (c *Client) LogoutDevice(deviceID string) error {
-	return c.delete(fmt.Sprintf("/api/v1/devices/%s", deviceID))
+	return c.delete(fmt.Sprintf("/api/v1/core/devices/%s", deviceID))
 }
 
 // === Community Methods ===
@@ -454,7 +454,7 @@ type CommunityListResponse struct {
 // GetCommunityPopular returns popular community patterns
 func (c *Client) GetCommunityPopular(limit int) (*CommunityListResponse, error) {
 	var resp CommunityListResponse
-	path := fmt.Sprintf("/api/v1/community/patterns/popular?limit=%d", limit)
+	path := fmt.Sprintf("/api/v1/core/community/patterns/popular?limit=%d", limit)
 	if err := c.get(path, &resp); err != nil {
 		return nil, err
 	}
@@ -464,7 +464,7 @@ func (c *Client) GetCommunityPopular(limit int) (*CommunityListResponse, error) 
 // GetCommunityRecent returns recent community patterns
 func (c *Client) GetCommunityRecent(limit int) (*CommunityListResponse, error) {
 	var resp CommunityListResponse
-	path := fmt.Sprintf("/api/v1/community/patterns/recent?limit=%d", limit)
+	path := fmt.Sprintf("/api/v1/core/community/patterns/recent?limit=%d", limit)
 	if err := c.get(path, &resp); err != nil {
 		return nil, err
 	}
@@ -474,7 +474,7 @@ func (c *Client) GetCommunityRecent(limit int) (*CommunityListResponse, error) {
 // GetCommunityFeatured returns featured community patterns
 func (c *Client) GetCommunityFeatured(limit int) (*CommunityListResponse, error) {
 	var resp CommunityListResponse
-	path := fmt.Sprintf("/api/v1/community/patterns/featured?limit=%d", limit)
+	path := fmt.Sprintf("/api/v1/core/community/patterns/featured?limit=%d", limit)
 	if err := c.get(path, &resp); err != nil {
 		return nil, err
 	}
@@ -501,7 +501,7 @@ type UserProfile struct {
 // GetUserProfile returns a user's public profile
 func (c *Client) GetUserProfile(login string) (*UserProfile, error) {
 	var resp UserProfile
-	path := fmt.Sprintf("/api/v1/community/users/%s", login)
+	path := fmt.Sprintf("/api/v1/core/community/users/%s", login)
 	if err := c.get(path, &resp); err != nil {
 		return nil, err
 	}
@@ -532,7 +532,7 @@ func (c *Client) ListCollections(limit int) ([]Collection, error) {
 	var resp struct {
 		Collections []Collection `json:"collections"`
 	}
-	path := fmt.Sprintf("/api/v1/community/collections?limit=%d", limit)
+	path := fmt.Sprintf("/api/v1/core/community/collections?limit=%d", limit)
 	if err := c.get(path, &resp); err != nil {
 		return nil, err
 	}
@@ -545,7 +545,7 @@ func (c *Client) GetCollection(id string) (*Collection, []CollectionPattern, err
 		Collection Collection          `json:"collection"`
 		Patterns   []CollectionPattern `json:"patterns"`
 	}
-	path := fmt.Sprintf("/api/v1/community/collections/%s", id)
+	path := fmt.Sprintf("/api/v1/core/community/collections/%s", id)
 	if err := c.get(path, &resp); err != nil {
 		return nil, nil, err
 	}
@@ -560,7 +560,7 @@ func (c *Client) CreateCollection(name, description, visibility string) (*Collec
 		"visibility":  visibility,
 	}
 	var resp Collection
-	if err := c.post("/api/v1/community/collections", req, &resp); err != nil {
+	if err := c.post("/api/v1/core/community/collections", req, &resp); err != nil {
 		return nil, err
 	}
 	return &resp, nil
@@ -574,7 +574,7 @@ func (c *Client) SearchCommunity(query string, limit int) (*CommunityListRespons
 // SearchCommunityWithTech searches community patterns with tech stack filter
 func (c *Client) SearchCommunityWithTech(query string, techStack []string, limit int) (*CommunityListResponse, error) {
 	var resp CommunityListResponse
-	path := fmt.Sprintf("/api/v1/community/patterns/search?q=%s&limit=%d", query, limit)
+	path := fmt.Sprintf("/api/v1/core/community/patterns/search?q=%s&limit=%d", query, limit)
 	
 	// Add tech stack filter
 	if len(techStack) > 0 {
@@ -603,7 +603,7 @@ type CommunityPatternDetail struct {
 // GetCommunityPattern gets full details of a community pattern
 func (c *Client) GetCommunityPattern(id string) (*CommunityPatternDetail, error) {
 	var resp CommunityPatternDetail
-	path := fmt.Sprintf("/api/v1/community/patterns/%s", id)
+	path := fmt.Sprintf("/api/v1/core/community/patterns/%s", id)
 	if err := c.get(path, &resp); err != nil {
 		return nil, err
 	}
@@ -614,7 +614,7 @@ func (c *Client) GetCommunityPattern(id string) (*CommunityPatternDetail, error)
 func (c *Client) CopyPattern(patternID, teamID string) (*Pattern, error) {
 	req := map[string]string{"team_id": teamID}
 	var pattern Pattern
-	path := fmt.Sprintf("/api/v1/community/patterns/%s/copy", patternID)
+	path := fmt.Sprintf("/api/v1/core/community/patterns/%s/copy", patternID)
 	if err := c.post(path, req, &pattern); err != nil {
 		return nil, err
 	}
@@ -641,7 +641,7 @@ type TeamPatternsResponse struct {
 // ListTeamPatterns lists patterns in a team
 func (c *Client) ListTeamPatterns(teamSlug string, limit, offset int) ([]TeamPattern, int, error) {
 	var resp TeamPatternsResponse
-	path := fmt.Sprintf("/api/v1/teams/%s/patterns?limit=%d&offset=%d", teamSlug, limit, offset)
+	path := fmt.Sprintf("/api/v1/core/teams/%s/patterns?limit=%d&offset=%d", teamSlug, limit, offset)
 	if err := c.get(path, &resp); err != nil {
 		return nil, 0, err
 	}
@@ -658,7 +658,7 @@ type SharePatternRequest struct {
 
 // SharePattern submits a pattern to community for review
 func (c *Client) SharePattern(req *SharePatternRequest) error {
-	path := fmt.Sprintf("/api/v1/community/patterns/%s/submit", req.PatternID)
+	path := fmt.Sprintf("/api/v1/core/community/patterns/%s/submit", req.PatternID)
 	return c.post(path, req, nil)
 }
 
@@ -684,7 +684,7 @@ type ShareLocalPatternResponse struct {
 // Automatically translates non-English content before sharing
 func (c *Client) ShareLocalPattern(req *ShareLocalPatternRequest) (*ShareLocalPatternResponse, error) {
 	var resp ShareLocalPatternResponse
-	if err := c.post("/api/v1/community/patterns/share", req, &resp); err != nil {
+	if err := c.post("/api/v1/core/community/patterns/share", req, &resp); err != nil {
 		return nil, err
 	}
 	return &resp, nil
@@ -707,7 +707,7 @@ type TranslatePatternResponse struct {
 // TranslatePattern translates pattern content to English using the server's LLM
 func (c *Client) TranslatePattern(req *TranslatePatternRequest) (*TranslatePatternResponse, error) {
 	var resp TranslatePatternResponse
-	if err := c.post("/api/v1/community/translate", req, &resp); err != nil {
+	if err := c.post("/api/v1/core/community/translate", req, &resp); err != nil {
 		return nil, err
 	}
 	return &resp, nil
@@ -729,7 +729,7 @@ type ReferralStats struct {
 // GetReferralStats returns referral statistics
 func (c *Client) GetReferralStats() (*ReferralStats, error) {
 	var stats ReferralStats
-	if err := c.get("/api/v1/referral/stats", &stats); err != nil {
+	if err := c.get("/api/v1/core/referral/stats", &stats); err != nil {
 		return nil, err
 	}
 	return &stats, nil
@@ -751,7 +751,7 @@ func (c *Client) delete(path string) error {
 
 func (c *Client) do(method, path string, body interface{}, result interface{}) error {
 	// Auto-refresh token if needed (but not for auth endpoints to avoid recursion)
-	if c.authStore.NeedsRefresh() && !strings.HasPrefix(path, "/api/v1/auth/") {
+	if c.authStore.NeedsRefresh() && !strings.HasPrefix(path, "/api/v1/core/auth/") {
 		_ = c.Refresh() // Ignore refresh errors, request will fail if token invalid
 	}
 
