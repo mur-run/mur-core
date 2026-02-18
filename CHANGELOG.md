@@ -2,6 +2,13 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [1.8.3] - 2026-02-18
+
+### Fixed
+- **CLI login/auth**: Fixed API paths to use `/api/v1/core/auth/` namespace
+  - `mur login` was hitting 404 due to incorrect endpoint path
+  - Affects: login, refresh, device code flow, user info
+
 ## [1.8.2] - 2026-02-17
 
 ### Added
