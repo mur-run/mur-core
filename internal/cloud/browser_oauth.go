@@ -14,7 +14,7 @@ const browserOAuthTimeout = 120 * time.Second
 
 const successHTML = `<!DOCTYPE html>
 <html>
-<head><title>mur - Login Successful</title></head>
+<head><meta charset="utf-8"><title>mur - Login Successful</title></head>
 <body style="font-family: -apple-system, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f8f9fa;">
 <div style="text-align: center;">
 <h1 style="color: #22c55e;">✓ Login Successful</h1>
@@ -25,7 +25,7 @@ const successHTML = `<!DOCTYPE html>
 
 const errorHTML = `<!DOCTYPE html>
 <html>
-<head><title>mur - Login Failed</title></head>
+<head><meta charset="utf-8"><title>mur - Login Failed</title></head>
 <body style="font-family: -apple-system, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f8f9fa;">
 <div style="text-align: center;">
 <h1 style="color: #ef4444;">✗ Login Failed</h1>
@@ -63,8 +63,8 @@ func BrowserOAuthLogin(client *Client) error {
 	mux.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
 		// Validate state — don't terminate on mismatch, just reject this request
 		if r.URL.Query().Get("state") != state {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			w.WriteHeader(http.StatusBadRequest)
-			w.Header().Set("Content-Type", "text/html")
 			fmt.Fprintf(w, errorHTML, "Invalid state parameter (possible CSRF attack)")
 			return
 		}
@@ -76,7 +76,7 @@ func BrowserOAuthLogin(client *Client) error {
 			if errMsg == "" {
 				errMsg = "No authorization code received"
 			}
-			w.Header().Set("Content-Type", "text/html")
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			fmt.Fprintf(w, errorHTML, errMsg)
 			done <- result{fmt.Errorf("oauth error: %s", errMsg)}
 			return
@@ -85,7 +85,7 @@ func BrowserOAuthLogin(client *Client) error {
 		// Exchange code for token
 		authResp, err := client.ExchangeOAuthCode(code)
 		if err != nil {
-			w.Header().Set("Content-Type", "text/html")
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			fmt.Fprintf(w, errorHTML, "Failed to exchange authorization code")
 			done <- result{fmt.Errorf("token exchange failed: %w", err)}
 			return
@@ -99,13 +99,13 @@ func BrowserOAuthLogin(client *Client) error {
 			User:         authResp.User,
 		}
 		if err := client.AuthStore().Save(authData); err != nil {
-			w.Header().Set("Content-Type", "text/html")
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			fmt.Fprintf(w, errorHTML, "Failed to save credentials")
 			done <- result{fmt.Errorf("failed to save auth: %w", err)}
 			return
 		}
 
-		w.Header().Set("Content-Type", "text/html")
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		fmt.Fprint(w, successHTML)
 		done <- result{nil}
 	})
