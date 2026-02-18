@@ -102,4 +102,4 @@ mur run -t openclaw -p "take a screenshot and explain the layout"
 ## See Also
 
 - [Smart Routing](../concepts/routing.md)
-- [OpenClaw Documentation](https://docs.openclaw.dev)
+- [OpenClaw Documentation](https://docs.openclaw.ai)
