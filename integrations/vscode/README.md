@@ -1,6 +1,6 @@
 # Murmur AI - VS Code Extension
 
-VS Code integration for [murmur-ai](https://github.com/anthropics/murmur-ai) — learn and share coding patterns with AI agents.
+VS Code integration for [murmur-ai](https://github.com/mur-run/mur-core) — learn and share coding patterns with AI agents.
 
 ## Features
 
@@ -12,7 +12,7 @@ VS Code integration for [murmur-ai](https://github.com/anthropics/murmur-ai) —
 
 ## Requirements
 
-- [murmur-ai CLI](https://github.com/anthropics/murmur-ai) (`mur`) must be installed and available in PATH
+- [murmur-ai CLI](https://github.com/mur-run/mur-core) (`mur`) must be installed and available in PATH
 
 ## Installation
 
@@ -20,7 +20,7 @@ VS Code integration for [murmur-ai](https://github.com/anthropics/murmur-ai) —
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/anthropics/murmur-ai
+   git clone https://github.com/mur-run/mur-core
    cd murmur-ai/integrations/vscode
    ```
 

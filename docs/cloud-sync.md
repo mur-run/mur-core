@@ -26,7 +26,7 @@ mur sync --cli              # Only sync to local AI tools
 | **Pro** | $9/mo | Cloud sync, 3 devices |
 | **Team** | $49/mo | 5 members, shared patterns, analytics |
 
-Learn more at [mur.run/products/core](https://mur.run/products/core)
+Learn more at [mur.run](https://mur.run)
 
 ## Push & Pull
 

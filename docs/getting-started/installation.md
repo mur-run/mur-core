@@ -23,34 +23,34 @@ go install github.com/mur-run/mur-core/cmd/mur@latest
 === "macOS (Apple Silicon)"
 
     ```bash
-    curl -L https://github.com/mur-run/mur-core/releases/latest/download/mur-darwin-arm64.tar.gz | tar xz
-    sudo mv mur /usr/local/bin/
+    curl -L https://github.com/mur-run/mur-core/releases/latest/download/mur-darwin-arm64 -o mur
+    chmod +x mur && sudo mv mur /usr/local/bin/
     ```
 
 === "macOS (Intel)"
 
     ```bash
-    curl -L https://github.com/mur-run/mur-core/releases/latest/download/mur-darwin-amd64.tar.gz | tar xz
-    sudo mv mur /usr/local/bin/
+    curl -L https://github.com/mur-run/mur-core/releases/latest/download/mur-darwin-amd64 -o mur
+    chmod +x mur && sudo mv mur /usr/local/bin/
     ```
 
 === "Linux (amd64)"
 
     ```bash
-    curl -L https://github.com/mur-run/mur-core/releases/latest/download/mur-linux-amd64.tar.gz | tar xz
-    sudo mv mur /usr/local/bin/
+    curl -L https://github.com/mur-run/mur-core/releases/latest/download/mur-linux-amd64 -o mur
+    chmod +x mur && sudo mv mur /usr/local/bin/
     ```
 
 === "Linux (arm64)"
 
     ```bash
-    curl -L https://github.com/mur-run/mur-core/releases/latest/download/mur-linux-arm64.tar.gz | tar xz
-    sudo mv mur /usr/local/bin/
+    curl -L https://github.com/mur-run/mur-core/releases/latest/download/mur-linux-arm64 -o mur
+    chmod +x mur && sudo mv mur /usr/local/bin/
     ```
 
 === "Windows"
 
-    Download `mur-windows-amd64.zip` from the [releases page](https://github.com/mur-run/mur-core/releases/latest) and extract to a directory in your PATH.
+    Download `mur-windows-amd64.exe` from the [releases page](https://github.com/mur-run/mur-core/releases/latest) and add to your PATH.
 
 ### Build from Source
 

@@ -1,6 +1,6 @@
 # murmur.nvim
 
-Neovim plugin for [murmur-ai](https://github.com/poyenc/murmur-ai) — sync, extract, and browse your learning patterns without leaving the editor.
+Neovim plugin for [murmur-ai](https://github.com/mur-run/mur-core) — sync, extract, and browse your learning patterns without leaving the editor.
 
 ## Requirements
 
@@ -14,7 +14,7 @@ Neovim plugin for [murmur-ai](https://github.com/poyenc/murmur-ai) — sync, ext
 
 ```lua
 {
-  'poyenc/murmur-ai',
+  'mur-run/mur-core',
   config = function()
     require('murmur').setup({
       -- optional configuration
@@ -31,7 +31,7 @@ Neovim plugin for [murmur-ai](https://github.com/poyenc/murmur-ai) — sync, ext
 
 ```lua
 use {
-  'poyenc/murmur-ai',
+  'mur-run/mur-core',
   config = function()
     require('murmur').setup()
   end

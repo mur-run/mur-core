@@ -1,6 +1,6 @@
 # Murmur AI - Sublime Text Plugin
 
-Sublime Text integration for [murmur-ai](https://github.com/anthropics/murmur-ai) — learn and share coding patterns with AI agents.
+Sublime Text integration for [murmur-ai](https://github.com/mur-run/mur-core) — learn and share coding patterns with AI agents.
 
 ## Features
 
@@ -12,7 +12,7 @@ Sublime Text integration for [murmur-ai](https://github.com/anthropics/murmur-ai
 ## Requirements
 
 - Sublime Text 3 or 4
-- [murmur-ai CLI](https://github.com/anthropics/murmur-ai) (`mur`) must be installed and available in PATH
+- [murmur-ai CLI](https://github.com/mur-run/mur-core) (`mur`) must be installed and available in PATH
 
 ## Installation
 

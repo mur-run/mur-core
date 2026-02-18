@@ -73,7 +73,7 @@
 
 > **Quick links:**
 > - 📦 Install: `brew tap mur-run/tap && brew install mur`
-> - 📖 Docs: https://docs.mur.run
+> - 📖 Docs: https://mur.run
 > - 💻 GitHub: https://github.com/mur-run/mur-core
 > - 🎨 VS Code: Search "MUR Patterns" in extensions
 >
