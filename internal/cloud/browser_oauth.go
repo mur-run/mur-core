@@ -11,6 +11,7 @@ import (
 )
 
 const browserOAuthTimeout = 120 * time.Second
+const frontendURL = "https://app.mur.run"
 
 const successHTML = `<!DOCTYPE html>
 <html>
@@ -69,35 +70,49 @@ func BrowserOAuthLogin(client *Client) error {
 			return
 		}
 
-		code := r.URL.Query().Get("code")
-		if code == "" {
-			// Check for error from server
-			errMsg := r.URL.Query().Get("error")
-			if errMsg == "" {
-				errMsg = "No authorization code received"
-			}
+		// Check for error from server
+		if errMsg := r.URL.Query().Get("error"); errMsg != "" {
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			fmt.Fprintf(w, errorHTML, errMsg)
 			done <- result{fmt.Errorf("oauth error: %s", errMsg)}
 			return
 		}
 
-		// Exchange code for token
-		authResp, err := client.ExchangeOAuthCode(code)
-		if err != nil {
+		var authData *AuthData
+
+		if token := r.URL.Query().Get("token"); token != "" {
+			// Email login: tokens provided directly
+			authData = &AuthData{
+				AccessToken:  token,
+				RefreshToken: r.URL.Query().Get("refresh_token"),
+				ExpiresAt:    time.Now().Add(1 * time.Hour),
+			}
+		} else if code := r.URL.Query().Get("code"); code != "" {
+			// OAuth login: exchange code for tokens
+			provider := r.URL.Query().Get("provider")
+			if provider == "" {
+				provider = "github" // default for backward compat
+			}
+			authResp, err := client.ExchangeOAuthCode(code, provider)
+			if err != nil {
+				w.Header().Set("Content-Type", "text/html; charset=utf-8")
+				fmt.Fprintf(w, errorHTML, "Failed to exchange authorization code")
+				done <- result{fmt.Errorf("token exchange failed: %w", err)}
+				return
+			}
+			authData = &AuthData{
+				AccessToken:  authResp.AccessToken,
+				RefreshToken: authResp.RefreshToken,
+				ExpiresAt:    time.Now().Add(1 * time.Hour),
+				User:         authResp.User,
+			}
+		} else {
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			fmt.Fprintf(w, errorHTML, "Failed to exchange authorization code")
-			done <- result{fmt.Errorf("token exchange failed: %w", err)}
+			fmt.Fprintf(w, errorHTML, "No authorization code or token received")
+			done <- result{fmt.Errorf("no code or token received")}
 			return
 		}
 
-		// Save tokens
-		authData := &AuthData{
-			AccessToken:  authResp.AccessToken,
-			RefreshToken: authResp.RefreshToken,
-			ExpiresAt:    time.Now().Add(1 * time.Hour),
-			User:         authResp.User,
-		}
 		if err := client.AuthStore().Save(authData); err != nil {
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			fmt.Fprintf(w, errorHTML, "Failed to save credentials")
@@ -118,8 +133,8 @@ func BrowserOAuthLogin(client *Client) error {
 	}()
 
 	// Build OAuth URL and open browser
-	oauthURL := fmt.Sprintf("%s/api/v1/core/auth/oauth/authorize?redirect_port=%d&state=%s",
-		client.baseURL, port, state)
+	oauthURL := fmt.Sprintf("%s/auth/cli-login?port=%d&state=%s",
+		frontendURL, port, state)
 
 	fmt.Println("Opening browser for authentication...")
 	fmt.Println()

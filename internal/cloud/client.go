@@ -207,9 +207,9 @@ func (c *Client) PollDeviceToken(deviceCode string) (*DeviceTokenResponse, error
 	return &resp, nil
 }
 
-// ExchangeOAuthCode exchanges a GitHub OAuth code for a mur access token.
-func (c *Client) ExchangeOAuthCode(code string) (*AuthResponse, error) {
-	req := map[string]string{"code": code}
+// ExchangeOAuthCode exchanges an OAuth code for a mur access token.
+func (c *Client) ExchangeOAuthCode(code, provider string) (*AuthResponse, error) {
+	req := map[string]string{"code": code, "provider": provider}
 	var resp AuthResponse
 	if err := c.post("/api/v1/core/auth/oauth/callback", req, &resp); err != nil {
 		return nil, err
