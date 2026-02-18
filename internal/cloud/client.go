@@ -207,6 +207,16 @@ func (c *Client) PollDeviceToken(deviceCode string) (*DeviceTokenResponse, error
 	return &resp, nil
 }
 
+// ExchangeOAuthCode exchanges a GitHub OAuth code for a mur access token.
+func (c *Client) ExchangeOAuthCode(code string) (*AuthResponse, error) {
+	req := map[string]string{"code": code}
+	var resp AuthResponse
+	if err := c.post("/api/v1/core/auth/oauth/callback", req, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
 // postRaw is like post but doesn't fail on non-2xx if response is valid JSON
 func (c *Client) postRaw(path string, body interface{}, result interface{}) error {
 	var reqBody io.Reader

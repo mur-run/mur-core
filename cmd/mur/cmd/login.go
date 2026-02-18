@@ -19,17 +19,21 @@ var loginCmd = &cobra.Command{
 	Short: "Login to mur-server",
 	Long: `Authenticate with mur-server to enable team sync.
 
-By default, uses device code flow (OAuth) - you'll authorize in your browser.
+By default, opens a browser for GitHub OAuth login. If a browser can't be
+opened (e.g. SSH session), falls back to device code flow automatically.
+
+Use --device to force device code flow.
 Use --password to login with email/password instead.
 Use --api-key to login with an API key (create one at app.mur.run/core/settings).
 
 Examples:
-  mur login                           # OAuth login (recommended)
+  mur login                           # Browser OAuth login (recommended)
+  mur login --device                  # Device code flow (for headless/SSH)
   mur login --api-key mur_xxx_...     # API key login
-  mur login --password                # Email/password login
-  mur login --email user@example.com --password`,
+  mur login --password                # Email/password login`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		usePassword, _ := cmd.Flags().GetBool("password")
+		useDevice, _ := cmd.Flags().GetBool("device")
 		email, _ := cmd.Flags().GetString("email")
 		apiKey, _ := cmd.Flags().GetString("api-key")
 		serverURL, _ := cmd.Flags().GetString("server")
@@ -52,14 +56,47 @@ Examples:
 			return apiKeyLogin(client, apiKey)
 		}
 
-		// Use device code flow by default
-		if !usePassword && email == "" {
+		// Email/password login
+		if usePassword || email != "" {
+			return passwordLogin(client, email)
+		}
+
+		// Force device code flow
+		if useDevice {
 			return deviceCodeLogin(client)
 		}
 
-		// Fall back to email/password login
-		return passwordLogin(client, email)
+		// Default: try browser OAuth, fall back to device code
+		if !cloud.CanOpenBrowser() {
+			fmt.Println("Detected headless environment, using device code authentication...")
+			fmt.Println()
+			return deviceCodeLogin(client)
+		}
+
+		return browserOAuthLoginWithFallback(client)
 	},
+}
+
+func browserOAuthLoginWithFallback(client *cloud.Client) error {
+	err := cloud.BrowserOAuthLogin(client)
+	if err == nil {
+		// Success — show user info
+		user, userErr := client.Me()
+		if userErr != nil {
+			fmt.Println("✓ Logged in successfully")
+		} else {
+			fmt.Printf("✓ Logged in as %s (%s)\n", user.Name, user.Email)
+		}
+		fmt.Println()
+		fmt.Println("Next steps:")
+		fmt.Println("  mur cloud teams     — List your teams")
+		fmt.Println("  mur cloud sync      — Sync patterns with server")
+		return nil
+	}
+	fmt.Printf("Browser login failed: %v\n", err)
+	fmt.Println("Falling back to device code flow...")
+	fmt.Println()
+	return deviceCodeLogin(client)
 }
 
 func deviceCodeLogin(client *cloud.Client) error {
@@ -256,6 +293,7 @@ func init() {
 
 	loginCmd.Flags().String("email", "", "Email address (for password login)")
 	loginCmd.Flags().Bool("password", false, "Use email/password login instead of OAuth")
+	loginCmd.Flags().Bool("device", false, "Force device code flow (for headless/SSH environments)")
 	loginCmd.Flags().String("api-key", "", "API key for authentication (create at app.mur.run)")
 	loginCmd.Flags().String("server", "", "Server URL (default: https://api.mur.run)")
 	whoamiCmd.Flags().String("server", "", "Server URL")
