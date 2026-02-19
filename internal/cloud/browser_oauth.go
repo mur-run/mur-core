@@ -85,7 +85,7 @@ func BrowserOAuthLogin(client *Client) error {
 			authData = &AuthData{
 				AccessToken:  token,
 				RefreshToken: r.URL.Query().Get("refresh_token"),
-				ExpiresAt:    time.Now().Add(1 * time.Hour),
+				ExpiresAt:    time.Now().Add(365 * 24 * time.Hour),
 			}
 		} else if code := r.URL.Query().Get("code"); code != "" {
 			// OAuth login: exchange code for tokens
@@ -103,7 +103,7 @@ func BrowserOAuthLogin(client *Client) error {
 			authData = &AuthData{
 				AccessToken:  authResp.AccessToken,
 				RefreshToken: authResp.RefreshToken,
-				ExpiresAt:    time.Now().Add(1 * time.Hour),
+				ExpiresAt:    time.Now().Add(365 * 24 * time.Hour),
 				User:         authResp.User,
 			}
 		} else {
