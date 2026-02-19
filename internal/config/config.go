@@ -58,9 +58,19 @@ func DefaultCommunityConfig() CommunityConfig {
 
 // PrivacyConfig represents privacy and PII protection settings.
 type PrivacyConfig struct {
-	RedactTerms  []string          `yaml:"redact_terms"`  // Terms to always redact
-	Replacements map[string]string `yaml:"replacements"`  // Custom replacement mappings
-	AutoDetect   AutoDetectConfig  `yaml:"auto_detect"`   // Auto-detection toggles
+	RedactTerms            []string                      `yaml:"redact_terms"`             // Terms to always redact
+	Replacements           map[string]string             `yaml:"replacements"`             // Custom replacement mappings
+	AutoDetect             AutoDetectConfig              `yaml:"auto_detect"`              // Auto-detection toggles
+	SemanticAnonymization  SemanticAnonymizationConfig   `yaml:"semantic_anonymization"`   // LLM-based anonymization
+}
+
+// SemanticAnonymizationConfig controls LLM-based semantic anonymization.
+type SemanticAnonymizationConfig struct {
+	Enabled      bool   `yaml:"enabled"`       // Opt-in (default: false)
+	Provider     string `yaml:"provider"`      // ollama | openai | anthropic
+	Model        string `yaml:"model"`         // Model for anonymization
+	OllamaURL    string `yaml:"ollama_url"`    // Ollama API URL
+	CacheResults bool   `yaml:"cache_results"` // Cache anonymization results (default: true)
 }
 
 // AutoDetectConfig controls which PII types are auto-detected.
@@ -121,6 +131,13 @@ func DefaultPrivacyConfig() PrivacyConfig {
 			FilePaths:    boolPtr(true),
 			PhoneNumbers: boolPtr(true),
 			InternalURLs: boolPtr(true),
+		},
+		SemanticAnonymization: SemanticAnonymizationConfig{
+			Enabled:      false,
+			Provider:     "ollama",
+			Model:        "llama3.2",
+			OllamaURL:    "http://localhost:11434",
+			CacheResults: true,
 		},
 	}
 }

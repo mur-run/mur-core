@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/mur-run/mur-core/internal/cloud"
@@ -449,6 +450,47 @@ func runCommunityShare(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// LLM semantic anonymization (after regex PII, before secret scan)
+	var anonChanges []security.AnonymizationChange
+	if cfg.Privacy.SemanticAnonymization.Enabled {
+		sa := cfg.Privacy.SemanticAnonymization
+		llmClient, err := security.NewLLMClient(sa.Provider, sa.Model, sa.OllamaURL)
+		if err != nil {
+			fmt.Printf("⚠️  Semantic anonymization unavailable: %v\n", err)
+		} else {
+			cacheDir := ""
+			if sa.CacheResults {
+				home, _ := os.UserHomeDir()
+				if home != "" {
+					cacheDir = filepath.Join(home, ".mur", "cache", "anonymization")
+				}
+			}
+			anonymizer := security.NewSemanticAnonymizer(llmClient, cacheDir)
+
+			anonContent := targetPattern.Name + "\n" + targetPattern.Description + "\n" + targetPattern.Content
+			anonCleaned, changes, anonErr := anonymizer.Anonymize(anonContent)
+			if anonErr != nil {
+				fmt.Printf("⚠️  Semantic anonymization failed: %v\n", anonErr)
+			} else if len(changes) > 0 {
+				anonChanges = changes
+				fmt.Println("🧠 LLM semantic anonymization applied:")
+				fmt.Print(security.FormatAnonymizationChanges(changes))
+				fmt.Println()
+
+				parts := strings.SplitN(anonCleaned, "\n", 3)
+				if len(parts) >= 1 {
+					targetPattern.Name = parts[0]
+				}
+				if len(parts) >= 2 {
+					targetPattern.Description = parts[1]
+				}
+				if len(parts) >= 3 {
+					targetPattern.Content = parts[2]
+				}
+			}
+		}
+	}
+
 	if shareDryRun {
 		fmt.Println("🔍 Dry run — content after redaction:")
 		fmt.Println(strings.Repeat("─", 50))
@@ -457,6 +499,9 @@ func runCommunityShare(cmd *cobra.Command, args []string) error {
 		fmt.Println(strings.Repeat("─", 50))
 		fmt.Println(targetPattern.Content)
 		fmt.Println(strings.Repeat("─", 50))
+		if len(anonChanges) > 0 {
+			fmt.Printf("\n🧠 LLM detected %d semantic identifiers.\n", len(anonChanges))
+		}
 		fmt.Println("No changes were made. Remove --dry-run to share.")
 		return nil
 	}

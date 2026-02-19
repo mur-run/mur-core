@@ -333,6 +333,27 @@ func runCommunityAutoShare(cfg *config.Config) error {
 	scanner := security.NewScanner()
 	piiScanner := security.NewPIIScanner(cfg.Privacy)
 
+	// Initialize semantic anonymizer if enabled
+	var anonymizer *security.SemanticAnonymizer
+	if cfg.Privacy.SemanticAnonymization.Enabled {
+		sa := cfg.Privacy.SemanticAnonymization
+		llmClient, llmErr := security.NewLLMClient(sa.Provider, sa.Model, sa.OllamaURL)
+		if llmErr != nil {
+			if !syncQuiet {
+				fmt.Printf("  ⚠️  Semantic anonymization unavailable: %v\n", llmErr)
+			}
+		} else {
+			cacheDir := ""
+			if sa.CacheResults {
+				home, _ := os.UserHomeDir()
+				if home != "" {
+					cacheDir = filepath.Join(home, ".mur", "cache", "anonymization")
+				}
+			}
+			anonymizer = security.NewSemanticAnonymizer(llmClient, cacheDir)
+		}
+	}
+
 	var shared, skipped, redacted int
 	for _, p := range patterns {
 		// Skip patterns without content
@@ -362,6 +383,31 @@ func runCommunityAutoShare(cfg *config.Config) error {
 				p.Content = parts[2]
 			}
 			contentToScan = cleaned
+		}
+
+		// LLM semantic anonymization (after regex PII, before secret scan)
+		if anonymizer != nil {
+			anonCleaned, changes, anonErr := anonymizer.Anonymize(contentToScan)
+			if anonErr != nil {
+				if !syncQuiet {
+					fmt.Printf("  ⚠️  %s → semantic anonymization failed: %v\n", p.Name, anonErr)
+				}
+			} else if len(changes) > 0 {
+				if !syncQuiet {
+					fmt.Printf("  🧠 %s → %d semantic identifiers anonymized\n", p.Name, len(changes))
+				}
+				parts := strings.SplitN(anonCleaned, "\n", 3)
+				if len(parts) >= 1 {
+					p.Name = parts[0]
+				}
+				if len(parts) >= 2 {
+					p.Description = parts[1]
+				}
+				if len(parts) >= 3 {
+					p.Content = parts[2]
+				}
+				contentToScan = anonCleaned
+			}
 		}
 
 		// Scan for secrets (on already-redacted content)
