@@ -59,6 +59,7 @@ type AuthResponse struct {
 	User         *User  `json:"user"`
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
+	ExpiresIn    int    `json:"expires_in"`
 }
 
 // Login authenticates with the server
@@ -73,11 +74,15 @@ func (c *Client) Login(email, password string) (*AuthResponse, error) {
 		return nil, err
 	}
 
-	// Save tokens (1 hour expiry, matching server)
+	// Use server-provided expiry, fallback to 365 days
+	expiry := 365 * 24 * time.Hour
+	if resp.ExpiresIn > 0 {
+		expiry = time.Duration(resp.ExpiresIn) * time.Second
+	}
 	authData := &AuthData{
 		AccessToken:  resp.AccessToken,
 		RefreshToken: resp.RefreshToken,
-		ExpiresAt:    time.Now().Add(1 * time.Hour),
+		ExpiresAt:    time.Now().Add(expiry),
 		User:         resp.User,
 	}
 	if err := c.authStore.Save(authData); err != nil {
@@ -103,11 +108,15 @@ func (c *Client) Refresh() error {
 		return err
 	}
 
-	// Save new tokens (1 hour expiry, matching server)
+	// Use server-provided expiry, fallback to 365 days
+	expiry := 365 * 24 * time.Hour
+	if resp.ExpiresIn > 0 {
+		expiry = time.Duration(resp.ExpiresIn) * time.Second
+	}
 	authData := &AuthData{
 		AccessToken:  resp.AccessToken,
 		RefreshToken: resp.RefreshToken,
-		ExpiresAt:    time.Now().Add(1 * time.Hour),
+		ExpiresAt:    time.Now().Add(expiry),
 		User:         resp.User,
 	}
 	return c.authStore.Save(authData)
@@ -194,11 +203,15 @@ func (c *Client) PollDeviceToken(deviceCode string) (*DeviceTokenResponse, error
 		return nil, fmt.Errorf("%s", resp.Error)
 	}
 
-	// Save tokens
+	// Save tokens (use server-provided expiry, fallback to 365 days)
+	expiry := 365 * 24 * time.Hour
+	if resp.ExpiresIn > 0 {
+		expiry = time.Duration(resp.ExpiresIn) * time.Second
+	}
 	authData := &AuthData{
 		AccessToken:  resp.AccessToken,
 		RefreshToken: resp.RefreshToken,
-		ExpiresAt:    time.Now().Add(time.Duration(resp.ExpiresIn) * time.Second),
+		ExpiresAt:    time.Now().Add(expiry),
 	}
 	if err := c.authStore.Save(authData); err != nil {
 		return nil, fmt.Errorf("failed to save auth: %w", err)
