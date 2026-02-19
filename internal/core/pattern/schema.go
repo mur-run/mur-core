@@ -160,6 +160,8 @@ type SecurityMeta struct {
 	ReviewedAt *time.Time `yaml:"reviewed_at,omitempty"`
 	// Risk assessment
 	Risk RiskLevel `yaml:"risk"`
+	// Injection risk level from scanning
+	InjectionRisk string `yaml:"injection_risk,omitempty"`
 	// Security warnings from scanning
 	Warnings []string `yaml:"warnings,omitempty"`
 }

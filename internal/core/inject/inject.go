@@ -2,6 +2,8 @@
 package inject
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,9 +11,11 @@ import (
 	"strings"
 
 	"github.com/mur-run/mur-core/internal/cache"
+	"github.com/mur-run/mur-core/internal/core/audit"
 	"github.com/mur-run/mur-core/internal/core/classifier"
 	"github.com/mur-run/mur-core/internal/core/embed"
 	"github.com/mur-run/mur-core/internal/core/pattern"
+	"github.com/mur-run/mur-core/internal/security"
 )
 
 // InjectionResult holds the result of pattern injection.
@@ -24,6 +28,15 @@ type InjectionResult struct {
 	Context *ProjectContext
 	// Classification scores
 	Classifications []classifier.DomainScore
+	// Patterns that were blocked by injection scanning
+	BlockedPatterns []BlockedPattern
+}
+
+// BlockedPattern records a pattern that was blocked by the injection scanner.
+type BlockedPattern struct {
+	Name     string
+	Risk     security.InjectionRisk
+	Findings []security.InjectionFinding
 }
 
 // ProjectContext holds detected project context.
@@ -44,18 +57,26 @@ type ProjectContext struct {
 
 // Injector handles pattern injection based on context.
 type Injector struct {
-	store      *pattern.Store
-	classifier *classifier.HybridClassifier
-	searcher   *embed.PatternSearcher // Optional semantic search
-	cache      *cache.MemoryCache     // Optional in-process cache
+	store            *pattern.Store
+	classifier       *classifier.HybridClassifier
+	searcher         *embed.PatternSearcher    // Optional semantic search
+	cache            *cache.MemoryCache        // Optional in-process cache
+	injectionScanner *security.InjectionScanner // Injection scanner
+	auditLogger      *audit.Logger             // Optional audit logger
 }
 
 // NewInjector creates a new pattern injector.
 func NewInjector(store *pattern.Store) *Injector {
 	return &Injector{
-		store:      store,
-		classifier: classifier.NewHybridClassifier(),
+		store:            store,
+		classifier:       classifier.NewHybridClassifier(),
+		injectionScanner: security.NewInjectionScanner(),
 	}
+}
+
+// WithAuditLogger attaches an audit logger to the injector.
+func (inj *Injector) WithAuditLogger(logger *audit.Logger) {
+	inj.auditLogger = logger
 }
 
 // WithCache attaches an in-process memory cache so the injector
@@ -98,14 +119,48 @@ func (inj *Injector) Inject(prompt string, workDir string) (*InjectionResult, er
 		return nil, fmt.Errorf("failed to find patterns: %w", err)
 	}
 
-	// 4. Format prompt with patterns
-	formatted := inj.formatPrompt(prompt, patterns)
+	// 4. Scan patterns for injection attacks and filter out high-risk ones
+	var safePatterns []*pattern.Pattern
+	var blocked []BlockedPattern
+	for _, p := range patterns {
+		risk, findings := inj.injectionScanner.Scan(p.Content)
+		p.Security.InjectionRisk = string(risk)
+
+		if risk == security.InjectionRiskHigh && !p.IsTrusted() {
+			blocked = append(blocked, BlockedPattern{
+				Name:     p.Name,
+				Risk:     risk,
+				Findings: findings,
+			})
+			continue
+		}
+		safePatterns = append(safePatterns, p)
+	}
+
+	// 5. Audit log
+	if inj.auditLogger != nil {
+		promptHash := sha256.Sum256([]byte(prompt))
+		for _, p := range safePatterns {
+			_ = inj.auditLogger.Log(audit.Entry{
+				PatternID:   p.ID,
+				PatternName: p.Name,
+				Action:      audit.ActionInject,
+				Source:      "cli",
+				ToolTarget:  "", // filled by caller if needed
+				PromptHash:  hex.EncodeToString(promptHash[:]),
+			})
+		}
+	}
+
+	// 6. Format prompt with safe patterns
+	formatted := inj.formatPrompt(prompt, safePatterns)
 
 	return &InjectionResult{
-		Patterns:        patterns,
+		Patterns:        safePatterns,
 		FormattedPrompt: formatted,
 		Context:         ctx,
 		Classifications: classifications,
+		BlockedPatterns: blocked,
 	}, nil
 }
 

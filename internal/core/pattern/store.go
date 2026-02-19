@@ -124,6 +124,22 @@ func (s *Store) listFromDir(dir string) []Pattern {
 	return patterns
 }
 
+// LoadVerified returns a pattern with hash integrity verification.
+// If the hash doesn't match, the pattern is returned with warnings and TrustLevel set to untrusted.
+func (s *Store) LoadVerified(name string) (*Pattern, error) {
+	p, err := s.Get(name)
+	if err != nil {
+		return nil, err
+	}
+
+	if p.Security.Hash != "" && !p.VerifyHash() {
+		p.Security.Warnings = append(p.Security.Warnings,
+			"hash mismatch: content may have been tampered with")
+		p.Security.TrustLevel = TrustUntrusted
+	}
+	return p, nil
+}
+
 // Get returns a pattern by name.
 func (s *Store) Get(name string) (*Pattern, error) {
 	if err := validateName(name); err != nil {
