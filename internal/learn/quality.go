@@ -16,12 +16,12 @@ type SessionQuality struct {
 
 // ExtractionConfig holds thresholds for quality filtering.
 type ExtractionConfig struct {
-	MinToolUses          int      // Minimum tool uses required
-	MinTurns             int      // Minimum conversation turns
-	MaxAssistantRatio    float64  // Max ratio of assistant content
-	MinContentLength     int      // Minimum pattern content length
-	RequireProblemSolve  bool     // Require problem/solution structure
-	RejectKeywords       []string // Keywords that indicate generic content
+	MinToolUses         int      // Minimum tool uses required
+	MinTurns            int      // Minimum conversation turns
+	MaxAssistantRatio   float64  // Max ratio of assistant content
+	MinContentLength    int      // Minimum pattern content length
+	RequireProblemSolve bool     // Require problem/solution structure
+	RejectKeywords      []string // Keywords that indicate generic content
 }
 
 // DefaultExtractionConfig returns sensible defaults.

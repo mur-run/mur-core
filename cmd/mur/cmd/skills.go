@@ -5,8 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/mur-run/mur-core/internal/sync"
 	"github.com/spf13/cobra"
+
+	"github.com/mur-run/mur-core/internal/sync"
 )
 
 var skillsCmd = &cobra.Command{

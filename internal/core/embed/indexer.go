@@ -59,9 +59,7 @@ func NewPatternIndexer(cfg *config.Config) (*PatternIndexer, error) {
 	}
 
 	cache := NewCache(cacheDir, embedder)
-	if err := cache.Load(); err != nil {
-		// Ignore load errors, start with empty cache
-	}
+	_ = cache.Load() // Ignore load errors, start with empty cache
 
 	return &PatternIndexer{
 		cfg:      cfg,

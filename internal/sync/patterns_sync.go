@@ -106,10 +106,10 @@ func looksLikeMurPattern(content string) bool {
 
 // PatternTarget defines where patterns are synced to for each CLI.
 type PatternTarget struct {
-	Name       string
-	SkillsDir  string // relative to home
-	FileName   string // the skill file name
-	Format     string // "markdown" or "yaml"
+	Name      string
+	SkillsDir string // relative to home
+	FileName  string // the skill file name
+	Format    string // "markdown" or "yaml"
 }
 
 // DefaultPatternTargets returns all supported CLI targets.

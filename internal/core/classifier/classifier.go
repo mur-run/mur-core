@@ -205,10 +205,10 @@ func (k *KeywordClassifier) Classify(input ClassifyInput) []DomainScore {
 func defaultDomainKeywords() map[string][]string {
 	return map[string][]string{
 		// Programming languages
-		"swift": {"swift", "swiftui", "uikit", "appkit", "xctest", "xcode", "@State", "@Published", "Sendable"},
-		"go":    {"golang", "go ", "goroutine", "chan ", "defer", "go.mod", "go.sum"},
-		"rust":  {"rust", "cargo", "rustc", "impl ", "fn ", "mut ", "unwrap"},
-		"python": {"python", "pip", "pytest", "django", "flask", "numpy", "pandas", "__init__"},
+		"swift":      {"swift", "swiftui", "uikit", "appkit", "xctest", "xcode", "@State", "@Published", "Sendable"},
+		"go":         {"golang", "go ", "goroutine", "chan ", "defer", "go.mod", "go.sum"},
+		"rust":       {"rust", "cargo", "rustc", "impl ", "fn ", "mut ", "unwrap"},
+		"python":     {"python", "pip", "pytest", "django", "flask", "numpy", "pandas", "__init__"},
 		"typescript": {"typescript", "tsx", "interface ", "type ", "as const"},
 		"javascript": {"javascript", "nodejs", "npm", "yarn", "react", "vue", "angular"},
 
@@ -219,9 +219,9 @@ func defaultDomainKeywords() map[string][]string {
 		"backend": {"api", "rest", "graphql", "grpc", "microservice", "endpoint"},
 
 		// DevOps/infrastructure
-		"devops":     {"docker", "kubernetes", "k8s", "helm", "terraform", "ansible", "ci/cd", "pipeline"},
-		"database":   {"sql", "postgres", "mysql", "mongodb", "redis", "database", "query", "migration"},
-		"cloud":      {"aws", "azure", "gcp", "cloud", "lambda", "s3", "ec2"},
+		"devops":   {"docker", "kubernetes", "k8s", "helm", "terraform", "ansible", "ci/cd", "pipeline"},
+		"database": {"sql", "postgres", "mysql", "mongodb", "redis", "database", "query", "migration"},
+		"cloud":    {"aws", "azure", "gcp", "cloud", "lambda", "s3", "ec2"},
 
 		// Development practices
 		"testing":      {"test", "unit test", "integration", "mock", "stub", "coverage", "tdd"},
@@ -232,8 +232,8 @@ func defaultDomainKeywords() map[string][]string {
 		"performance":  {"performance", "optimize", "cache", "latency", "memory", "cpu", "profil"},
 
 		// AI/ML
-		"ai":  {"ai", "llm", "gpt", "claude", "gemini", "prompt", "embedding", "vector"},
-		"ml":  {"machine learning", "model", "training", "inference", "neural", "tensorflow", "pytorch"},
+		"ai": {"ai", "llm", "gpt", "claude", "gemini", "prompt", "embedding", "vector"},
+		"ml": {"machine learning", "model", "training", "inference", "neural", "tensorflow", "pytorch"},
 
 		// Business/other
 		"documentation": {"document", "readme", "changelog", "api doc", "swagger", "openapi"},
@@ -329,8 +329,8 @@ func defaultFilePatterns() map[string][]string {
 		"javascript": {"*.js", "*.jsx", "package.json"},
 
 		// Web
-		"web":  {"*.html", "*.css", "*.scss", "*.sass", "*.less"},
-		"vue":  {"*.vue"},
+		"web":   {"*.html", "*.css", "*.scss", "*.sass", "*.less"},
+		"vue":   {"*.vue"},
 		"react": {"*.jsx", "*.tsx"},
 
 		// Config/DevOps

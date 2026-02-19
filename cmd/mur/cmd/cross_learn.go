@@ -6,10 +6,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/spf13/cobra"
+
 	"github.com/mur-run/mur-core/internal/core/pattern"
 	"github.com/mur-run/mur-core/internal/core/suggest"
 	"github.com/mur-run/mur-core/internal/learn"
-	"github.com/spf13/cobra"
 )
 
 var crossLearnCmd = &cobra.Command{

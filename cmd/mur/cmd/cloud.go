@@ -6,11 +6,12 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
+
 	"github.com/mur-run/mur-core/internal/cloud"
 	"github.com/mur-run/mur-core/internal/config"
 	"github.com/mur-run/mur-core/internal/core/pattern"
-	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
 )
 
 var cloudCmd = &cobra.Command{
@@ -358,9 +359,9 @@ Examples:
 							if resolutions[c.PatternName] == ResolutionKeepServer && c.ServerVersion != nil {
 								localP := convertCloudPattern(c.ServerVersion)
 								if store.Exists(localP.Name) {
-									store.Update(localP)
+									_ = store.Update(localP)
 								} else {
-									store.Create(localP)
+									_ = store.Create(localP)
 								}
 							}
 						}
@@ -427,13 +428,13 @@ func saveLocalSyncVersion(teamSlug string, version int64) {
 	// Load existing state
 	data, err := os.ReadFile(path)
 	if err == nil {
-		yaml.Unmarshal(data, &state)
+		_ = yaml.Unmarshal(data, &state)
 	}
 
 	state[teamSlug] = version
 
 	data, _ = yaml.Marshal(state)
-	os.WriteFile(path, data, 0644)
+	_ = os.WriteFile(path, data, 0644)
 }
 
 func convertCloudPattern(p *cloud.Pattern) *pattern.Pattern {

@@ -84,7 +84,7 @@ func InstallAuggieHooks() error {
 	if _, err := os.Stat(settingsPath); err == nil {
 		backupPath := settingsPath + ".backup"
 		if data, err := os.ReadFile(settingsPath); err == nil {
-			os.WriteFile(backupPath, data, 0644)
+			_ = os.WriteFile(backupPath, data, 0644)
 		}
 	}
 

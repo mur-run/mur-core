@@ -15,10 +15,10 @@ import (
 type EventType string
 
 const (
-	EventSearch    EventType = "search"    // Pattern found via semantic search
-	EventInject    EventType = "inject"    // Pattern injected via sync/hooks
-	EventView      EventType = "view"      // Pattern viewed in dashboard/CLI
-	EventFeedback  EventType = "feedback"  // User feedback on pattern
+	EventSearch   EventType = "search"   // Pattern found via semantic search
+	EventInject   EventType = "inject"   // Pattern injected via sync/hooks
+	EventView     EventType = "view"     // Pattern viewed in dashboard/CLI
+	EventFeedback EventType = "feedback" // User feedback on pattern
 )
 
 // Event represents a single pattern usage event.
@@ -27,10 +27,10 @@ type Event struct {
 	PatternName string    `json:"pattern_name"`
 	EventType   EventType `json:"event_type"`
 	Timestamp   time.Time `json:"timestamp"`
-	Score       float64   `json:"score,omitempty"`      // For search events
-	Source      string    `json:"source,omitempty"`     // hook, cli, dashboard
-	Helpful     *bool     `json:"helpful,omitempty"`    // For feedback events
-	Context     string    `json:"context,omitempty"`    // Query or prompt snippet
+	Score       float64   `json:"score,omitempty"`   // For search events
+	Source      string    `json:"source,omitempty"`  // hook, cli, dashboard
+	Helpful     *bool     `json:"helpful,omitempty"` // For feedback events
+	Context     string    `json:"context,omitempty"` // Query or prompt snippet
 }
 
 // PatternStats aggregates usage stats for a pattern.

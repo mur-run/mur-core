@@ -6,8 +6,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/mur-run/mur-core/internal/core/pattern"
 	"github.com/spf13/cobra"
+
+	"github.com/mur-run/mur-core/internal/core/pattern"
 )
 
 var lifecycleCmd = &cobra.Command{
@@ -84,7 +85,7 @@ func getLifecycleManager() (*pattern.LifecycleManager, error) {
 
 func lifecycleEvaluateExecute(cmd *cobra.Command, args []string) error {
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
-	
+
 	home, _ := os.UserHomeDir()
 	patternsDir := filepath.Join(home, ".mur", "patterns")
 	store := pattern.NewStore(patternsDir)

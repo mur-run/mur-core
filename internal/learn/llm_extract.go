@@ -15,10 +15,10 @@ import (
 type LLMProvider string
 
 const (
-	LLMOllama   LLMProvider = "ollama"
-	LLMClaude   LLMProvider = "claude"
-	LLMOpenAI   LLMProvider = "openai"   // OpenAI-compatible APIs
-	LLMGemini   LLMProvider = "gemini"
+	LLMOllama LLMProvider = "ollama"
+	LLMClaude LLMProvider = "claude"
+	LLMOpenAI LLMProvider = "openai" // OpenAI-compatible APIs
+	LLMGemini LLMProvider = "gemini"
 )
 
 // LLMExtractOptions configures LLM-based extraction.
@@ -490,7 +490,7 @@ func callGemini(transcript string, opts LLMExtractOptions) (string, error) {
 			},
 		},
 		"generationConfig": map[string]interface{}{
-			"temperature": 0.3,
+			"temperature":     0.3,
 			"maxOutputTokens": 4096,
 		},
 	}

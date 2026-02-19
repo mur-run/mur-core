@@ -7,11 +7,12 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/spf13/cobra"
+
 	"github.com/mur-run/mur-core/internal/cloud"
 	"github.com/mur-run/mur-core/internal/config"
 	"github.com/mur-run/mur-core/internal/core/pattern"
 	"github.com/mur-run/mur-core/internal/security"
-	"github.com/spf13/cobra"
 )
 
 var communityCmd = &cobra.Command{
@@ -530,13 +531,13 @@ func runCommunityShare(cmd *cobra.Command, args []string) error {
 		}
 		if pattern.NeedsTranslation(localPattern) {
 			fmt.Println("🌐 Detected non-English content, translating...")
-			
+
 			translateReq := &cloud.TranslatePatternRequest{
 				Name:        targetPattern.Name,
 				Description: targetPattern.Description,
 				Content:     targetPattern.Content,
 			}
-			
+
 			translated, err := client.TranslatePattern(translateReq)
 			if err != nil {
 				fmt.Printf("⚠️  Translation failed: %v\n", err)

@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mur-run/mur-core/internal/cloud"
 	"github.com/spf13/cobra"
+
+	"github.com/mur-run/mur-core/internal/cloud"
 )
 
 var referralCmd = &cobra.Command{

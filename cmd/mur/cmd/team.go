@@ -3,8 +3,9 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/mur-run/mur-core/internal/team"
 	"github.com/spf13/cobra"
+
+	"github.com/mur-run/mur-core/internal/team"
 )
 
 var teamCmd = &cobra.Command{

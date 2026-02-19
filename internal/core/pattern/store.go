@@ -14,7 +14,7 @@ import (
 
 // Store provides pattern storage operations.
 type Store struct {
-	baseDir  string
+	baseDir   string
 	localOnly bool // when true, don't fall back to ~/.mur/repo/patterns/
 }
 

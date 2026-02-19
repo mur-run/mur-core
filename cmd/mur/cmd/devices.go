@@ -5,8 +5,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mur-run/mur-core/internal/cloud"
 	"github.com/spf13/cobra"
+
+	"github.com/mur-run/mur-core/internal/cloud"
 )
 
 var devicesCmd = &cobra.Command{

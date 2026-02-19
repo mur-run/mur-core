@@ -18,8 +18,8 @@ import (
 // CLISource represents an AI CLI tool as a learning source.
 type CLISource struct {
 	Name        string
-	SessionDir  string   // Path to session/history directory
-	FilePattern string   // Glob pattern for session files
+	SessionDir  string // Path to session/history directory
+	FilePattern string // Glob pattern for session files
 	Parser      SessionParser
 }
 
@@ -30,11 +30,11 @@ type SessionParser interface {
 
 // SessionEntry represents a single exchange in a session.
 type SessionEntry struct {
-	Role      string    // "user" or "assistant"
+	Role      string // "user" or "assistant"
 	Content   string
 	Timestamp time.Time
-	Tool      string    // Which tool was used (if any)
-	Success   bool      // Whether the action succeeded
+	Tool      string // Which tool was used (if any)
+	Success   bool   // Whether the action succeeded
 }
 
 // DefaultCLISources returns the known CLI sources.
@@ -252,10 +252,10 @@ func detectTopic(entries []SessionEntry) string {
 			content := strings.ToLower(e.Content)
 
 			topics := map[string][]string{
-				"debugging":    {"bug", "error", "fix", "issue", "problem"},
-				"refactoring":  {"refactor", "clean", "improve", "optimize"},
-				"testing":      {"test", "spec", "coverage"},
-				"feature":      {"add", "implement", "create", "build"},
+				"debugging":     {"bug", "error", "fix", "issue", "problem"},
+				"refactoring":   {"refactor", "clean", "improve", "optimize"},
+				"testing":       {"test", "spec", "coverage"},
+				"feature":       {"add", "implement", "create", "build"},
 				"documentation": {"doc", "readme", "comment", "explain"},
 			}
 

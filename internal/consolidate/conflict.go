@@ -12,7 +12,7 @@ type ConflictType string
 const (
 	ConflictContradiction ConflictType = "contradiction" // opposite advice
 	ConflictOutdated      ConflictType = "outdated"      // one supersedes the other
-	ConflictScope         ConflictType = "scope"          // different contexts that may confuse
+	ConflictScope         ConflictType = "scope"         // different contexts that may confuse
 )
 
 // Conflict represents a detected conflict between two patterns.

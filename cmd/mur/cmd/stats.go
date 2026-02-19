@@ -8,8 +8,9 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/mur-run/mur-core/internal/analytics"
 	"github.com/spf13/cobra"
+
+	"github.com/mur-run/mur-core/internal/analytics"
 )
 
 var statsCmd = &cobra.Command{

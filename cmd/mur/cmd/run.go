@@ -7,13 +7,14 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/spf13/cobra"
+
 	"github.com/mur-run/mur-core/internal/config"
 	"github.com/mur-run/mur-core/internal/core/embed"
 	"github.com/mur-run/mur-core/internal/core/inject"
 	"github.com/mur-run/mur-core/internal/core/pattern"
 	"github.com/mur-run/mur-core/internal/router"
 	"github.com/mur-run/mur-core/internal/stats"
-	"github.com/spf13/cobra"
 )
 
 var runCmd = &cobra.Command{
@@ -93,8 +94,8 @@ func runExecute(cmd *cobra.Command, args []string) error {
 					fmt.Printf("   • %s\n", p.Name)
 				}
 				if injectionResult.Context != nil && injectionResult.Context.ProjectType != "" {
-					fmt.Printf("🔍 Context: %s project (%s)\n", 
-						injectionResult.Context.ProjectType, 
+					fmt.Printf("🔍 Context: %s project (%s)\n",
+						injectionResult.Context.ProjectType,
 						injectionResult.Context.ProjectName)
 				}
 				fmt.Println()

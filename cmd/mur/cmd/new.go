@@ -126,7 +126,7 @@ schema_version: 2
 		editorCmd.Stdin = os.Stdin
 		editorCmd.Stdout = os.Stdout
 		editorCmd.Stderr = os.Stderr
-		editorCmd.Run()
+		_ = editorCmd.Run()
 	}
 
 	fmt.Println()

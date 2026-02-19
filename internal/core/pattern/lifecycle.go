@@ -67,10 +67,10 @@ type LifecycleAction struct {
 type ActionType string
 
 const (
-	ActionDeprecate ActionType = "deprecate"
-	ActionArchive   ActionType = "archive"
+	ActionDeprecate  ActionType = "deprecate"
+	ActionArchive    ActionType = "archive"
 	ActionReactivate ActionType = "reactivate"
-	ActionKeep      ActionType = "keep"
+	ActionKeep       ActionType = "keep"
 )
 
 // LifecycleReport summarizes lifecycle evaluation.

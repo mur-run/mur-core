@@ -3,17 +3,17 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 
-	"github.com/mur-run/mur-core/internal/config"
-	"github.com/mur-run/mur-core/internal/core/pattern"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
+
+	"github.com/mur-run/mur-core/internal/config"
+	"github.com/mur-run/mur-core/internal/core/pattern"
 )
 
 var importCmd = &cobra.Command{
@@ -54,11 +54,11 @@ func init() {
 
 // GistResponse represents GitHub Gist API response
 type GistResponse struct {
-	ID          string               `json:"id"`
-	Description string               `json:"description"`
-	Files       map[string]GistFile  `json:"files"`
-	Owner       *GistOwner           `json:"owner"`
-	HTMLURL     string               `json:"html_url"`
+	ID          string              `json:"id"`
+	Description string              `json:"description"`
+	Files       map[string]GistFile `json:"files"`
+	Owner       *GistOwner          `json:"owner"`
+	HTMLURL     string              `json:"html_url"`
 }
 
 type GistFile struct {
@@ -141,7 +141,7 @@ func runImportGist(cmd *cobra.Command, args []string) error {
 func extractGistID(input string) string {
 	// Full URL: https://gist.github.com/user/abc123
 	// Or just: abc123
-	
+
 	re := regexp.MustCompile(`gist\.github\.com/[^/]+/([a-f0-9]+)`)
 	if matches := re.FindStringSubmatch(input); len(matches) > 1 {
 		return matches[1]
@@ -214,7 +214,7 @@ func constructPatternFromFiles(gist *GistResponse) (*pattern.Pattern, error) {
 
 	for filename, file := range gist.Files {
 		lower := strings.ToLower(filename)
-		
+
 		if strings.HasPrefix(lower, "readme") {
 			readmeContent = file.Content
 			continue
@@ -280,20 +280,4 @@ func constructPatternFromFiles(gist *GistResponse) (*pattern.Pattern, error) {
 	}
 
 	return p, nil
-}
-
-// fetchRawContent fetches raw content from a URL
-func fetchRawContent(url string) (string, error) {
-	resp, err := http.Get(url)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-
-	return string(body), nil
 }

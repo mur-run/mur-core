@@ -59,10 +59,10 @@ type ProjectContext struct {
 type Injector struct {
 	store            *pattern.Store
 	classifier       *classifier.HybridClassifier
-	searcher         *embed.PatternSearcher    // Optional semantic search
-	cache            *cache.MemoryCache        // Optional in-process cache
+	searcher         *embed.PatternSearcher     // Optional semantic search
+	cache            *cache.MemoryCache         // Optional in-process cache
 	injectionScanner *security.InjectionScanner // Injection scanner
-	auditLogger      *audit.Logger             // Optional audit logger
+	auditLogger      *audit.Logger              // Optional audit logger
 }
 
 // NewInjector creates a new pattern injector.
@@ -167,8 +167,8 @@ func (inj *Injector) Inject(prompt string, workDir string) (*InjectionResult, er
 // detectContext analyzes the working directory to detect project context.
 func (inj *Injector) detectContext(workDir string) *ProjectContext {
 	ctx := &ProjectContext{
-		RootDir:   workDir,
-		Languages: []string{},
+		RootDir:    workDir,
+		Languages:  []string{},
 		Frameworks: []string{},
 	}
 

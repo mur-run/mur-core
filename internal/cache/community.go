@@ -52,7 +52,7 @@ func NewCommunityCache(baseDir string, ttlDays, maxSizeMB int) *CommunityCache {
 	}
 
 	dir := filepath.Join(baseDir, "cache", "community")
-	os.MkdirAll(dir, 0755)
+	_ = os.MkdirAll(dir, 0755)
 
 	return &CommunityCache{
 		dir:       dir,
@@ -88,7 +88,7 @@ func (c *CommunityCache) Get(id string) (*CachedPattern, error) {
 
 	// Update last used
 	pattern.LastUsed = time.Now()
-	c.Save(&pattern)
+	_ = c.Save(&pattern)
 
 	return &pattern, nil
 }
@@ -205,7 +205,7 @@ func (c *CommunityCache) Cleanup() (int, error) {
 		}
 	}
 
-	c.saveMeta(meta)
+	_ = c.saveMeta(meta)
 	return removed, nil
 }
 
@@ -230,7 +230,7 @@ func (c *CommunityCache) cleanupIfNeeded() {
 
 	// Cleanup if over 90% of limit or > 1000 patterns
 	if sizeKB > maxKB*9/10 || count > 1000 {
-		c.Cleanup()
+		_, _ = c.Cleanup()
 	}
 }
 
@@ -275,7 +275,7 @@ func (c *CommunityCache) updateMeta(id string, entry *CacheEntry) {
 	} else {
 		meta.Patterns[id] = entry
 	}
-	c.saveMeta(meta)
+	_ = c.saveMeta(meta)
 }
 
 // DefaultCommunityCache creates a cache with default settings.

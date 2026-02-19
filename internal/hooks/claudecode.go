@@ -16,10 +16,10 @@ type ClaudeCodeHook struct {
 
 // ClaudeCodeHooks represents the hooks configuration.
 type ClaudeCodeHooks struct {
-	PreToolUse map[string][]ClaudeCodeHook `json:"PreToolUse,omitempty"`
-	PostToolUse map[string][]ClaudeCodeHook `json:"PostToolUse,omitempty"`
-	UserPromptSubmit []ClaudeCodeHook `json:"UserPromptSubmit,omitempty"`
-	Stop []ClaudeCodeHook `json:"Stop,omitempty"`
+	PreToolUse       map[string][]ClaudeCodeHook `json:"PreToolUse,omitempty"`
+	PostToolUse      map[string][]ClaudeCodeHook `json:"PostToolUse,omitempty"`
+	UserPromptSubmit []ClaudeCodeHook            `json:"UserPromptSubmit,omitempty"`
+	Stop             []ClaudeCodeHook            `json:"Stop,omitempty"`
 }
 
 // ClaudeCodeSettings represents the Claude Code settings file.

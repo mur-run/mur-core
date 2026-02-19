@@ -17,7 +17,7 @@ type CopilotHookDef struct {
 
 // CopilotHooksConfig defines the hooks configuration for GitHub Copilot.
 type CopilotHooksConfig struct {
-	Version int                        `json:"version"`
+	Version int                         `json:"version"`
 	Hooks   map[string][]CopilotHookDef `json:"hooks"`
 }
 

@@ -7,8 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mur-run/mur-core/internal/analytics"
 	"github.com/spf13/cobra"
+
+	"github.com/mur-run/mur-core/internal/analytics"
 )
 
 var feedbackCmd = &cobra.Command{

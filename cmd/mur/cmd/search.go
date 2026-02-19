@@ -7,12 +7,13 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/spf13/cobra"
+
 	"github.com/mur-run/mur-core/internal/cache"
 	"github.com/mur-run/mur-core/internal/cloud"
 	"github.com/mur-run/mur-core/internal/config"
 	"github.com/mur-run/mur-core/internal/core/analytics"
 	"github.com/mur-run/mur-core/internal/core/embed"
-	"github.com/spf13/cobra"
 )
 
 var searchCmd = &cobra.Command{
@@ -35,12 +36,12 @@ Examples:
 }
 
 var (
-	searchTopK         int
-	searchJSON         bool
-	searchInject       bool
-	searchCommunity    bool
+	searchTopK          int
+	searchJSON          bool
+	searchInject        bool
+	searchCommunity     bool
 	searchCommunityOnly bool
-	searchLocalOnly    bool
+	searchLocalOnly     bool
 )
 
 func init() {
@@ -279,7 +280,7 @@ func cacheCommunityPatterns(cfg *config.Config, patterns []cloud.CommunityPatter
 		}
 
 		// Cache it
-		communityCache.Save(&cache.CachedPattern{
+		_ = communityCache.Save(&cache.CachedPattern{
 			ID:          detail.ID,
 			Name:        detail.Name,
 			Description: detail.Description,

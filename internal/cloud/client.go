@@ -150,7 +150,7 @@ func (c *Client) LoginWithAPIKey(apiKey string) error {
 	user, err := c.Me()
 	if err != nil {
 		// Clear the invalid key
-		c.authStore.Clear()
+		_ = c.authStore.Clear()
 		return err
 	}
 
@@ -506,19 +506,19 @@ func (c *Client) GetCommunityFeatured(limit int) (*CommunityListResponse, error)
 
 // UserProfile represents a user's public profile
 type UserProfile struct {
-	ID           string            `json:"id"`
-	Name         string            `json:"name"`
-	Login        string            `json:"login,omitempty"`
-	Bio          string            `json:"bio,omitempty"`
-	Website      string            `json:"website,omitempty"`
-	GitHub       string            `json:"github,omitempty"`
-	Twitter      string            `json:"twitter,omitempty"`
-	Plan         string            `json:"plan"`
-	PatternCount int               `json:"pattern_count"`
-	TotalCopies  int               `json:"total_copies"`
-	TotalStars   int               `json:"total_stars"`
+	ID           string             `json:"id"`
+	Name         string             `json:"name"`
+	Login        string             `json:"login,omitempty"`
+	Bio          string             `json:"bio,omitempty"`
+	Website      string             `json:"website,omitempty"`
+	GitHub       string             `json:"github,omitempty"`
+	Twitter      string             `json:"twitter,omitempty"`
+	Plan         string             `json:"plan"`
+	PatternCount int                `json:"pattern_count"`
+	TotalCopies  int                `json:"total_copies"`
+	TotalStars   int                `json:"total_stars"`
 	Patterns     []CommunityPattern `json:"patterns"`
-	JoinedAt     string            `json:"joined_at"`
+	JoinedAt     string             `json:"joined_at"`
 }
 
 // GetUserProfile returns a user's public profile
@@ -598,12 +598,12 @@ func (c *Client) SearchCommunity(query string, limit int) (*CommunityListRespons
 func (c *Client) SearchCommunityWithTech(query string, techStack []string, limit int) (*CommunityListResponse, error) {
 	var resp CommunityListResponse
 	path := fmt.Sprintf("/api/v1/core/community/patterns/search?q=%s&limit=%d", query, limit)
-	
+
 	// Add tech stack filter
 	if len(techStack) > 0 {
 		path += "&tech=" + strings.Join(techStack, ",")
 	}
-	
+
 	if err := c.get(path, &resp); err != nil {
 		return nil, err
 	}
