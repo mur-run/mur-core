@@ -174,3 +174,74 @@ func TestEmbeddingMatrixZeroVector(t *testing.T) {
 		t.Errorf("zero query should return nil, got %d results", len(results))
 	}
 }
+
+func TestEmbeddingMatrixAllPairs(t *testing.T) {
+	dir := t.TempDir()
+
+	// v0 and v2 are very similar (both point mostly along x)
+	// v1 is orthogonal to v0
+	entries := []embeddingCacheEntry{
+		{ID: "p0", Vector: []float64{1, 0, 0}},
+		{ID: "p1", Vector: []float64{0, 1, 0}},
+		{ID: "p2", Vector: []float64{0.99, 0.14, 0}}, // ~cos(8°) ≈ 0.99 with p0
+	}
+	cacheFile := writeEmbeddingsJSON(t, dir, entries)
+
+	m := NewEmbeddingMatrix(3)
+	if err := m.Load(cacheFile); err != nil {
+		t.Fatal(err)
+	}
+
+	// Threshold 0.9 should only find p0-p2 pair
+	pairs := m.AllPairs(0.9)
+	if len(pairs) != 1 {
+		t.Fatalf("AllPairs(0.9) returned %d pairs, want 1", len(pairs))
+	}
+	pair := pairs[0]
+	if (pair.IDA != "p0" || pair.IDB != "p2") && (pair.IDA != "p2" || pair.IDB != "p0") {
+		t.Errorf("unexpected pair: %s - %s", pair.IDA, pair.IDB)
+	}
+	if pair.Similarity < 0.9 {
+		t.Errorf("similarity = %f, want >= 0.9", pair.Similarity)
+	}
+
+	// Threshold 0.0 should find all 3 pairs
+	allPairs := m.AllPairs(0.0)
+	if len(allPairs) != 3 {
+		t.Errorf("AllPairs(0.0) returned %d pairs, want 3", len(allPairs))
+	}
+}
+
+func TestEmbeddingMatrixMaxSimilarity(t *testing.T) {
+	dir := t.TempDir()
+
+	entries := []embeddingCacheEntry{
+		{ID: "p0", Vector: []float64{1, 0, 0}},
+		{ID: "p1", Vector: []float64{0, 1, 0}},
+		{ID: "p2", Vector: []float64{0.99, 0.14, 0}},
+	}
+	cacheFile := writeEmbeddingsJSON(t, dir, entries)
+
+	m := NewEmbeddingMatrix(3)
+	_ = m.Load(cacheFile)
+
+	// p0's max similarity should be with p2
+	maxSim := m.MaxSimilarity("p0")
+	if maxSim < 0.9 {
+		t.Errorf("MaxSimilarity(p0) = %f, want >= 0.9", maxSim)
+	}
+
+	// Non-existent pattern should return -1
+	notFound := m.MaxSimilarity("nonexistent")
+	if notFound != -1 {
+		t.Errorf("MaxSimilarity(nonexistent) = %f, want -1", notFound)
+	}
+}
+
+func TestEmbeddingMatrixAllPairsEmpty(t *testing.T) {
+	m := NewEmbeddingMatrix(3)
+	pairs := m.AllPairs(0.5)
+	if pairs != nil {
+		t.Errorf("AllPairs on empty matrix should return nil, got %d", len(pairs))
+	}
+}

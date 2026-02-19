@@ -45,8 +45,27 @@ type Pattern struct {
 	// L3 resources metadata
 	Resources Resources `yaml:"resources,omitempty"`
 
+	// Relations to other patterns
+	Relations Relations `yaml:"relations,omitempty"`
+
+	// Consolidation health metadata
+	Health HealthMeta `yaml:"health,omitempty"`
+
 	// Embedding hash for semantic search cache (SHA256 of content, first 16 chars)
 	EmbeddingHash string `yaml:"embedding_hash,omitempty"`
+}
+
+// Relations tracks relationships between patterns.
+type Relations struct {
+	Supersedes    string   `yaml:"supersedes,omitempty"`
+	Related       []string `yaml:"related,omitempty"`
+	ConflictsWith []string `yaml:"conflicts_with,omitempty"`
+}
+
+// HealthMeta holds consolidation health metadata.
+type HealthMeta struct {
+	Score            float64    `yaml:"score,omitempty"`
+	LastConsolidated *time.Time `yaml:"last_consolidated,omitempty"`
 }
 
 // Resources tracks L3 resource availability for a pattern.

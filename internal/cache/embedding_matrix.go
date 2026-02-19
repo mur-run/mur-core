@@ -167,6 +167,85 @@ func (m *EmbeddingMatrix) Search(queryVec []float64, topK int) []MatrixSearchRes
 	return scores
 }
 
+// SimilarityPair holds a pair of pattern IDs and their cosine similarity.
+type SimilarityPair struct {
+	IDA        string
+	IDB        string
+	Similarity float64
+}
+
+// AllPairs returns all pairs of patterns with cosine similarity >= threshold.
+func (m *EmbeddingMatrix) AllPairs(threshold float64) []SimilarityPair {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	if m.n < 2 {
+		return nil
+	}
+
+	var pairs []SimilarityPair
+	dim := m.dim
+
+	for i := 0; i < m.n; i++ {
+		offI := i * dim
+		for j := i + 1; j < m.n; j++ {
+			offJ := j * dim
+			var dot float32
+			for k := 0; k < dim; k++ {
+				dot += m.normed[offI+k] * m.normed[offJ+k]
+			}
+			sim := float64(dot)
+			if sim >= threshold {
+				pairs = append(pairs, SimilarityPair{
+					IDA:        m.ids[i],
+					IDB:        m.ids[j],
+					Similarity: sim,
+				})
+			}
+		}
+	}
+
+	return pairs
+}
+
+// MaxSimilarity returns the maximum cosine similarity between the given pattern
+// and any other pattern in the matrix. Returns -1 if the pattern is not found.
+func (m *EmbeddingMatrix) MaxSimilarity(patternID string) float64 {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	idx := -1
+	for i, id := range m.ids {
+		if id == patternID {
+			idx = i
+			break
+		}
+	}
+	if idx < 0 {
+		return -1
+	}
+
+	dim := m.dim
+	offI := idx * dim
+	maxSim := -1.0
+
+	for j := 0; j < m.n; j++ {
+		if j == idx {
+			continue
+		}
+		offJ := j * dim
+		var dot float32
+		for k := 0; k < dim; k++ {
+			dot += m.normed[offI+k] * m.normed[offJ+k]
+		}
+		if float64(dot) > maxSim {
+			maxSim = float64(dot)
+		}
+	}
+
+	return maxSim
+}
+
 // Len returns the number of vectors in the matrix.
 func (m *EmbeddingMatrix) Len() int {
 	m.mu.RLock()

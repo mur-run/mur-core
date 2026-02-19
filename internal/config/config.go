@@ -30,8 +30,9 @@ type Config struct {
 	Notifications NotificationsConfig `yaml:"notifications"`
 	TechStack     []string            `yaml:"tech_stack"` // User's tech stack for filtering (e.g., ["swift", "go", "docker"])
 	Cache         CacheConfig         `yaml:"cache"`      // Local cache settings
-	Community     CommunityConfig     `yaml:"community"`  // Community sharing settings
-	Privacy       PrivacyConfig       `yaml:"privacy"`    // Privacy & PII protection settings
+	Community      CommunityConfig      `yaml:"community"`      // Community sharing settings
+	Privacy        PrivacyConfig        `yaml:"privacy"`        // Privacy & PII protection settings
+	Consolidation  ConsolidationConfig  `yaml:"consolidation"`  // Pattern consolidation settings
 }
 
 // CacheConfig represents local cache settings for community patterns.
@@ -121,6 +122,34 @@ func DefaultPrivacyConfig() PrivacyConfig {
 			PhoneNumbers: boolPtr(true),
 			InternalURLs: boolPtr(true),
 		},
+	}
+}
+
+// ConsolidationConfig represents pattern consolidation settings.
+type ConsolidationConfig struct {
+	Enabled              bool    `yaml:"enabled"`
+	Schedule             string  `yaml:"schedule"`                // daily | weekly | monthly
+	AutoArchive          bool    `yaml:"auto_archive"`
+	AutoMerge            string  `yaml:"auto_merge"`              // off | keep-best | llm-merge
+	MergeThreshold       float64 `yaml:"merge_threshold"`         // cosine similarity threshold
+	DecayHalfLifeDays    int     `yaml:"decay_half_life_days"`
+	GracePeriodDays      int     `yaml:"grace_period_days"`
+	MinPatternsBeforeRun int     `yaml:"min_patterns_before_run"`
+	NotifyOnRun          bool    `yaml:"notify_on_run"`
+}
+
+// DefaultConsolidationConfig returns default consolidation settings.
+func DefaultConsolidationConfig() ConsolidationConfig {
+	return ConsolidationConfig{
+		Enabled:              true,
+		Schedule:             "weekly",
+		AutoArchive:          true,
+		AutoMerge:            "keep-best",
+		MergeThreshold:       0.85,
+		DecayHalfLifeDays:    90,
+		GracePeriodDays:      14,
+		MinPatternsBeforeRun: 50,
+		NotifyOnRun:          true,
 	}
 }
 
@@ -415,6 +444,26 @@ func (c *Config) applyDefaults() {
 		c.Embeddings.BatchSize = 10
 	}
 
+	// Consolidation defaults
+	if c.Consolidation.Schedule == "" {
+		c.Consolidation.Schedule = "weekly"
+	}
+	if c.Consolidation.AutoMerge == "" {
+		c.Consolidation.AutoMerge = "keep-best"
+	}
+	if c.Consolidation.MergeThreshold == 0 {
+		c.Consolidation.MergeThreshold = 0.85
+	}
+	if c.Consolidation.DecayHalfLifeDays == 0 {
+		c.Consolidation.DecayHalfLifeDays = 90
+	}
+	if c.Consolidation.GracePeriodDays == 0 {
+		c.Consolidation.GracePeriodDays = 14
+	}
+	if c.Consolidation.MinPatternsBeforeRun == 0 {
+		c.Consolidation.MinPatternsBeforeRun = 50
+	}
+
 	// Default tool
 	if c.DefaultTool == "" {
 		c.DefaultTool = "claude"
@@ -596,7 +645,8 @@ func defaultConfig() *Config {
 			OnError:    true,
 			OnPatterns: true,
 		},
-		Community: DefaultCommunityConfig(),
-		Privacy:   DefaultPrivacyConfig(),
+		Community:     DefaultCommunityConfig(),
+		Privacy:       DefaultPrivacyConfig(),
+		Consolidation: DefaultConsolidationConfig(),
 	}
 }
