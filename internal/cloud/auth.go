@@ -24,10 +24,12 @@ type AuthData struct {
 
 // User represents a mur-server user
 type User struct {
-	ID    string `json:"id"`
-	Email string `json:"email"`
-	Name  string `json:"name"`
-	Plan  string `json:"plan,omitempty"`
+	ID                 string `json:"id"`
+	Email              string `json:"email"`
+	Name               string `json:"name"`
+	Plan               string `json:"plan,omitempty"`
+	TrialActive        bool   `json:"trial_active,omitempty"`
+	TrialDaysRemaining int    `json:"trial_days_remaining,omitempty"`
 }
 
 // NewAuthStore creates a new auth store

@@ -96,8 +96,27 @@ func runStatus(cmd *cobra.Command, args []string) error {
 			fmt.Println("   Logged in (API key)")
 		}
 
-		// Show active team from config
+		// Show trial status by calling /me API
 		cfg, _ := config.Load()
+		if client, err := cloud.NewClient(func() string {
+			if cfg != nil {
+				return cfg.Server.URL
+			}
+			return ""
+		}()); err == nil {
+			if me, err := client.Me(); err == nil && me.Plan == "trial" {
+				if me.TrialDaysRemaining > 14 {
+					fmt.Printf("   Trial: %d days remaining\n", me.TrialDaysRemaining)
+				} else if me.TrialDaysRemaining > 0 {
+					fmt.Printf("   ⚠️  Trial: %d days remaining! Upgrade: mur billing | Extend: mur referral\n", me.TrialDaysRemaining)
+				} else {
+					fmt.Println("   ⚠️  Trial expired — Free plan (cloud sync disabled)")
+					fmt.Println("   Upgrade: app.mur.run/billing | Extend: mur referral")
+				}
+			}
+		}
+
+		// Show active team from config
 		if cfg != nil && cfg.Server.Team != "" {
 			fmt.Printf("   Active team: %s\n", cfg.Server.Team)
 		}
