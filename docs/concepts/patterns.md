@@ -1,6 +1,6 @@
 # Patterns
 
-Patterns are reusable knowledge snippets that murmur learns from your coding sessions and shares across AI tools.
+Patterns are reusable knowledge snippets that MUR Core learns from your coding sessions and shares across AI tools.
 
 ## What Are Patterns?
 
@@ -10,7 +10,7 @@ When you work with AI coding assistants, you teach them things:
 - "Our API responses follow this JSON structure"
 - "We use this error handling pattern"
 
-These learnings are **patterns**. Murmur captures them so:
+These learnings are **patterns**. MUR Core captures them so:
 
 1. You don't repeat yourself across sessions
 2. All AI tools (Claude, Gemini, etc.) benefit
@@ -69,13 +69,13 @@ Interactive prompts guide you through:
 
 ### Automatic Extraction
 
-Let murmur find patterns in your sessions:
+Let MUR Core find patterns in your sessions:
 
 ```bash
 mur learn extract --auto
 ```
 
-Murmur analyzes your Claude Code session transcripts and identifies:
+MUR Core analyzes your Claude Code session transcripts and identifies:
 
 - Repeated corrections you made
 - Coding standards you enforced

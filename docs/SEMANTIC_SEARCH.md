@@ -1,6 +1,6 @@
 # Semantic Search
 
-mur v1.1+ includes intelligent pattern matching using embeddings. Instead of keyword search, mur finds patterns by *meaning*.
+MUR Core v1.1+ includes intelligent pattern matching using embeddings. Instead of keyword search, MUR finds patterns by *meaning*.
 
 ## How It Works
 
@@ -107,7 +107,7 @@ embeddings:
 
 ## Hook Integration
 
-When `search.auto_inject: true`, mur automatically suggests relevant patterns in Claude Code:
+When `search.auto_inject: true`, MUR Core automatically suggests relevant patterns in Claude Code:
 
 ```
 User: "How do I test async Swift code?"

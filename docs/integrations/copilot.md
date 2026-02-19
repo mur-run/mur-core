@@ -1,10 +1,10 @@
 # GitHub Copilot
 
-MUR syncs patterns to GitHub Copilot via the copilot-instructions.md file.
+MUR Core syncs patterns to GitHub Copilot via the copilot-instructions.md file.
 
 ## How It Works
 
-GitHub Copilot reads project-specific instructions from `.github/copilot-instructions.md`. MUR syncs your patterns there:
+GitHub Copilot reads project-specific instructions from `.github/copilot-instructions.md`. MUR Core syncs your patterns there:
 
 ```
 ~/.github/
@@ -78,7 +78,7 @@ MUR's global instructions complement project-specific ones.
 
 ### Too many patterns
 
-MUR truncates patterns to fit Copilot's context. High-effectiveness patterns are prioritized.
+MUR Core truncates patterns to fit Copilot's context. High-effectiveness patterns are prioritized.
 
 ## Related
 

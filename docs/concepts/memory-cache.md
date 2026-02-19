@@ -1,6 +1,6 @@
 # In-Process Memory Cache
 
-How mur makes pattern matching instant.
+How MUR Core makes pattern matching instant.
 
 ## The Problem
 

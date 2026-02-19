@@ -1,6 +1,6 @@
-site_name: Murmur
+site_name: MUR Core Docs
 site_url: https://docs.murmur-ai.dev
-site_description: Unified Multi-AI CLI Management + Cross-Tool Learning System
+site_description: MUR Core — Unified Multi-AI CLI Management + Cross-Tool Learning System
 site_author: karajanchang
 repo_name: mur-run/mur-cli
 repo_url: https://github.com/mur-run/mur-cli
@@ -33,6 +33,7 @@ theme:
     - search.highlight
     - content.code.copy
     - content.tabs.link
+  logo: assets/logo.png  # TODO: add custom logo file
   icon:
     repo: fontawesome/brands/github
 
@@ -83,6 +84,9 @@ nav:
     - Auggie: integrations/auggie.md
     - OpenClaw: integrations/openclaw.md
   - Pricing: pricing.md
+
+extra_css:
+  - stylesheets/extra.css
 
 extra:
   social:

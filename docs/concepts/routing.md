@@ -1,6 +1,6 @@
 # Smart Routing
 
-Murmur's smart routing analyzes your prompts and automatically selects the best AI tool.
+MUR Core's smart routing analyzes your prompts and automatically selects the best AI tool.
 
 ## The Problem
 
@@ -10,7 +10,7 @@ You have multiple AI CLI tools:
 - **Gemini CLI** - Free but less capable for complex tasks
 - **Auggie** - Free, good for basic coding
 
-Without murmur, you're either:
+Without MUR Core, you're either:
 
 1. Always using the paid tool (expensive)
 2. Always using the free tool (suboptimal for complex tasks)
@@ -157,7 +157,7 @@ Always uses `default_tool`.
 
 ## Category Detection
 
-Murmur categorizes prompts for statistics:
+MUR Core categorizes prompts for statistics:
 
 | Category | Trigger Keywords |
 |----------|-----------------|

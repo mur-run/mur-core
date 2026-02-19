@@ -1,4 +1,4 @@
-# mur team
+# MUR team
 
 Manage team knowledge base and shared patterns.
 

@@ -1,0 +1,6 @@
+/* Center the main content area */
+.md-content {
+  max-width: 960px;
+  margin-left: auto;
+  margin-right: auto;
+}

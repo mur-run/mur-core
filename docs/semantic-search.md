@@ -1,6 +1,6 @@
 # Semantic Search
 
-MUR v1.1+ includes intelligent pattern matching using embeddings. Instead of keyword search, MUR finds patterns by *meaning*.
+MUR Core v1.1+ includes intelligent pattern matching using embeddings. Instead of keyword search, MUR finds patterns by *meaning*.
 
 ## Quick Setup
 
@@ -81,7 +81,7 @@ search:
 
 ## Automatic Injection
 
-When enabled, MUR automatically suggests relevant patterns in Claude Code:
+When enabled, MUR Core automatically suggests relevant patterns in Claude Code:
 
 ```
 claude "fix this async test"

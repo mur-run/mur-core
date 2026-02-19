@@ -1,6 +1,6 @@
 # Quick Start Guide
 
-Get started with mur in 5 minutes.
+Get started with MUR Core in 5 minutes.
 
 ## Installation
 

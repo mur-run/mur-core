@@ -1,10 +1,10 @@
 # OpenCode CLI
 
-MUR syncs patterns to OpenCode CLI via the instructions file.
+MUR Core syncs patterns to OpenCode CLI via the instructions file.
 
 ## How It Works
 
-OpenCode reads instructions from `~/.opencode/instructions.md`. MUR syncs patterns there:
+OpenCode reads instructions from `~/.opencode/instructions.md`. MUR Core syncs patterns there:
 
 ```
 ~/.opencode/

@@ -10,7 +10,7 @@
 | **Pro** | $9/month | Unlimited patterns, all CLI integrations, semantic search, cloud sync, priority support |
 | **Team** | $49/month flat + $10/extra | Everything in Pro + 5 team members, shared library, admin dashboard |
 
-## How MUR Core Saves Money
+## How MUR Core Core Saves Money
 
 MUR Core helps you save money by intelligently routing prompts to free tools when appropriate.
 
@@ -27,7 +27,7 @@ Your costs come from the underlying AI tools:
 | Auggie | Free |
 | OpenClaw | Paid (subscription) |
 
-## How Murmur Saves Money
+## How MUR Core Saves Money
 
 ### Smart Routing
 
@@ -62,7 +62,7 @@ Cost Analysis:
 
 ### Routing Modes
 
-Adjust how aggressively murmur saves:
+Adjust how aggressively MUR Core saves:
 
 ```yaml
 routing:

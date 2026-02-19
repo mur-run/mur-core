@@ -1,10 +1,10 @@
 # Windsurf IDE
 
-MUR syncs patterns to Windsurf IDE via the rules system.
+MUR Core syncs patterns to Windsurf IDE via the rules system.
 
 ## How It Works
 
-Windsurf supports custom rules in `~/.windsurf/rules/`. MUR syncs patterns there:
+Windsurf supports custom rules in `~/.windsurf/rules/`. MUR Core syncs patterns there:
 
 ```
 ~/.windsurf/rules/

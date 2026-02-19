@@ -1,4 +1,4 @@
-# mur consolidate
+# MUR consolidate
 
 Pattern health analysis, duplicate detection, and automated cleanup.
 
@@ -48,7 +48,7 @@ Applied in priority order:
 ## Example Output
 
 ```
-🧠 MUR Pattern Consolidation Report
+🧠 MUR Core Pattern Consolidation Report
 ════════════════════════════════════
 
 📊 Scanned: 147 patterns | 1,234 usage events | 89 feedback records

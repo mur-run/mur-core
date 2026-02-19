@@ -1,6 +1,6 @@
 # Quick Start
 
-This guide will get you up and running with Murmur in under 5 minutes.
+This guide will get you up and running with MUR Core in under 5 minutes.
 
 ## Initialize
 
@@ -39,7 +39,7 @@ Available: 2/3 tools
 mur run -p "what is a goroutine in Go?"
 ```
 
-Murmur analyzes your prompt and routes it to the most appropriate tool:
+MUR Core analyzes your prompt and routes it to the most appropriate tool:
 
 ```
 → gemini (auto: complexity 0.15 < 0.50 threshold, using free tool)

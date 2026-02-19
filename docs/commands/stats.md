@@ -1,4 +1,4 @@
-# mur stats
+# MUR stats
 
 View usage statistics and cost analysis.
 
@@ -100,7 +100,7 @@ mur stats --json
 
 ## Cost Estimation
 
-Murmur estimates costs based on prompt length and tool tier:
+MUR Core estimates costs based on prompt length and tool tier:
 
 | Tool | Cost Model |
 |------|------------|

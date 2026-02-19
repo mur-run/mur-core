@@ -26,7 +26,7 @@ Verify installation:
 gemini --version
 ```
 
-## Configuration in Murmur
+## Configuration in MUR Core
 
 ```yaml
 # ~/.mur/config.yaml
@@ -39,7 +39,7 @@ tools:
     flags: []
 ```
 
-## When Murmur Routes to Gemini
+## When MUR Core Routes to Gemini
 
 Gemini is selected for:
 
@@ -66,7 +66,7 @@ mur sync hooks
 
 Gemini CLI hook events:
 
-| Murmur Event | Gemini Event |
+| MUR Core Event | Gemini Event |
 |--------------|--------------|
 | `UserPromptSubmit` | `BeforeAgent` |
 | `Stop` | `AfterAgent` |
@@ -116,7 +116,7 @@ Excellent for straightforward coding tasks that don't need Claude's advanced rea
 gemini "write a function to reverse a string"
 ```
 
-Or through murmur:
+Or through MUR Core:
 
 ```bash
 mur run -t gemini -p "write a function to reverse a string"
@@ -124,7 +124,7 @@ mur run -t gemini -p "write a function to reverse a string"
 
 ## Cost Savings
 
-With murmur's smart routing:
+With MUR Core's smart routing:
 
 ```bash
 mur stats

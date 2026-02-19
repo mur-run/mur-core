@@ -57,7 +57,7 @@ mur sync
 
 ## Conflict Resolution
 
-When conflicts occur, MUR helps you resolve them interactively:
+When conflicts occur, MUR Core helps you resolve them interactively:
 
 ```
 ⚠️  3 conflict(s) detected

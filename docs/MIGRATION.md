@@ -4,7 +4,7 @@
 
 v1.1 introduces semantic search and a new sync format. Here's how to upgrade.
 
-### 1. Update mur
+### 1. Update MUR
 
 ```bash
 CGO_ENABLED=0 go install github.com/mur-run/mur-core/cmd/mur@latest
@@ -133,14 +133,14 @@ mur config set search.enabled false
 
 ## Troubleshooting
 
-### "mur migrate: no patterns found"
+### "MUR migrate: no patterns found"
 
 Patterns should be in `~/.mur/patterns/`:
 ```bash
 ls ~/.mur/patterns/
 ```
 
-### "mur index: ollama not running"
+### "MUR index: ollama not running"
 
 ```bash
 ollama serve

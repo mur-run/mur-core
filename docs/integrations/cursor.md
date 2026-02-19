@@ -1,10 +1,10 @@
 # Cursor IDE
 
-MUR syncs patterns to Cursor IDE via the rules system.
+MUR Core syncs patterns to Cursor IDE via the rules system.
 
 ## How It Works
 
-Cursor supports custom rules in `~/.cursor/rules/`. MUR syncs patterns there:
+Cursor supports custom rules in `~/.cursor/rules/`. MUR Core syncs patterns there:
 
 ```
 ~/.cursor/rules/

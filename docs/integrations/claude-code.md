@@ -24,7 +24,7 @@ Verify installation:
 claude --version
 ```
 
-## Configuration in Murmur
+## Configuration in MUR Core
 
 ```yaml
 # ~/.mur/config.yaml
@@ -37,7 +37,7 @@ tools:
     flags: []  # Additional flags to pass
 ```
 
-## When Murmur Routes to Claude
+## When MUR Core Routes to Claude
 
 Claude is selected for:
 
@@ -76,7 +76,7 @@ mur sync hooks
 
 Claude Code hook events:
 
-| Murmur Event | Claude Event |
+| MUR Core Event | Claude Event |
 |--------------|--------------|
 | `UserPromptSubmit` | `UserPromptSubmit` |
 | `Stop` | `Stop` |
@@ -103,7 +103,7 @@ Extract patterns from Claude Code sessions:
 mur learn extract --auto
 ```
 
-Murmur reads session transcripts from `~/.claude/projects/` and identifies:
+MUR Core reads session transcripts from `~/.claude/projects/` and identifies:
 
 - Corrections you made
 - Coding standards you enforced
@@ -117,7 +117,7 @@ You can still use Claude directly:
 claude "explain this code"
 ```
 
-Or through murmur:
+Or through MUR Core:
 
 ```bash
 mur run -t claude -p "explain this code"
@@ -125,7 +125,7 @@ mur run -t claude -p "explain this code"
 
 ## Cost Considerations
 
-Claude Code uses Anthropic API credits. Murmur helps save costs by:
+Claude Code uses Anthropic API credits. MUR Core helps save costs by:
 
 1. Routing simple questions to free tools (Gemini)
 2. Tracking usage in `mur stats`

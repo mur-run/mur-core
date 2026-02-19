@@ -1,6 +1,6 @@
 # Configuration
 
-Murmur's configuration lives at `~/.mur/config.yaml`.
+MUR Core's configuration lives at `~/.mur/config.yaml`.
 
 ## Full Configuration Reference
 

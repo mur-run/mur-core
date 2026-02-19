@@ -1,6 +1,6 @@
 # OpenAI Codex CLI
 
-MUR syncs patterns to Codex CLI via the instructions file.
+MUR Core syncs patterns to Codex CLI via the instructions file.
 
 ## How It Works
 
@@ -11,7 +11,7 @@ Codex reads instructions from `~/.codex/instructions.md`. MUR appends patterns i
 └── instructions.md    # Your instructions + MUR patterns
 ```
 
-MUR wraps its content in markers:
+MUR Core wraps its content in markers:
 ```markdown
 <!-- mur:start -->
 ## Learned Patterns (mur)
@@ -47,7 +47,7 @@ mur status
 ## Usage
 
 Once synced, Codex will:
-- Read patterns from the mur section
+- Read patterns from the MUR section
 - Apply learned conventions
 - Follow best practices from your patterns
 
@@ -79,13 +79,13 @@ Add your custom instructions above the MUR section:
 <!-- mur:end -->
 ```
 
-MUR will preserve everything outside its markers.
+MUR Core will preserve everything outside its markers.
 
 ## Troubleshooting
 
 ### Patterns overwriting my instructions
 
-This shouldn't happen — MUR only modifies content between its markers. If it does:
+This shouldn't happen — MUR Core only modifies content between its markers. If it does:
 
 1. Check for duplicate marker tags
 2. Run `mur sync` to fix

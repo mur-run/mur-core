@@ -1,6 +1,6 @@
 # Privacy & PII Protection
 
-mur takes privacy seriously. When you share patterns with the community, a multi-layer pipeline ensures your personal and organizational information stays private.
+MUR Core takes privacy seriously. When you share patterns with the community, a multi-layer pipeline ensures your personal and organizational information stays private.
 
 ## The Problem
 

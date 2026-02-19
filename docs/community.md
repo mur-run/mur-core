@@ -1,6 +1,6 @@
 # Community Patterns
 
-MUR has a built-in community for sharing and discovering patterns. Browse patterns shared by developers worldwide, or share your own.
+MUR Core has a built-in community for sharing and discovering patterns. Browse patterns shared by developers worldwide, or share your own.
 
 ## Browsing Patterns
 

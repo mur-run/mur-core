@@ -1,8 +1,8 @@
-# mur verify & mur preview
+# MUR verify & MUR preview
 
 Pattern integrity verification and security preview.
 
-## mur verify
+## MUR verify
 
 Checks SHA256 hashes of all patterns to detect tampering or corruption.
 
@@ -35,7 +35,7 @@ Results: 145 OK | 2 mismatched | 0 missing hash
 - After any suspicious system behavior
 - `--fix` after you intentionally edit a pattern file
 
-## mur preview
+## MUR preview
 
 Inspect a pattern's content, trust level, and security scan results before enabling it.
 

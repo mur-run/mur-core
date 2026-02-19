@@ -1,6 +1,6 @@
 # Security
 
-How mur protects your AI tools from malicious patterns.
+How MUR Core protects your AI tools from malicious patterns.
 
 ## Threat Model
 
@@ -48,7 +48,7 @@ security:
   injection_risk: low
 ```
 
-On load, the hash is verified. A mismatch means the file was modified outside of mur — it gets flagged as `untrusted` regardless of its original trust level.
+On load, the hash is verified. A mismatch means the file was modified outside of MUR — it gets flagged as `untrusted` regardless of its original trust level.
 
 ```bash
 # Check all patterns

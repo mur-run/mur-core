@@ -1,10 +1,10 @@
-# mur 🔊
+# MUR Core 🔊
 
 **Your AI assistant's memory.**
 
-mur captures patterns from your coding sessions and injects them back into your AI tools. Learn once, remember forever.
+MUR Core captures patterns from your coding sessions and injects them back into your AI tools. Learn once, remember forever.
 
-## Why mur?
+## Why MUR Core?
 
 You're using Claude Code, Gemini CLI, maybe Cursor or Windsurf. But:
 
@@ -12,7 +12,7 @@ You're using Claude Code, Gemini CLI, maybe Cursor or Windsurf. But:
 - Patterns you discover stay in your head (or get lost)
 - Every AI tool is an isolated island with no shared memory
 
-**mur fixes this.**
+**MUR Core fixes this.**
 
 ## Key Features
 
@@ -38,7 +38,7 @@ You're using Claude Code, Gemini CLI, maybe Cursor or Windsurf. But:
 
     ---
 
-    Install hooks once, then forget about it. Use your AI CLI normally — mur works invisibly.
+    Install hooks once, then forget about it. Use your AI CLI normally — MUR Core works invisibly.
 
     [:octicons-arrow-right-24: Quick start](getting-started/quick-start.md)
 
@@ -52,7 +52,7 @@ You're using Claude Code, Gemini CLI, maybe Cursor or Windsurf. But:
 
 </div>
 
-## What Sets mur Apart <small>v1.9</small>
+## What Sets MUR Core Apart <small>v1.9</small>
 
 <div class="grid cards" markdown>
 

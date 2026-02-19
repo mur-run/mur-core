@@ -1,6 +1,6 @@
 # Cross-CLI Sync
 
-Configure once, apply everywhere. Murmur unifies configuration across all your AI CLI tools.
+Configure once, apply everywhere. MUR Core unifies configuration across all your AI CLI tools.
 
 ## The Problem
 
@@ -12,7 +12,7 @@ Every AI CLI tool has its own configuration:
 ~/.augment/settings.json     ← Auggie config
 ```
 
-You want the same MCP servers, hooks, and patterns in all of them. Without murmur, you're manually copying configuration between files.
+You want the same MCP servers, hooks, and patterns in all of them. Without MUR Core, you're manually copying configuration between files.
 
 ## The Solution
 
@@ -93,9 +93,9 @@ hooks:
 
 #### Event Translation
 
-Different tools use different event names. Murmur translates:
+Different tools use different event names. MUR Core translates:
 
-| Murmur Event | Claude Code | Gemini CLI | Auggie |
+| MUR Core Event | Claude Code | Gemini CLI | Auggie |
 |--------------|-------------|------------|--------|
 | `UserPromptSubmit` | `UserPromptSubmit` | `BeforeAgent` | — |
 | `Stop` | `Stop` | `AfterAgent` | — |
@@ -151,7 +151,7 @@ skills:
          │                                  │
          ▼                                  ▼
 ┌─────────────────┐                ┌─────────────────┐
-│ Read murmur     │                │ For each target │
+│ Read MUR Core     │                │ For each target │
 │ config          │                │ CLI tool...     │
 └─────────────────┘                └─────────────────┘
                                            │
@@ -194,7 +194,7 @@ ls -la ~/.claude/settings.json
 ls -la ~/.gemini/settings.json
 ```
 
-Murmur creates the file if it doesn't exist, but the directory must be writable.
+MUR Core creates the file if it doesn't exist, but the directory must be writable.
 
 ### Hooks Not Working
 

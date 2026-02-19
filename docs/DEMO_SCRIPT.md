@@ -71,7 +71,7 @@ mur doctor
 ```
 
 **旁白：**
-> "mur doctor 可以快速檢查系統狀態，確保所有工具都正常連接。"
+> "MUR doctor 可以快速檢查系統狀態，確保所有工具都正常連接。"
 
 ---
 
@@ -95,7 +95,7 @@ mur search "Swift testing best practices"
 ```
 
 **旁白：**
-> "mur 使用語意搜尋，不只是關鍵字比對。輸入自然語言就能找到相關的 patterns。"
+> "MUR 使用語意搜尋，不只是關鍵字比對。輸入自然語言就能找到相關的 patterns。"
 
 ---
 

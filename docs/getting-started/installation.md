@@ -75,6 +75,6 @@ mur version 0.1.0
 
 ## Next Steps
 
-1. [Initialize murmur](quick-start.md) with `mur init`
+1. [Initialize MUR Core](quick-start.md) with `mur init`
 2. Check which AI tools are available with `mur health`
 3. Start using `mur run` for smart routing!

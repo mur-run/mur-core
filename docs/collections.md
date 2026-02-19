@@ -75,7 +75,7 @@ mur collection create "Work Patterns" --visibility private
 | Visibility | Description |
 |------------|-------------|
 | `private` | Only you can see (default) |
-| `public` | Visible to everyone on mur community |
+| `public` | Visible to everyone on MUR community |
 
 ### Requirements
 

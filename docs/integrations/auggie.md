@@ -48,7 +48,7 @@ This configures `~/.augment/settings.json` with:
 - **SessionStart** hook — Injects context-aware patterns at session start
 - **Stop** hook — Extracts patterns and syncs when agent finishes
 
-## Configuration in Murmur
+## Configuration in MUR Core
 
 ```yaml
 # ~/.mur/config.yaml
@@ -151,7 +151,7 @@ Auggie is good for:
 - Quick code generation
 - Project-aware assistance (auto-indexes your codebase)
 
-With murmur routing:
+With MUR Core routing:
 
 ```yaml
 routing:
@@ -164,7 +164,7 @@ routing:
 auggie "write a hello world in Rust"
 ```
 
-Through murmur:
+Through MUR Core:
 
 ```bash
 mur run -t auggie -p "write a hello world in Rust"

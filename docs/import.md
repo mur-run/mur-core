@@ -35,7 +35,7 @@ Run 'mur sync' to sync to your CLIs
 
 ### Supported Gist Formats
 
-MUR supports two gist formats:
+MUR Core supports two gist formats:
 
 #### 1. Pattern YAML (Recommended)
 
@@ -64,7 +64,7 @@ schema_version: 2
 
 #### 2. README + Code Files
 
-If no `pattern.yaml` exists, MUR will construct a pattern from:
+If no `pattern.yaml` exists, MUR Core will construct a pattern from:
 
 - **README.md** - Used for description (first `# heading` becomes the name)
 - **Code files** - Detected by language and included in pattern content
@@ -76,7 +76,7 @@ example.swift    → Code example (auto-detected as Swift)
 test.swift       → Additional code
 ```
 
-MUR will combine these into a pattern with proper code blocks.
+MUR Core will combine these into a pattern with proper code blocks.
 
 ### Flags
 

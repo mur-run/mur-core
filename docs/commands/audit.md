@@ -1,4 +1,4 @@
-# mur audit
+# MUR audit
 
 View the audit trail of pattern injections and operations.
 

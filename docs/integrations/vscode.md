@@ -41,7 +41,7 @@ code --install-extension mur-patterns-*.vsix
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `mur.autoInject` | `false` | Auto-inject patterns when opening files |
-| `mur.murPath` | `mur` | Path to mur CLI binary |
+| `mur.murPath` | `mur` | Path to MUR CLI binary |
 | `mur.maxPatterns` | `5` | Maximum patterns to inject |
 
 ## Usage
@@ -88,7 +88,7 @@ The extension shows a status bar item:
 
 ## Troubleshooting
 
-### "mur command not found"
+### "MUR command not found"
 
 Set the full path in settings:
 

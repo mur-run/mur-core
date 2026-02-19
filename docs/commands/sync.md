@@ -1,4 +1,4 @@
-# mur sync
+# MUR sync
 
 Synchronize configuration across all AI CLI tools.
 
@@ -19,7 +19,7 @@ mur sync <target> [flags]
 
 ## How It Works
 
-Murmur reads your unified configuration from `~/.mur/config.yaml` and writes it to each AI tool's config file:
+MUR Core reads your unified configuration from `~/.mur/config.yaml` and writes it to each AI tool's config file:
 
 ```
 ~/.mur/config.yaml
@@ -119,9 +119,9 @@ hooks:
 
 ### Event Mapping
 
-Different AI tools use different event names. Murmur translates:
+Different AI tools use different event names. MUR Core translates:
 
-| Murmur Event | Claude Code | Gemini CLI |
+| MUR Core Event | Claude Code | Gemini CLI |
 |--------------|-------------|------------|
 | UserPromptSubmit | UserPromptSubmit | BeforeAgent |
 | Stop | Stop | AfterAgent |

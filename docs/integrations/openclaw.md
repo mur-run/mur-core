@@ -70,7 +70,7 @@ OpenClaw will be selected for:
 
 ## Routing Strategy
 
-Once integrated, murmur will route to OpenClaw for:
+Once integrated, MUR Core will route to OpenClaw for:
 
 ```
 Complexity ≥ 0.7 + multi-modal keywords → OpenClaw
@@ -93,7 +93,7 @@ Node/device keywords → OpenClaw
 openclaw "analyze this screenshot and fix the UI bug"
 ```
 
-Through murmur:
+Through MUR Core:
 
 ```bash
 mur run -t openclaw -p "take a screenshot and explain the layout"

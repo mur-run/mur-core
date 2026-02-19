@@ -6,7 +6,7 @@
 **Tagline:** Teach your AI assistants once, remember forever  
 **Description:**
 
-> mur is an invisible learning layer that captures patterns from your AI coding sessions and injects them into future conversations. Works with Claude, Gemini, Copilot, and more. One setup, continuous learning.
+> MUR Core is an invisible learning layer that captures patterns from your AI coding sessions and injects them into future conversations. Works with Claude, Gemini, Copilot, and more. One setup, continuous learning.
 
 ## Key Features
 
@@ -53,12 +53,12 @@
 
 > Hey Product Hunt! 👋
 >
-> I built mur because I kept teaching AI assistants the same patterns over and over. "Use Swift Testing instead of XCTest." "Wrap errors with context." "Use this Docker pattern."
+> I built MUR because I kept teaching AI assistants the same patterns over and over. "Use Swift Testing instead of XCTest." "Wrap errors with context." "Use this Docker pattern."
 >
-> mur captures these patterns once and injects them automatically. It's like building muscle memory for your AI tools.
+> MUR Core captures these patterns once and injects them automatically. It's like building muscle memory for your AI tools.
 >
 > **How it works:**
-> 1. Install mur CLI
+> 1. Install MUR CLI
 > 2. Run `mur init --hooks`
 > 3. Use your AI tools normally
 > 4. Patterns are captured and reused

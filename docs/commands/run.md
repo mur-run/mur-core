@@ -1,4 +1,4 @@
-# mur run
+# MUR run
 
 Execute prompts with smart routing to the best AI tool.
 
@@ -18,7 +18,7 @@ mur run -p "your prompt here" [flags]
 
 ## Smart Routing
 
-When you run a prompt without `-t`, Murmur analyzes it and routes to the best tool:
+When you run a prompt without `-t`, MUR Core analyzes it and routes to the best tool:
 
 ```bash
 mur run -p "what is a mutex?"
@@ -27,7 +27,7 @@ mur run -p "what is a mutex?"
 
 ### Complexity Analysis
 
-Murmur scores prompts based on:
+MUR Core scores prompts based on:
 
 1. **Keywords** - Words like "refactor", "architecture", "debug" increase complexity
 2. **Length** - Longer prompts tend to be more complex

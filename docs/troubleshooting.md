@@ -4,7 +4,7 @@ Common issues and solutions.
 
 ## Installation Issues
 
-### "command not found: mur"
+### "command not found: MUR"
 
 **macOS/Linux (Go install):**
 ```bash

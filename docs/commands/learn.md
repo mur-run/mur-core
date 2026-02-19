@@ -1,4 +1,4 @@
-# mur learn
+# MUR learn
 
 Manage learned patterns in your knowledge base.
 
