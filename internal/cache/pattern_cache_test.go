@@ -5,8 +5,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/mur-run/mur-core/internal/core/pattern"
 	"gopkg.in/yaml.v3"
+
+	"github.com/mur-run/mur-core/internal/core/pattern"
 )
 
 // writeTestPattern writes a pattern YAML file to dir.

@@ -9,10 +9,10 @@ import (
 
 // PatternMatch represents a pattern with its relevance score.
 type PatternMatch struct {
-	Pattern   pattern.Pattern
-	Score     float64
-	Reasons   []string
-	Domains   []string
+	Pattern pattern.Pattern
+	Score   float64
+	Reasons []string
+	Domains []string
 }
 
 // Retriever finds relevant patterns based on classification.

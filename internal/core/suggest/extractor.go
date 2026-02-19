@@ -210,22 +210,22 @@ func (e *Extractor) extractBlocks(path string) ([]contentBlock, error) {
 	// Extract sections with headers (simplified regex without lookahead)
 	sectionRe := regexp.MustCompile(`(?m)^(#{1,3})\s+(.+)\n`)
 	sectionMatches := sectionRe.FindAllStringSubmatchIndex(content, -1)
-	
+
 	for i := 0; i < len(sectionMatches); i++ {
 		headerStart := sectionMatches[i][0]
 		headerEnd := sectionMatches[i][1]
 		titleStart := sectionMatches[i][4]
 		titleEnd := sectionMatches[i][5]
-		
+
 		// Find content end (next header or EOF)
 		contentEnd := len(content)
 		if i+1 < len(sectionMatches) {
 			contentEnd = sectionMatches[i+1][0]
 		}
-		
+
 		title := content[titleStart:titleEnd]
 		sectionContent := content[headerEnd:contentEnd]
-		
+
 		if len(sectionContent) >= e.cfg.MinContentLength {
 			blocks = append(blocks, contentBlock{
 				Content:  strings.TrimSpace(sectionContent),

@@ -7,8 +7,9 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/mur-run/mur-core/internal/config"
 	"github.com/spf13/cobra"
+
+	"github.com/mur-run/mur-core/internal/config"
 )
 
 var updateCmd = &cobra.Command{
@@ -126,7 +127,7 @@ func init() {
 func updateBinary() error {
 	// Detect installation method by checking binary path
 	installMethod := detectInstallMethod()
-	
+
 	var cmd *exec.Cmd
 	switch installMethod {
 	case "homebrew":
@@ -134,7 +135,7 @@ func updateBinary() error {
 		// Update tap first to ensure we have the latest formula
 		fmt.Println("  ↻ Updating tap...")
 		updateTap := exec.Command("brew", "update", "mur-run/tap")
-		updateTap.Run() // Ignore errors, upgrade will still work with cached version
+		_ = updateTap.Run() // Ignore errors, upgrade will still work with cached version
 		cmd = exec.Command("brew", "upgrade", "mur")
 	case "go":
 		fmt.Println("  🐹 Detected Go installation")
@@ -143,7 +144,7 @@ func updateBinary() error {
 		fmt.Println("  🐹 Using Go install (default)")
 		cmd = exec.Command("go", "install", "github.com/mur-run/mur-core/cmd/mur@latest")
 	}
-	
+
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
@@ -152,8 +153,8 @@ func updateBinary() error {
 		if installMethod == "homebrew" {
 			fmt.Println("  ℹ️  Running brew update first...")
 			updateCmd := exec.Command("brew", "update")
-			updateCmd.Run()
-			
+			_ = updateCmd.Run()
+
 			// Retry upgrade
 			retryCmd := exec.Command("brew", "upgrade", "mur")
 			retryCmd.Stdout = os.Stdout
@@ -178,39 +179,39 @@ func detectInstallMethod() string {
 	if err != nil {
 		return "unknown"
 	}
-	
+
 	// Resolve symlinks to get the real path
 	realPath, err := filepath.EvalSymlinks(exePath)
 	if err != nil {
 		realPath = exePath
 	}
-	
+
 	// Check for Homebrew paths
 	homebrewPaths := []string{
-		"/opt/homebrew/",      // Apple Silicon
-		"/usr/local/Cellar/",  // Intel Mac
-		"/home/linuxbrew/",    // Linux Homebrew
+		"/opt/homebrew/",     // Apple Silicon
+		"/usr/local/Cellar/", // Intel Mac
+		"/home/linuxbrew/",   // Linux Homebrew
 	}
-	
+
 	for _, prefix := range homebrewPaths {
 		if len(realPath) >= len(prefix) && realPath[:len(prefix)] == prefix {
 			return "homebrew"
 		}
 	}
-	
+
 	// Check for Go bin paths
 	home, _ := os.UserHomeDir()
 	goPaths := []string{
 		filepath.Join(home, "go", "bin"),
 		"/usr/local/go/bin",
 	}
-	
+
 	for _, goPath := range goPaths {
 		if len(realPath) >= len(goPath) && realPath[:len(goPath)] == goPath {
 			return "go"
 		}
 	}
-	
+
 	// Check GOPATH/bin
 	if gopath := os.Getenv("GOPATH"); gopath != "" {
 		gopathBin := filepath.Join(gopath, "bin")
@@ -218,7 +219,7 @@ func detectInstallMethod() string {
 			return "go"
 		}
 	}
-	
+
 	return "unknown"
 }
 

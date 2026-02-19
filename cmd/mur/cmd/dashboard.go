@@ -8,9 +8,10 @@ import (
 	"sort"
 	"time"
 
+	"github.com/spf13/cobra"
+
 	"github.com/mur-run/mur-core/internal/core/pattern"
 	"github.com/mur-run/mur-core/internal/stats"
-	"github.com/spf13/cobra"
 )
 
 var dashboardCmd = &cobra.Command{
@@ -56,10 +57,10 @@ func runDashboard(cmd *cobra.Command, args []string) error {
 	data := buildStaticDashboardData(patterns)
 
 	funcMap := template.FuncMap{
-		"mul": func(a, b float64) float64 { return a * b },
-		"sub": func(a, b float64) float64 { return a - b },
-		"gt0": func(a float64) bool { return a > 0 },
-		"lt":  func(a, b float64) bool { return a < b },
+		"mul":    func(a, b float64) float64 { return a * b },
+		"sub":    func(a, b float64) float64 { return a - b },
+		"gt0":    func(a float64) bool { return a > 0 },
+		"lt":     func(a, b float64) bool { return a < b },
 		"printf": fmt.Sprintf,
 	}
 

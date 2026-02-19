@@ -7,11 +7,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/spf13/cobra"
+
 	"github.com/mur-run/mur-core/internal/config"
 	"github.com/mur-run/mur-core/internal/learn"
 	"github.com/mur-run/mur-core/internal/learning"
 	"github.com/mur-run/mur-core/internal/notify"
-	"github.com/spf13/cobra"
 )
 
 var learnCmd = &cobra.Command{

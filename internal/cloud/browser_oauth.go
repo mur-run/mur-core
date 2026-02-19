@@ -162,7 +162,7 @@ func BrowserOAuthLogin(client *Client) error {
 	// Shutdown server
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer shutdownCancel()
-	srv.Shutdown(shutdownCtx)
+	_ = srv.Shutdown(shutdownCtx)
 
 	return loginErr
 }

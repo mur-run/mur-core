@@ -10,7 +10,7 @@ import (
 type Finding struct {
 	Type    string `json:"type"`
 	Line    int    `json:"line"`
-	Match   string `json:"match"`   // redacted
+	Match   string `json:"match"` // redacted
 	Message string `json:"message"`
 }
 

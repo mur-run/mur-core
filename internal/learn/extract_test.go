@@ -74,8 +74,8 @@ func TestIsValidPatternName(t *testing.T) {
 		{"wait-changed-line", false},
 		{"now-also-need", false},
 		{"see-unloadplist-calls", false},
-		{"abc", false},  // too short
-		{"ab", false},   // too short
+		{"abc", false}, // too short
+		{"ab", false},  // too short
 	}
 
 	for _, tt := range tests {

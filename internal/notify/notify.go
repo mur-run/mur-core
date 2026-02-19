@@ -20,10 +20,10 @@ type Options struct {
 
 // Event types for notifications.
 const (
-	EventPatternAdded     = "pattern_added"
+	EventPatternAdded      = "pattern_added"
 	EventPatternsExtracted = "patterns_extracted"
-	EventPRCreated        = "pr_created"
-	EventTest             = "test"
+	EventPRCreated         = "pr_created"
+	EventTest              = "test"
 )
 
 // Notify sends a notification to all configured channels.

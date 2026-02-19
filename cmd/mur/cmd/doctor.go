@@ -9,9 +9,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/spf13/cobra"
+
 	"github.com/mur-run/mur-core/internal/config"
 	murhooks "github.com/mur-run/mur-core/internal/hooks"
-	"github.com/spf13/cobra"
 )
 
 var doctorCmd = &cobra.Command{
@@ -341,7 +342,7 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 	// Check 9: Premium LLM configuration
 	if cfg != nil && cfg.Learning.LLM.Premium != nil {
 		p := cfg.Learning.LLM.Premium
-		msg := fmt.Sprintf("%s", p.Provider)
+		msg := string(p.Provider)
 		if p.Model != "" {
 			msg += "/" + p.Model
 		}

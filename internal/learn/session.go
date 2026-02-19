@@ -43,12 +43,6 @@ type messageContent struct {
 	Content json.RawMessage `json:"content"`
 }
 
-// contentBlock represents a content block (text or tool_use).
-type contentBlock struct {
-	Type string `json:"type"`
-	Text string `json:"text,omitempty"`
-}
-
 // ClaudeProjectsDir returns the path to ~/.claude/projects/
 func ClaudeProjectsDir() (string, error) {
 	home, err := os.UserHomeDir()

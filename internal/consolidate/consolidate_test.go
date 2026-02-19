@@ -43,7 +43,7 @@ func TestHealthScore_FreshnessDecay(t *testing.T) {
 
 	now := scorer.now
 	recent := now.Add(-1 * 24 * time.Hour) // 1 day ago
-	old := now.Add(-180 * 24 * time.Hour)   // 180 days ago (2 half-lives)
+	old := now.Add(-180 * 24 * time.Hour)  // 180 days ago (2 half-lives)
 
 	pRecent := makePattern("p1", "recent", recent, 5, &recent)
 	pOld := makePattern("p2", "old", old, 5, &old)
@@ -101,10 +101,10 @@ func TestHealthScore_Engagement(t *testing.T) {
 
 	now := time.Now()
 	tests := []struct {
-		name     string
-		usage    int
-		wantMin  float64
-		wantMax  float64
+		name    string
+		usage   int
+		wantMin float64
+		wantMax float64
 	}{
 		{"zero usage", 0, 0.0, 0.15},
 		{"low usage", 3, 0.2, 0.4},
@@ -128,10 +128,10 @@ func TestHealthScore_Quality(t *testing.T) {
 	cfg := defaultCfg()
 
 	tests := []struct {
-		name     string
-		helpful  int
+		name      string
+		helpful   int
 		unhelpful int
-		want     float64
+		want      float64
 	}{
 		{"no feedback", 0, 0, 0.5},
 		{"all helpful", 10, 0, 1.0},

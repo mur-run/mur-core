@@ -28,11 +28,11 @@ type Config struct {
 	Team          TeamConfig          `yaml:"team"`
 	Server        ServerConfig        `yaml:"server"`
 	Notifications NotificationsConfig `yaml:"notifications"`
-	TechStack     []string            `yaml:"tech_stack"` // User's tech stack for filtering (e.g., ["swift", "go", "docker"])
-	Cache         CacheConfig         `yaml:"cache"`      // Local cache settings
-	Community      CommunityConfig      `yaml:"community"`      // Community sharing settings
-	Privacy        PrivacyConfig        `yaml:"privacy"`        // Privacy & PII protection settings
-	Consolidation  ConsolidationConfig  `yaml:"consolidation"`  // Pattern consolidation settings
+	TechStack     []string            `yaml:"tech_stack"`    // User's tech stack for filtering (e.g., ["swift", "go", "docker"])
+	Cache         CacheConfig         `yaml:"cache"`         // Local cache settings
+	Community     CommunityConfig     `yaml:"community"`     // Community sharing settings
+	Privacy       PrivacyConfig       `yaml:"privacy"`       // Privacy & PII protection settings
+	Consolidation ConsolidationConfig `yaml:"consolidation"` // Pattern consolidation settings
 }
 
 // CacheConfig represents local cache settings for community patterns.
@@ -42,9 +42,9 @@ type CacheConfig struct {
 
 // CommunityConfig represents community sharing settings.
 type CommunityConfig struct {
-	ShareEnabled    bool `yaml:"share_enabled"`     // Enable community sharing
+	ShareEnabled    bool `yaml:"share_enabled"`      // Enable community sharing
 	AutoShareOnPush bool `yaml:"auto_share_on_push"` // Auto-share when pushing
-	ShareExtracted  bool `yaml:"share_extracted"`   // Share extracted patterns (may contain secrets)
+	ShareExtracted  bool `yaml:"share_extracted"`    // Share extracted patterns (may contain secrets)
 }
 
 // DefaultCommunityConfig returns default community settings.
@@ -58,10 +58,10 @@ func DefaultCommunityConfig() CommunityConfig {
 
 // PrivacyConfig represents privacy and PII protection settings.
 type PrivacyConfig struct {
-	RedactTerms            []string                      `yaml:"redact_terms"`             // Terms to always redact
-	Replacements           map[string]string             `yaml:"replacements"`             // Custom replacement mappings
-	AutoDetect             AutoDetectConfig              `yaml:"auto_detect"`              // Auto-detection toggles
-	SemanticAnonymization  SemanticAnonymizationConfig   `yaml:"semantic_anonymization"`   // LLM-based anonymization
+	RedactTerms           []string                    `yaml:"redact_terms"`           // Terms to always redact
+	Replacements          map[string]string           `yaml:"replacements"`           // Custom replacement mappings
+	AutoDetect            AutoDetectConfig            `yaml:"auto_detect"`            // Auto-detection toggles
+	SemanticAnonymization SemanticAnonymizationConfig `yaml:"semantic_anonymization"` // LLM-based anonymization
 }
 
 // SemanticAnonymizationConfig controls LLM-based semantic anonymization.
@@ -76,10 +76,10 @@ type SemanticAnonymizationConfig struct {
 // AutoDetectConfig controls which PII types are auto-detected.
 type AutoDetectConfig struct {
 	Emails       *bool `yaml:"emails"`        // Detect email addresses (default: true)
-	InternalIPs  *bool `yaml:"internal_ips"`   // Detect internal IPs (default: true)
-	FilePaths    *bool `yaml:"file_paths"`     // Detect user file paths (default: true)
-	PhoneNumbers *bool `yaml:"phone_numbers"`  // Detect phone numbers (default: true)
-	InternalURLs *bool `yaml:"internal_urls"`  // Detect internal URLs (default: true)
+	InternalIPs  *bool `yaml:"internal_ips"`  // Detect internal IPs (default: true)
+	FilePaths    *bool `yaml:"file_paths"`    // Detect user file paths (default: true)
+	PhoneNumbers *bool `yaml:"phone_numbers"` // Detect phone numbers (default: true)
+	InternalURLs *bool `yaml:"internal_urls"` // Detect internal URLs (default: true)
 }
 
 // IsEmailsEnabled returns whether email detection is enabled (default: true).
@@ -145,10 +145,10 @@ func DefaultPrivacyConfig() PrivacyConfig {
 // ConsolidationConfig represents pattern consolidation settings.
 type ConsolidationConfig struct {
 	Enabled              bool    `yaml:"enabled"`
-	Schedule             string  `yaml:"schedule"`                // daily | weekly | monthly
+	Schedule             string  `yaml:"schedule"` // daily | weekly | monthly
 	AutoArchive          bool    `yaml:"auto_archive"`
-	AutoMerge            string  `yaml:"auto_merge"`              // off | keep-best | llm-merge
-	MergeThreshold       float64 `yaml:"merge_threshold"`         // cosine similarity threshold
+	AutoMerge            string  `yaml:"auto_merge"`      // off | keep-best | llm-merge
+	MergeThreshold       float64 `yaml:"merge_threshold"` // cosine similarity threshold
 	DecayHalfLifeDays    int     `yaml:"decay_half_life_days"`
 	GracePeriodDays      int     `yaml:"grace_period_days"`
 	MinPatternsBeforeRun int     `yaml:"min_patterns_before_run"`
@@ -291,13 +291,13 @@ type SyncConfig struct {
 
 // SearchConfig represents semantic search settings.
 type SearchConfig struct {
-	Enabled    *bool  `yaml:"enabled"`     // nil = use default (true)
-	Provider   string `yaml:"provider"`    // ollama | openai | none
-	Model      string `yaml:"model"`       // embedding model name
-	OllamaURL  string `yaml:"ollama_url"`  // Ollama API URL
-	TopK       int    `yaml:"top_k"`       // default number of results
-	MinScore   float64 `yaml:"min_score"`  // minimum similarity score
-	AutoInject *bool  `yaml:"auto_inject"` // auto-inject to prompt via hooks (default: true)
+	Enabled    *bool   `yaml:"enabled"`     // nil = use default (true)
+	Provider   string  `yaml:"provider"`    // ollama | openai | none
+	Model      string  `yaml:"model"`       // embedding model name
+	OllamaURL  string  `yaml:"ollama_url"`  // Ollama API URL
+	TopK       int     `yaml:"top_k"`       // default number of results
+	MinScore   float64 `yaml:"min_score"`   // minimum similarity score
+	AutoInject *bool   `yaml:"auto_inject"` // auto-inject to prompt via hooks (default: true)
 }
 
 // IsEnabled returns whether search is enabled (default: true).

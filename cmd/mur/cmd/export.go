@@ -6,9 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/mur-run/mur-core/internal/core/pattern"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
+
+	"github.com/mur-run/mur-core/internal/core/pattern"
 )
 
 var exportCmd = &cobra.Command{
@@ -27,11 +28,11 @@ Examples:
 }
 
 var (
-	exportFormat         string
-	exportOutput         string
-	exportTag            string
+	exportFormat           string
+	exportOutput           string
+	exportTag              string
 	exportMinEffectiveness float64
-	exportIncludeArchived bool
+	exportIncludeArchived  bool
 )
 
 func init() {
@@ -132,9 +133,7 @@ func formatMarkdown(patterns []pattern.Pattern) string {
 
 		// Tags
 		var tags []string
-		for _, t := range p.Tags.Confirmed {
-			tags = append(tags, t)
-		}
+		tags = append(tags, p.Tags.Confirmed...)
 		for _, ts := range p.Tags.Inferred {
 			if ts.Confidence >= 0.5 {
 				tags = append(tags, fmt.Sprintf("%s (%.0f%%)", ts.Tag, ts.Confidence*100))

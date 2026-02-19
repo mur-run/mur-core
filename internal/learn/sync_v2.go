@@ -36,8 +36,8 @@ func SyncPatternsV2() ([]SyncResult, error) {
 
 	// Sync to all CLI tools
 	cliTargets := []struct {
-		name    string
-		syncFn  func(string, []pattern.Pattern) SyncResult
+		name   string
+		syncFn func(string, []pattern.Pattern) SyncResult
 	}{
 		{"Claude Code", syncToClaudeCodeV2},
 		{"Gemini CLI", syncToGeminiCLIV2},

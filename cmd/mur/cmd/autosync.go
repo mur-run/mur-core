@@ -10,9 +10,10 @@ import (
 	"text/template"
 
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/mur-run/mur-core/internal/config"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
+
+	"github.com/mur-run/mur-core/internal/config"
 )
 
 var autoSyncCmd = &cobra.Command{
@@ -99,7 +100,7 @@ func runAutoSyncEnable(cmd *cobra.Command, args []string) error {
 	home, _ := os.UserHomeDir()
 	configPath := filepath.Join(home, ".mur", "config.yaml")
 	data, _ := yaml.Marshal(cfg)
-	os.WriteFile(configPath, data, 0644)
+	_ = os.WriteFile(configPath, data, 0644)
 
 	// Install platform-specific scheduler
 	switch runtime.GOOS {
@@ -127,7 +128,7 @@ func runAutoSyncDisable(cmd *cobra.Command, args []string) error {
 	home, _ := os.UserHomeDir()
 	configPath := filepath.Join(home, ".mur", "config.yaml")
 	data, _ := yaml.Marshal(cfg)
-	os.WriteFile(configPath, data, 0644)
+	_ = os.WriteFile(configPath, data, 0644)
 
 	// Remove platform-specific scheduler
 	switch runtime.GOOS {
@@ -239,7 +240,7 @@ func installMacOSLaunchAgent(intervalMinutes int) error {
 	}
 
 	// Ensure LaunchAgents directory exists
-	os.MkdirAll(filepath.Dir(plistPath), 0755)
+	_ = os.MkdirAll(filepath.Dir(plistPath), 0755)
 
 	f, err := os.Create(plistPath)
 	if err != nil {
@@ -252,7 +253,7 @@ func installMacOSLaunchAgent(intervalMinutes int) error {
 	}
 
 	// Unload if already loaded, then load
-	exec.Command("launchctl", "unload", plistPath).Run()
+	_ = exec.Command("launchctl", "unload", plistPath).Run()
 	if err := exec.Command("launchctl", "load", plistPath).Run(); err != nil {
 		return fmt.Errorf("failed to load launch agent: %w", err)
 	}
@@ -269,8 +270,8 @@ func uninstallMacOSLaunchAgent() error {
 	home, _ := os.UserHomeDir()
 	plistPath := filepath.Join(home, "Library", "LaunchAgents", "run.mur.sync.plist")
 
-	exec.Command("launchctl", "unload", plistPath).Run()
-	os.Remove(plistPath)
+	_ = exec.Command("launchctl", "unload", plistPath).Run()
+	_ = os.Remove(plistPath)
 
 	fmt.Println("✅ Auto-sync disabled (macOS LaunchAgent removed)")
 	return nil
@@ -329,7 +330,7 @@ func installLinuxSystemdTimer(intervalMinutes int) error {
 	}
 
 	// Create systemd user directory
-	os.MkdirAll(systemdDir, 0755)
+	_ = os.MkdirAll(systemdDir, 0755)
 
 	// Write timer
 	timerTmpl, _ := template.New("timer").Parse(linuxTimerTemplate)
@@ -337,7 +338,7 @@ func installLinuxSystemdTimer(intervalMinutes int) error {
 	if err != nil {
 		return err
 	}
-	timerTmpl.Execute(timerFile, struct{ IntervalMinutes int }{intervalMinutes})
+	_ = timerTmpl.Execute(timerFile, struct{ IntervalMinutes int }{intervalMinutes})
 	timerFile.Close()
 
 	// Write service
@@ -346,13 +347,13 @@ func installLinuxSystemdTimer(intervalMinutes int) error {
 	if err != nil {
 		return err
 	}
-	serviceTmpl.Execute(serviceFile, struct{ MurPath string }{murPath})
+	_ = serviceTmpl.Execute(serviceFile, struct{ MurPath string }{murPath})
 	serviceFile.Close()
 
 	// Enable and start timer
-	exec.Command("systemctl", "--user", "daemon-reload").Run()
-	exec.Command("systemctl", "--user", "enable", "mur-sync.timer").Run()
-	exec.Command("systemctl", "--user", "start", "mur-sync.timer").Run()
+	_ = exec.Command("systemctl", "--user", "daemon-reload").Run()
+	_ = exec.Command("systemctl", "--user", "enable", "mur-sync.timer").Run()
+	_ = exec.Command("systemctl", "--user", "start", "mur-sync.timer").Run()
 
 	fmt.Println("✅ Auto-sync enabled (systemd user timer)")
 	fmt.Printf("   Interval: Every %d minutes\n", intervalMinutes)
@@ -367,11 +368,11 @@ func uninstallLinuxSystemdTimer() error {
 	timerPath := filepath.Join(systemdDir, "mur-sync.timer")
 	servicePath := filepath.Join(systemdDir, "mur-sync.service")
 
-	exec.Command("systemctl", "--user", "stop", "mur-sync.timer").Run()
-	exec.Command("systemctl", "--user", "disable", "mur-sync.timer").Run()
+	_ = exec.Command("systemctl", "--user", "stop", "mur-sync.timer").Run()
+	_ = exec.Command("systemctl", "--user", "disable", "mur-sync.timer").Run()
 	os.Remove(timerPath)
 	os.Remove(servicePath)
-	exec.Command("systemctl", "--user", "daemon-reload").Run()
+	_ = exec.Command("systemctl", "--user", "daemon-reload").Run()
 
 	fmt.Println("✅ Auto-sync disabled (systemd timer removed)")
 	return nil
@@ -400,9 +401,9 @@ func installWindowsTaskScheduler(intervalMinutes int) error {
 
 	// Create scheduled task using schtasks
 	taskName := "MUR_Sync"
-	
+
 	// Delete existing task if any
-	exec.Command("schtasks", "/delete", "/tn", taskName, "/f").Run()
+	_ = exec.Command("schtasks", "/delete", "/tn", taskName, "/f").Run()
 
 	// Create new task
 	cmd := exec.Command("schtasks", "/create",
@@ -413,7 +414,7 @@ func installWindowsTaskScheduler(intervalMinutes int) error {
 		"/ru", os.Getenv("USERNAME"),
 		"/f",
 	)
-	
+
 	if output, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("failed to create task: %s", output)
 	}
@@ -427,8 +428,8 @@ func installWindowsTaskScheduler(intervalMinutes int) error {
 
 func uninstallWindowsTaskScheduler() error {
 	taskName := "MUR_Sync"
-	exec.Command("schtasks", "/delete", "/tn", taskName, "/f").Run()
-	
+	_ = exec.Command("schtasks", "/delete", "/tn", taskName, "/f").Run()
+
 	fmt.Println("✅ Auto-sync disabled (Windows task removed)")
 	return nil
 }
@@ -436,7 +437,7 @@ func uninstallWindowsTaskScheduler() error {
 func checkWindowsTaskScheduler() {
 	taskName := "MUR_Sync"
 	output, err := exec.Command("schtasks", "/query", "/tn", taskName).CombinedOutput()
-	
+
 	if err == nil && strings.Contains(string(output), taskName) {
 		fmt.Println("Task Scheduler: ✅ Task exists")
 	} else {

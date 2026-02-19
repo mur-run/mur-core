@@ -10,10 +10,11 @@ import (
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/spf13/cobra"
+
 	"github.com/mur-run/mur-core/internal/config"
 	murhooks "github.com/mur-run/mur-core/internal/hooks"
 	"github.com/mur-run/mur-core/internal/sync"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -48,9 +49,9 @@ func init() {
 
 // CLI tool configuration
 type cliTool struct {
-	Name       string
-	Binary     string
-	Installed  bool
+	Name         string
+	Binary       string
+	Installed    bool
 	HooksSupport bool
 }
 
@@ -504,9 +505,9 @@ mur sync --quiet 2>/dev/null || true
 
 	var settings map[string]interface{}
 	if data, err := os.ReadFile(claudeSettingsPath); err == nil {
-		json.Unmarshal(data, &settings)
+		_ = json.Unmarshal(data, &settings)
 	} else {
-		os.MkdirAll(filepath.Join(home, ".claude"), 0755)
+		_ = os.MkdirAll(filepath.Join(home, ".claude"), 0755)
 		settings = make(map[string]interface{})
 	}
 
@@ -514,7 +515,7 @@ mur sync --quiet 2>/dev/null || true
 	if _, err := os.Stat(claudeSettingsPath); err == nil {
 		backupPath := claudeSettingsPath + ".backup"
 		if data, err := os.ReadFile(claudeSettingsPath); err == nil {
-			os.WriteFile(backupPath, data, 0644)
+			_ = os.WriteFile(backupPath, data, 0644)
 		}
 	}
 
@@ -563,9 +564,9 @@ func installGeminiHooks(home, promptScriptPath, stopScriptPath string) error {
 
 	var settings map[string]interface{}
 	if data, err := os.ReadFile(geminiSettingsPath); err == nil {
-		json.Unmarshal(data, &settings)
+		_ = json.Unmarshal(data, &settings)
 	} else {
-		os.MkdirAll(filepath.Join(home, ".gemini"), 0755)
+		_ = os.MkdirAll(filepath.Join(home, ".gemini"), 0755)
 		settings = make(map[string]interface{})
 	}
 
@@ -573,7 +574,7 @@ func installGeminiHooks(home, promptScriptPath, stopScriptPath string) error {
 	if _, err := os.Stat(geminiSettingsPath); err == nil {
 		backupPath := geminiSettingsPath + ".backup"
 		if data, err := os.ReadFile(geminiSettingsPath); err == nil {
-			os.WriteFile(backupPath, data, 0644)
+			_ = os.WriteFile(backupPath, data, 0644)
 		}
 	}
 

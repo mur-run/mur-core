@@ -26,13 +26,13 @@ type V1Pattern struct {
 
 // MigrationResult holds the result of migrating patterns.
 type MigrationResult struct {
-	TotalPatterns   int
-	MigratedCount   int
-	SkippedCount    int
-	ErrorCount      int
-	Errors          []MigrationError
-	MigratedFiles   []string
-	BackupDir       string
+	TotalPatterns int
+	MigratedCount int
+	SkippedCount  int
+	ErrorCount    int
+	Errors        []MigrationError
+	MigratedFiles []string
+	BackupDir     string
 }
 
 // MigrationError represents an error during migration.

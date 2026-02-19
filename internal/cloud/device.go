@@ -45,8 +45,8 @@ func getOrCreateDeviceID() string {
 	id := generateDeviceID()
 
 	// Save for future use
-	os.MkdirAll(configDir, 0700)
-	os.WriteFile(deviceFile, []byte(id), 0600)
+	_ = os.MkdirAll(configDir, 0700)
+	_ = os.WriteFile(deviceFile, []byte(id), 0600)
 
 	return id
 }
@@ -73,11 +73,7 @@ func getDeviceName() string {
 		return "Unknown Device"
 	}
 
-	// Try to get a nicer name on macOS
-	if runtime.GOOS == "darwin" {
-		// Try scutil --get ComputerName
-		// For now, just use hostname
-	}
+	// TODO: Try to get a nicer name on macOS via scutil --get ComputerName
 
 	return hostname
 }
@@ -90,12 +86,12 @@ func getMurConfigDir() string {
 
 // Device represents a device from the server
 type Device struct {
-	ID           string    `json:"id"`
-	DeviceID     string    `json:"device_id"`
-	DeviceName   string    `json:"device_name"`
-	OS           string    `json:"os"`
-	LastActiveAt string    `json:"last_active_at"`
-	IsActive     bool      `json:"is_active"`
+	ID           string `json:"id"`
+	DeviceID     string `json:"device_id"`
+	DeviceName   string `json:"device_name"`
+	OS           string `json:"os"`
+	LastActiveAt string `json:"last_active_at"`
+	IsActive     bool   `json:"is_active"`
 }
 
 // DeviceListResponse is the response from /devices

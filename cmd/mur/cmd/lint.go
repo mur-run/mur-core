@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/mur-run/mur-core/internal/core/pattern"
 	"github.com/spf13/cobra"
+
+	"github.com/mur-run/mur-core/internal/core/pattern"
 )
 
 var lintCmd = &cobra.Command{

@@ -7,8 +7,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/mur-run/mur-core/internal/core/pattern"
 	"github.com/spf13/cobra"
+
+	"github.com/mur-run/mur-core/internal/core/pattern"
 )
 
 var injectCmd = &cobra.Command{
@@ -31,11 +32,11 @@ Examples:
 }
 
 var (
-	injectFile            string
-	injectTag             string
+	injectFile             string
+	injectTag              string
 	injectMinEffectiveness float64
-	injectDryRun          bool
-	injectAppend          bool
+	injectDryRun           bool
+	injectAppend           bool
 )
 
 func init() {

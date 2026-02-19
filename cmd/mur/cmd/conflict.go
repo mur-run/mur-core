@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
+
 	"github.com/mur-run/mur-core/internal/cloud"
 )
 
@@ -145,13 +146,6 @@ func resolveConflictInteractive(c cloud.Conflict, index, total int) (ConflictRes
 
 func formatPatternInfo(p *cloud.Pattern, label string) string {
 	var sb strings.Builder
-
-	// Get content preview (first 100 chars)
-	preview := p.Content
-	if len(preview) > 100 {
-		preview = preview[:100] + "..."
-	}
-	preview = strings.ReplaceAll(preview, "\n", " ")
 
 	lines := strings.Count(p.Content, "\n") + 1
 

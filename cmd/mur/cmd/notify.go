@@ -3,9 +3,10 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/spf13/cobra"
+
 	"github.com/mur-run/mur-core/internal/config"
 	"github.com/mur-run/mur-core/internal/notify"
-	"github.com/spf13/cobra"
 )
 
 var notifyCmd = &cobra.Command{

@@ -5,17 +5,18 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/spf13/cobra"
+
 	"github.com/mur-run/mur-core/internal/learn"
 	"github.com/mur-run/mur-core/internal/stats"
 	"github.com/mur-run/mur-core/internal/sync"
-	"github.com/spf13/cobra"
 )
 
 // OutputStatus represents the full status output
 type OutputStatus struct {
-	Version   string        `json:"version"`
-	Timestamp string        `json:"timestamp"`
-	Stats     *stats.Summary `json:"stats,omitempty"`
+	Version   string          `json:"version"`
+	Timestamp string          `json:"timestamp"`
+	Stats     *stats.Summary  `json:"stats,omitempty"`
 	Patterns  []learn.Pattern `json:"patterns,omitempty"`
 }
 

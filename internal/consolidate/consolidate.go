@@ -22,18 +22,18 @@ const (
 
 // ConsolidationReport holds the results of a consolidation run.
 type ConsolidationReport struct {
-	Timestamp       time.Time       `json:"timestamp"`
-	Mode            Mode            `json:"mode"`
-	TotalPatterns   int             `json:"total_patterns"`
-	HealthScores    []HealthScore   `json:"health_scores"`
-	MergeProposals  []MergeProposal `json:"merge_proposals"`
-	Conflicts       []Conflict      `json:"conflicts"`
-	ActionsApplied  int             `json:"actions_applied"`
-	PatternsKept    int             `json:"patterns_kept"`
-	PatternsArchived int            `json:"patterns_archived"`
-	PatternsMerged  int             `json:"patterns_merged"`
-	PatternsUpdated int             `json:"patterns_updated"`
-	Duration        time.Duration   `json:"duration"`
+	Timestamp        time.Time       `json:"timestamp"`
+	Mode             Mode            `json:"mode"`
+	TotalPatterns    int             `json:"total_patterns"`
+	HealthScores     []HealthScore   `json:"health_scores"`
+	MergeProposals   []MergeProposal `json:"merge_proposals"`
+	Conflicts        []Conflict      `json:"conflicts"`
+	ActionsApplied   int             `json:"actions_applied"`
+	PatternsKept     int             `json:"patterns_kept"`
+	PatternsArchived int             `json:"patterns_archived"`
+	PatternsMerged   int             `json:"patterns_merged"`
+	PatternsUpdated  int             `json:"patterns_updated"`
+	Duration         time.Duration   `json:"duration"`
 }
 
 // Consolidator orchestrates the pattern consolidation process.
@@ -205,9 +205,7 @@ func (c *Consolidator) applyActions(report *ConsolidationReport, patterns []*pat
 			// Update the keeper with relations
 			keeper, ok := patternMap[proposal.KeepID]
 			if ok {
-				for _, removeID := range proposal.RemoveIDs {
-					keeper.Relations.Related = append(keeper.Relations.Related, removeID)
-				}
+				keeper.Relations.Related = append(keeper.Relations.Related, proposal.RemoveIDs...)
 				keeper.Health.LastConsolidated = &now
 				_ = c.store.Update(keeper)
 			}

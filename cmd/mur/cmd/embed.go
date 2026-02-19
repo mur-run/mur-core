@@ -5,9 +5,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/spf13/cobra"
+
 	"github.com/mur-run/mur-core/internal/core/embed"
 	"github.com/mur-run/mur-core/internal/core/pattern"
-	"github.com/spf13/cobra"
 )
 
 var embedCmd = &cobra.Command{
@@ -112,7 +113,7 @@ func embedStatusExecute(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Provider:   %s\n", status.Provider)
 	fmt.Printf("Dimension:  %d\n", status.Dimension)
 	fmt.Printf("Patterns:   %d total\n", status.TotalPatterns)
-	fmt.Printf("Indexed:    %d (%.0f%%)\n", status.Indexed, 
+	fmt.Printf("Indexed:    %d (%.0f%%)\n", status.Indexed,
 		float64(status.Indexed)/float64(max(status.TotalPatterns, 1))*100)
 
 	if status.Indexed < status.TotalPatterns {

@@ -7,8 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mur-run/mur-core/internal/sync"
 	"github.com/spf13/cobra"
+
+	"github.com/mur-run/mur-core/internal/sync"
 )
 
 var cleanCmd = &cobra.Command{
@@ -225,7 +226,7 @@ func cleanDirectory(dir string, days int, label string, force bool) (int64, int)
 
 	cutoff := time.Now().AddDate(0, 0, -days)
 
-	filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			return nil
 		}

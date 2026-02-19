@@ -38,14 +38,14 @@ type FeedbackEvent struct {
 
 // PatternStats holds aggregated stats for a pattern.
 type PatternStats struct {
-	PatternID      string
-	PatternName    string
-	UsageCount     int
-	HelpfulCount   int
+	PatternID       string
+	PatternName     string
+	UsageCount      int
+	HelpfulCount    int
 	NotHelpfulCount int
-	SkipCount      int
-	Effectiveness  float64 // helpful / (helpful + not_helpful)
-	LastUsed       *time.Time
+	SkipCount       int
+	Effectiveness   float64 // helpful / (helpful + not_helpful)
+	LastUsed        *time.Time
 }
 
 // DailyStats holds daily aggregates.
@@ -60,7 +60,7 @@ type DailyStats struct {
 // NewStore creates a new analytics store.
 func NewStore(dataDir string) (*Store, error) {
 	dbPath := filepath.Join(dataDir, "analytics.db")
-	
+
 	// Ensure directory exists
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create data directory: %w", err)

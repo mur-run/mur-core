@@ -8,8 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mur-run/mur-core/internal/core/analytics"
 	"github.com/spf13/cobra"
+
+	"github.com/mur-run/mur-core/internal/core/analytics"
 )
 
 var analyticsCmd = &cobra.Command{

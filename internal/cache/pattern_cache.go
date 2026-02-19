@@ -8,8 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mur-run/mur-core/internal/core/pattern"
 	"gopkg.in/yaml.v3"
+
+	"github.com/mur-run/mur-core/internal/core/pattern"
 )
 
 // PatternCache holds all patterns in memory with an inverted tag index.

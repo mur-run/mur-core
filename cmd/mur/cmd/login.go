@@ -8,10 +8,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/mur-run/mur-core/internal/cloud"
-	"github.com/mur-run/mur-core/internal/config"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
+
+	"github.com/mur-run/mur-core/internal/cloud"
+	"github.com/mur-run/mur-core/internal/config"
 )
 
 var loginCmd = &cobra.Command{

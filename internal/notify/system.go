@@ -55,10 +55,10 @@ func SystemNotify(title, message string, level Level) error {
 			"-sound", sound,
 			"-group", "mur",
 		}
-		
+
 		// Add sender for icon
 		args = append(args, "-sender", "com.apple.Terminal")
-		
+
 		cmd := exec.Command("terminal-notifier", args...)
 		if err := cmd.Run(); err == nil {
 			return nil

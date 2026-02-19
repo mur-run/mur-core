@@ -85,13 +85,13 @@ func runRepoSet(cmd *cobra.Command, args []string) error {
 			if err := cmd.Run(); err != nil {
 				// Try adding remote instead
 				cmd = exec.Command("git", "-C", patternsDir, "remote", "add", "origin", repoURL)
-				cmd.Run()
+				_ = cmd.Run()
 			}
 		} else {
 			// Has content but not a git repo - backup and clone
 			backupDir := patternsDir + ".backup"
 			fmt.Printf("Backing up existing patterns to %s\n", backupDir)
-			os.Rename(patternsDir, backupDir)
+			_ = os.Rename(patternsDir, backupDir)
 
 			// Clone new repo
 			fmt.Println("Cloning repository...")
@@ -100,13 +100,13 @@ func runRepoSet(cmd *cobra.Command, args []string) error {
 			cmd.Stderr = os.Stderr
 			if err := cmd.Run(); err != nil {
 				// Restore backup on failure
-				os.Rename(backupDir, patternsDir)
+				_ = os.Rename(backupDir, patternsDir)
 				return fmt.Errorf("failed to clone: %w", err)
 			}
 		}
 	} else {
 		// Empty or doesn't exist - just clone
-		os.MkdirAll(filepath.Dir(patternsDir), 0755)
+		_ = os.MkdirAll(filepath.Dir(patternsDir), 0755)
 		fmt.Println("Cloning repository...")
 		cmd := exec.Command("git", "clone", repoURL, patternsDir)
 		cmd.Stdout = os.Stdout
@@ -173,7 +173,7 @@ func runRepoStatus(cmd *cobra.Command, args []string) error {
 
 	// Count patterns
 	count := 0
-	filepath.Walk(patternsDir, func(path string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(patternsDir, func(path string, info os.FileInfo, err error) error {
 		if err == nil && !info.IsDir() && strings.HasSuffix(path, ".yaml") {
 			count++
 		}
@@ -218,7 +218,7 @@ func runRepoRemove(cmd *cobra.Command, args []string) error {
 	}
 
 	// Remove from config
-	saveRepoConfig(home, "")
+	_ = saveRepoConfig(home, "")
 
 	fmt.Println("✅ Learning repo removed. Patterns are still available locally.")
 
@@ -292,7 +292,7 @@ func SetupLearningRepo(home string) error {
 
 	// Clone the repo
 	patternsDir := filepath.Join(home, ".mur", "repo")
-	os.MkdirAll(filepath.Dir(patternsDir), 0755)
+	_ = os.MkdirAll(filepath.Dir(patternsDir), 0755)
 
 	fmt.Println("  Cloning repository...")
 	cmd := exec.Command("git", "clone", repoURL, patternsDir)
@@ -302,7 +302,7 @@ func SetupLearningRepo(home string) error {
 	}
 
 	// Save to config
-	saveRepoConfig(home, repoURL)
+	_ = saveRepoConfig(home, repoURL)
 
 	fmt.Println("  ✓ Learning repo configured")
 	return nil

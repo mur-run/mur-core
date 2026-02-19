@@ -12,9 +12,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/spf13/cobra"
+
 	"github.com/mur-run/mur-core/internal/core/pattern"
 	"github.com/mur-run/mur-core/internal/stats"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -56,14 +57,14 @@ type DashboardData struct {
 	RecentPatterns []PatternView
 
 	// Usage Stats
-	TotalUsage      int
-	TotalRuns       int
-	AvgEffective    float64
-	EstimatedCost   float64
-	EstimatedSaved  float64
-	DailyTrend      []DailyPoint
-	ToolBreakdown   []ToolUsage
-	AutoRouteStats  AutoRouteView
+	TotalUsage     int
+	TotalRuns      int
+	AvgEffective   float64
+	EstimatedCost  float64
+	EstimatedSaved float64
+	DailyTrend     []DailyPoint
+	ToolBreakdown  []ToolUsage
+	AutoRouteStats AutoRouteView
 
 	// Sync Status
 	SyncTargets []SyncTarget
@@ -221,7 +222,7 @@ func servePatterns(w http.ResponseWriter, r *http.Request, store *pattern.Store)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(views)
+	_ = json.NewEncoder(w).Encode(views)
 }
 
 func servePatternDetail(w http.ResponseWriter, r *http.Request, store *pattern.Store) {
@@ -238,7 +239,7 @@ func servePatternDetail(w http.ResponseWriter, r *http.Request, store *pattern.S
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(p)
+	_ = json.NewEncoder(w).Encode(p)
 }
 
 func serveStats(w http.ResponseWriter, r *http.Request, store *pattern.Store) {
@@ -251,7 +252,7 @@ func serveStats(w http.ResponseWriter, r *http.Request, store *pattern.Store) {
 	data := buildDashboardData(patterns)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(data)
+	_ = json.NewEncoder(w).Encode(data)
 }
 
 func handleSyncAction(w http.ResponseWriter, r *http.Request) {
@@ -269,7 +270,7 @@ func handleSyncAction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	_ = json.NewEncoder(w).Encode(result)
 }
 
 func buildDashboardData(patterns []pattern.Pattern) DashboardData {
@@ -378,7 +379,7 @@ func buildDashboardData(patterns []pattern.Pattern) DashboardData {
 
 func getSyncTargets() []SyncTarget {
 	home, _ := os.UserHomeDir()
-	
+
 	// Strict tool detection: check for actual binaries or app bundles
 	claudeInstalled := commandExists("claude") || fileExists(filepath.Join(home, ".npm-global", "bin", "claude"))
 	geminiInstalled := commandExists("gemini") || fileExists(filepath.Join(home, ".npm-global", "bin", "gemini"))
@@ -389,7 +390,7 @@ func getSyncTargets() []SyncTarget {
 	cursorInstalled := fileExists("/Applications/Cursor.app") || fileExists(filepath.Join(home, "Applications", "Cursor.app"))
 	windsurfInstalled := fileExists("/Applications/Windsurf.app") || fileExists(filepath.Join(home, "Applications", "Windsurf.app"))
 	continueInstalled := fileExists(filepath.Join(home, ".continue", "config.json"))
-	
+
 	targets := []SyncTarget{
 		// CLIs
 		{Name: "Claude Code", Type: "cli", Path: filepath.Join(home, ".claude", "skills", "mur-index"), Installed: claudeInstalled},
@@ -495,7 +496,7 @@ func openBrowser(url string) {
 
 	go func() {
 		execCmd := exec.Command(cmd, args...)
-		execCmd.Run()
+		_ = execCmd.Run()
 	}()
 }
 

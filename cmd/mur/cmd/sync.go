@@ -7,13 +7,14 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/spf13/cobra"
+
 	"github.com/mur-run/mur-core/internal/cache"
 	"github.com/mur-run/mur-core/internal/cloud"
 	"github.com/mur-run/mur-core/internal/config"
 	"github.com/mur-run/mur-core/internal/learn"
 	"github.com/mur-run/mur-core/internal/security"
 	"github.com/mur-run/mur-core/internal/sync"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -123,7 +124,6 @@ func runSync(cmd *cobra.Command, args []string) error {
 
 		// If neither cloud nor git, just sync to CLIs
 		if !useCloud && !useGit {
-			cliOnly = true
 			if !syncQuiet {
 				fmt.Println("💻 Syncing to local CLIs only")
 				fmt.Println()
@@ -233,7 +233,7 @@ func runCloudSync(cmd *cobra.Command, cfg *config.Config) error {
 
 	// Execute cloud sync by calling the cloud sync function directly
 	// Reuse cloudSyncCmd logic
-	cmd.Flags().Set("team", teamSlug)
+	_ = cmd.Flags().Set("team", teamSlug)
 	return cloudSyncCmd.RunE(cmd, []string{})
 }
 
@@ -271,12 +271,12 @@ func runGitSync(home string, cfg *config.Config) error {
 		}
 
 		addCmd := exec.Command("git", "-C", patternsDir, "add", "-A")
-		addCmd.Run()
+		_ = addCmd.Run()
 
 		diffCmd := exec.Command("git", "-C", patternsDir, "diff", "--cached", "--quiet")
 		if diffCmd.Run() != nil {
 			commitCmd := exec.Command("git", "-C", patternsDir, "commit", "-m", "mur: sync patterns")
-			commitCmd.Run()
+			_ = commitCmd.Run()
 		}
 
 		pushCmd := exec.Command("git", "-C", patternsDir, "push")
