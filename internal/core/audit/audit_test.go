@@ -193,6 +193,37 @@ func TestRotateNoFile(t *testing.T) {
 	}
 }
 
+func TestAutoRotation(t *testing.T) {
+	logger := tempLogger(t)
+	// Set a tiny max size to trigger auto-rotation quickly
+	logger.SetMaxSize(100)
+
+	// Write entries until we exceed the limit
+	for i := 0; i < 5; i++ {
+		err := logger.Log(Entry{
+			PatternID:   "id-test",
+			PatternName: "auto-rotate-test",
+			Action:      ActionInject,
+			Details:     "some details to fill up the log file quickly",
+		})
+		if err != nil {
+			t.Fatalf("Log() error on entry %d: %v", i, err)
+		}
+	}
+
+	// After auto-rotation, there should be an archive file
+	archivePattern := filepath.Join(logger.dir, "audit-*.jsonl")
+	matches, _ := filepath.Glob(archivePattern)
+	if len(matches) == 0 {
+		t.Error("expected at least one archive file after auto-rotation")
+	}
+
+	// The current log file should still exist (entries written after rotation)
+	if _, err := os.Stat(logger.logFile()); os.IsNotExist(err) {
+		t.Error("current audit.jsonl should exist after auto-rotation")
+	}
+}
+
 func TestDefaultLogger(t *testing.T) {
 	logger, err := DefaultLogger()
 	if err != nil {

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -102,10 +103,27 @@ func (a *SemanticAnonymizer) Anonymize(content string) (string, []AnonymizationC
 	return cleaned, changes, nil
 }
 
+// maxDivergenceRatio is the maximum allowed Levenshtein distance ratio between
+// cleaned and original text. If the LLM response diverges by more than this
+// fraction, it is considered adversarial/malformed and the original is returned.
+const maxDivergenceRatio = 0.50
+
 // parseLLMResponse splits the LLM response into cleaned text and change list.
+// If the cleaned text differs from the original by more than 50% (Levenshtein
+// ratio), it logs a warning and returns the original content unchanged.
 func parseLLMResponse(response, originalContent string) (string, []AnonymizationChange) {
 	parts := strings.SplitN(response, "---CHANGES---", 2)
 	cleaned := strings.TrimSpace(parts[0])
+
+	// Validate that the LLM didn't rewrite the content too aggressively
+	if originalContent != "" && cleaned != "" {
+		ratio := levenshteinRatio(originalContent, cleaned)
+		if ratio > maxDivergenceRatio {
+			log.Printf("[anonymize] WARNING: LLM response diverges %.0f%% from original (threshold %.0f%%), returning original",
+				ratio*100, maxDivergenceRatio*100)
+			return originalContent, nil
+		}
+	}
 
 	var changes []AnonymizationChange
 	if len(parts) == 2 {
@@ -121,6 +139,54 @@ func parseLLMResponse(response, originalContent string) (string, []Anonymization
 	}
 
 	return cleaned, changes
+}
+
+// levenshteinRatio returns the Levenshtein distance between a and b divided by
+// the length of the longer string, giving a value between 0.0 (identical) and
+// 1.0 (completely different).
+func levenshteinRatio(a, b string) float64 {
+	dist := levenshteinDistance(a, b)
+	maxLen := len(a)
+	if len(b) > maxLen {
+		maxLen = len(b)
+	}
+	if maxLen == 0 {
+		return 0
+	}
+	return float64(dist) / float64(maxLen)
+}
+
+// levenshteinDistance computes the edit distance between two strings.
+func levenshteinDistance(a, b string) int {
+	la, lb := len(a), len(b)
+	if la == 0 {
+		return lb
+	}
+	if lb == 0 {
+		return la
+	}
+
+	// Use two rows to save memory
+	prev := make([]int, lb+1)
+	curr := make([]int, lb+1)
+
+	for j := 0; j <= lb; j++ {
+		prev[j] = j
+	}
+
+	for i := 1; i <= la; i++ {
+		curr[0] = i
+		for j := 1; j <= lb; j++ {
+			cost := 1
+			if a[i-1] == b[j-1] {
+				cost = 0
+			}
+			curr[j] = min(curr[j-1]+1, min(prev[j]+1, prev[j-1]+cost))
+		}
+		prev, curr = curr, prev
+	}
+
+	return prev[lb]
 }
 
 // findLineNumber returns the 1-indexed line number where needle first appears in content.

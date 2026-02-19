@@ -14,12 +14,18 @@ import (
 
 // Store provides pattern storage operations.
 type Store struct {
-	baseDir string
+	baseDir  string
+	localOnly bool // when true, don't fall back to ~/.mur/repo/patterns/
 }
 
 // NewStore creates a new Store with the given base directory.
+// If baseDir is not under ~/.mur/, repo fallback is automatically disabled
+// to ensure test isolation.
 func NewStore(baseDir string) *Store {
-	return &Store{baseDir: baseDir}
+	home, _ := os.UserHomeDir()
+	murDir := filepath.Join(home, ".mur")
+	localOnly := !strings.HasPrefix(baseDir, murDir)
+	return &Store{baseDir: baseDir, localOnly: localOnly}
 }
 
 // DefaultStore returns a Store using the default ~/.mur/patterns directory.
@@ -42,7 +48,7 @@ func (s *Store) EnsureDir() error {
 }
 
 // patternPath returns the file path for a pattern.
-// Checks baseDir and repo/patterns/.
+// Checks baseDir and, unless localOnly, repo/patterns/.
 func (s *Store) patternPath(name string) string {
 	// First check baseDir (~/.mur/patterns/)
 	path := filepath.Join(s.baseDir, name+".yaml")
@@ -50,11 +56,13 @@ func (s *Store) patternPath(name string) string {
 		return path
 	}
 
-	// Check repo patterns (~/.mur/repo/patterns/)
-	home, _ := os.UserHomeDir()
-	repoPath := filepath.Join(home, ".mur", "repo", "patterns", name+".yaml")
-	if _, err := os.Stat(repoPath); err == nil {
-		return repoPath
+	if !s.localOnly {
+		// Check repo patterns (~/.mur/repo/patterns/)
+		home, _ := os.UserHomeDir()
+		repoPath := filepath.Join(home, ".mur", "repo", "patterns", name+".yaml")
+		if _, err := os.Stat(repoPath); err == nil {
+			return repoPath
+		}
 	}
 
 	// Default to baseDir
@@ -85,11 +93,13 @@ func (s *Store) List() ([]Pattern, error) {
 		patterns = append(patterns, s.listFromDir(s.baseDir)...)
 	}
 
-	// Also check repo patterns (~/.mur/repo/patterns/)
-	home, _ := os.UserHomeDir()
-	repoDir := filepath.Join(home, ".mur", "repo", "patterns")
-	if info, err := os.Stat(repoDir); err == nil && info.IsDir() {
-		patterns = append(patterns, s.listFromDir(repoDir)...)
+	if !s.localOnly {
+		// Also check repo patterns (~/.mur/repo/patterns/)
+		home, _ := os.UserHomeDir()
+		repoDir := filepath.Join(home, ".mur", "repo", "patterns")
+		if info, err := os.Stat(repoDir); err == nil && info.IsDir() {
+			patterns = append(patterns, s.listFromDir(repoDir)...)
+		}
 	}
 
 	return patterns, nil

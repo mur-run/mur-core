@@ -175,6 +175,13 @@ type SimilarityPair struct {
 }
 
 // AllPairs returns all pairs of patterns with cosine similarity >= threshold.
+//
+// Complexity: O(n²) where n is the number of vectors in the matrix.
+// For large pattern sets, consider keeping n < 2000 to maintain sub-second
+// response times.
+//
+// TODO: For n > 2000, switch to an ANN (approximate nearest neighbors) index
+// (e.g. HNSW or IVF) to reduce comparison cost to ~O(n log n).
 func (m *EmbeddingMatrix) AllPairs(threshold float64) []SimilarityPair {
 	m.mu.RLock()
 	defer m.mu.RUnlock()

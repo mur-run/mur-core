@@ -202,12 +202,13 @@ func TestSemanticAnonymizerAllCategories(t *testing.T) {
 		{"original":"San Francisco office","replaced":"<LOCATION>","category":"location"}
 	]`
 
+	content := "At Acme Corp the engineer Jane Doe leads the internal ProjectX initiative generating $50M ARR revenue from the San Francisco office headquarters"
 	mock := &mockLLMClient{
-		response: "Cleaned content here\n---CHANGES---\n" + changesJSON,
+		response: "At <COMPANY> the engineer <PERSON> leads the internal <PROJECT> initiative generating <METRIC> revenue from the <LOCATION> headquarters\n---CHANGES---\n" + changesJSON,
 	}
 
 	anonymizer := NewSemanticAnonymizer(mock, "")
-	_, changes, err := anonymizer.Anonymize("Some content")
+	_, changes, err := anonymizer.Anonymize(content)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -405,12 +406,88 @@ func TestContentHash(t *testing.T) {
 	}
 }
 
-func TestParseLLMResponseMalformedJSON(t *testing.T) {
-	response := "Cleaned content\n---CHANGES---\nnot valid json"
-	cleaned, changes := parseLLMResponse(response, "original")
+func TestParseLLMResponseAdversarial_TooMuchChange(t *testing.T) {
+	// LLM completely rewrites the content — should return original
+	original := "Use Go error handling patterns with errors.Is and errors.As for proper error wrapping"
+	response := "HACKED: totally different content that bears no resemblance to the original text whatsoever\n---CHANGES---\n[]"
 
-	if cleaned != "Cleaned content" {
-		t.Errorf("expected 'Cleaned content', got: %s", cleaned)
+	cleaned, changes := parseLLMResponse(response, original)
+
+	if cleaned != original {
+		t.Errorf("expected original content when LLM diverges too much, got: %s", cleaned)
+	}
+	if changes != nil {
+		t.Errorf("expected nil changes when LLM diverges too much, got %d", len(changes))
+	}
+}
+
+func TestParseLLMResponseAdversarial_AcceptableChange(t *testing.T) {
+	// LLM makes a small targeted replacement — should be accepted
+	original := "At Acme Corp we use Go error handling patterns"
+	response := "At <COMPANY> we use Go error handling patterns\n---CHANGES---\n" +
+		`[{"original":"Acme Corp","replaced":"<COMPANY>","category":"company"}]`
+
+	cleaned, changes := parseLLMResponse(response, original)
+
+	if cleaned == original {
+		t.Error("expected cleaned content to differ from original for acceptable change")
+	}
+	if !strings.Contains(cleaned, "<COMPANY>") {
+		t.Errorf("expected <COMPANY> in cleaned content, got: %s", cleaned)
+	}
+	if len(changes) != 1 {
+		t.Errorf("expected 1 change, got %d", len(changes))
+	}
+}
+
+func TestLevenshteinDistance(t *testing.T) {
+	tests := []struct {
+		a, b string
+		want int
+	}{
+		{"", "", 0},
+		{"abc", "", 3},
+		{"", "abc", 3},
+		{"abc", "abc", 0},
+		{"kitten", "sitting", 3},
+		{"saturday", "sunday", 3},
+	}
+
+	for _, tt := range tests {
+		got := levenshteinDistance(tt.a, tt.b)
+		if got != tt.want {
+			t.Errorf("levenshteinDistance(%q, %q) = %d, want %d", tt.a, tt.b, got, tt.want)
+		}
+	}
+}
+
+func TestLevenshteinRatio(t *testing.T) {
+	// Identical strings
+	ratio := levenshteinRatio("hello", "hello")
+	if ratio != 0 {
+		t.Errorf("identical strings ratio = %f, want 0", ratio)
+	}
+
+	// Completely different (same length)
+	ratio = levenshteinRatio("aaaa", "bbbb")
+	if ratio != 1.0 {
+		t.Errorf("completely different ratio = %f, want 1.0", ratio)
+	}
+
+	// Empty strings
+	ratio = levenshteinRatio("", "")
+	if ratio != 0 {
+		t.Errorf("empty strings ratio = %f, want 0", ratio)
+	}
+}
+
+func TestParseLLMResponseMalformedJSON(t *testing.T) {
+	original := "Cleaned content with some details"
+	response := "Cleaned content with some details\n---CHANGES---\nnot valid json"
+	cleaned, changes := parseLLMResponse(response, original)
+
+	if cleaned != "Cleaned content with some details" {
+		t.Errorf("expected 'Cleaned content with some details', got: %s", cleaned)
 	}
 	if len(changes) != 0 {
 		t.Errorf("expected 0 changes for malformed JSON, got %d", len(changes))
@@ -418,8 +495,9 @@ func TestParseLLMResponseMalformedJSON(t *testing.T) {
 }
 
 func TestParseLLMResponseNoSeparator(t *testing.T) {
+	original := "Just cleaned text without separator"
 	response := "Just cleaned text without separator"
-	cleaned, changes := parseLLMResponse(response, "original")
+	cleaned, changes := parseLLMResponse(response, original)
 
 	if cleaned != response {
 		t.Errorf("expected response as-is, got: %s", cleaned)

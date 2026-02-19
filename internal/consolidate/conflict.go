@@ -38,7 +38,12 @@ func NewKeywordConflictDetector() *KeywordConflictDetector {
 	return &KeywordConflictDetector{}
 }
 
+// minSharedKeywords is the minimum number of shared meaningful keywords
+// required before flagging a contradiction (prevents false positives).
+const minSharedKeywords = 2
+
 // negationPairs are keyword pairs that suggest contradictory advice.
+// Overly broad pairs (e.g. "do"/"don't") are excluded to reduce false positives.
 var negationPairs = [][2]string{
 	{"always", "never"},
 	{"enable", "disable"},
@@ -47,8 +52,6 @@ var negationPairs = [][2]string{
 	{"require", "optional"},
 	{"must", "must not"},
 	{"should", "should not"},
-	{"do", "don't"},
-	{"do", "do not"},
 	{"allow", "disallow"},
 	{"allow", "forbid"},
 }
@@ -80,9 +83,16 @@ func (d *KeywordConflictDetector) Detect(patterns []*pattern.Pattern) []Conflict
 }
 
 // checkContradiction looks for negation keyword pairs between two patterns.
+// To reduce false positives, it requires at least minSharedKeywords meaningful
+// content keywords in common (not just domain match) before flagging.
 func (d *KeywordConflictDetector) checkContradiction(a, b *pattern.Pattern) *Conflict {
 	aLower := strings.ToLower(a.Content)
 	bLower := strings.ToLower(b.Content)
+
+	// Require minimum content overlap before checking negation pairs
+	if countSharedContentKeywords(aLower, bLower) < minSharedKeywords {
+		return nil
+	}
 
 	for _, pair := range negationPairs {
 		// Check if A contains one keyword and B contains the negation (or vice versa)
@@ -106,6 +116,61 @@ func (d *KeywordConflictDetector) checkContradiction(a, b *pattern.Pattern) *Con
 	}
 
 	return nil
+}
+
+// stopWords are common words excluded from content keyword overlap counting.
+var stopWords = map[string]bool{
+	"a": true, "an": true, "the": true, "in": true, "on": true, "at": true,
+	"to": true, "for": true, "of": true, "and": true, "or": true, "is": true,
+	"it": true, "be": true, "as": true, "by": true, "this": true, "that": true,
+	"with": true, "from": true, "not": true, "are": true, "was": true, "were": true,
+	"been": true, "has": true, "have": true, "had": true, "do": true, "does": true,
+	"did": true, "will": true, "would": true, "could": true, "should": true,
+	"may": true, "can": true, "if": true, "but": true, "so": true, "no": true,
+	"all": true, "any": true, "each": true, "when": true, "use": true,
+}
+
+// countSharedContentKeywords counts meaningful words that appear in both texts,
+// excluding stop words and negation keywords. Words must be at least 3 chars.
+func countSharedContentKeywords(aLower, bLower string) int {
+	aWords := extractMeaningfulWords(aLower)
+	bWords := extractMeaningfulWords(bLower)
+
+	count := 0
+	for w := range aWords {
+		if bWords[w] {
+			count++
+		}
+	}
+	return count
+}
+
+// extractMeaningfulWords splits text into unique words, filtering out
+// stop words, negation keywords, and short words (<3 chars).
+func extractMeaningfulWords(text string) map[string]bool {
+	words := make(map[string]bool)
+	for _, w := range strings.Fields(text) {
+		// Strip common punctuation
+		w = strings.Trim(w, ".,;:!?\"'()[]{}") //nolint:gocritic
+		if len(w) < 3 {
+			continue
+		}
+		if stopWords[w] {
+			continue
+		}
+		// Exclude negation pair keywords
+		isNegation := false
+		for _, pair := range negationPairs {
+			if w == pair[0] || w == pair[1] {
+				isNegation = true
+				break
+			}
+		}
+		if !isNegation {
+			words[w] = true
+		}
+	}
+	return words
 }
 
 // checkSupersedes looks for patterns where one is likely a newer version of another.

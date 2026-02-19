@@ -34,15 +34,24 @@ type Entry struct {
 	Details     string    `json:"details,omitempty"`
 }
 
+// defaultMaxSizeBytes is the default max audit log size before auto-rotation (10 MB).
+const defaultMaxSizeBytes int64 = 10 * 1024 * 1024
+
 // Logger provides append-only audit logging.
 type Logger struct {
-	dir string
-	mu  sync.Mutex
+	dir          string
+	maxSizeBytes int64
+	mu           sync.Mutex
 }
 
 // NewLogger creates a new audit logger writing to the given directory.
 func NewLogger(dir string) *Logger {
-	return &Logger{dir: dir}
+	return &Logger{dir: dir, maxSizeBytes: defaultMaxSizeBytes}
+}
+
+// SetMaxSize sets the maximum audit log file size in bytes before auto-rotation.
+func (l *Logger) SetMaxSize(bytes int64) {
+	l.maxSizeBytes = bytes
 }
 
 // DefaultLogger returns an audit logger using ~/.mur/audit/.
@@ -59,7 +68,8 @@ func (l *Logger) logFile() string {
 	return filepath.Join(l.dir, "audit.jsonl")
 }
 
-// Log appends an entry to the audit log.
+// Log appends an entry to the audit log. If the log file exceeds maxSizeBytes,
+// it is automatically rotated before writing.
 func (l *Logger) Log(entry Entry) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -70,6 +80,15 @@ func (l *Logger) Log(entry Entry) error {
 
 	if entry.Timestamp.IsZero() {
 		entry.Timestamp = time.Now()
+	}
+
+	// Auto-rotate if file exceeds max size
+	if l.maxSizeBytes > 0 {
+		if info, err := os.Stat(l.logFile()); err == nil && info.Size() >= l.maxSizeBytes {
+			if err := l.rotateLocked(); err != nil {
+				return fmt.Errorf("auto-rotation failed: %w", err)
+			}
+		}
 	}
 
 	f, err := os.OpenFile(l.logFile(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
@@ -123,7 +142,11 @@ func (l *Logger) ReadFiltered(patternName string) ([]Entry, error) {
 func (l *Logger) Rotate() error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	return l.rotateLocked()
+}
 
+// rotateLocked performs rotation without acquiring the mutex (caller must hold it).
+func (l *Logger) rotateLocked() error {
 	src := l.logFile()
 	if _, err := os.Stat(src); os.IsNotExist(err) {
 		return nil // nothing to rotate

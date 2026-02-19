@@ -340,6 +340,96 @@ func TestKeywordConflictDetector_NoConflict(t *testing.T) {
 	}
 }
 
+func TestKeywordConflictDetector_FalsePositive_DifferentTopics(t *testing.T) {
+	d := NewKeywordConflictDetector()
+
+	// "Use Go" vs "Avoid nil pointers" — same domain but different topics,
+	// should NOT flag as contradiction despite use/avoid negation pair.
+	patterns := []*pattern.Pattern{
+		{
+			ID:      "p1",
+			Name:    "use-go",
+			Content: "Use Go for backend services",
+			Tags:    pattern.TagSet{Confirmed: []string{"go"}},
+		},
+		{
+			ID:      "p2",
+			Name:    "avoid-nil",
+			Content: "Avoid nil pointers in Go code",
+			Tags:    pattern.TagSet{Confirmed: []string{"go"}},
+		},
+	}
+
+	conflicts := d.Detect(patterns)
+	for _, c := range conflicts {
+		if c.Type == ConflictContradiction {
+			t.Errorf("unexpected contradiction between different topics: %s", c.Reason)
+		}
+	}
+}
+
+func TestKeywordConflictDetector_FalsePositive_DoDoNot(t *testing.T) {
+	d := NewKeywordConflictDetector()
+
+	// The removed "do"/"don't" pair should no longer cause false positives.
+	patterns := []*pattern.Pattern{
+		{
+			ID:      "p1",
+			Name:    "do-testing",
+			Content: "Do write unit tests for all functions",
+			Tags:    pattern.TagSet{Confirmed: []string{"testing"}},
+		},
+		{
+			ID:      "p2",
+			Name:    "dont-mock",
+			Content: "Don't mock everything in integration tests",
+			Tags:    pattern.TagSet{Confirmed: []string{"testing"}},
+		},
+	}
+
+	conflicts := d.Detect(patterns)
+	for _, c := range conflicts {
+		if c.Type == ConflictContradiction {
+			t.Errorf("unexpected contradiction from do/don't pair: %s", c.Reason)
+		}
+	}
+}
+
+func TestKeywordConflictDetector_TruePositive_SharedKeywords(t *testing.T) {
+	d := NewKeywordConflictDetector()
+
+	// Two patterns about the same topic (semicolons in JavaScript) with
+	// contradictory advice — should still be detected.
+	patterns := []*pattern.Pattern{
+		{
+			ID:      "p1",
+			Name:    "always-semicolons",
+			Content: "Always use semicolons in JavaScript code statements",
+			Tags:    pattern.TagSet{Confirmed: []string{"javascript"}},
+			Applies: pattern.ApplyConditions{Keywords: []string{"semicolons", "formatting"}},
+		},
+		{
+			ID:      "p2",
+			Name:    "never-semicolons",
+			Content: "Never use semicolons in JavaScript code statements",
+			Tags:    pattern.TagSet{Confirmed: []string{"javascript"}},
+			Applies: pattern.ApplyConditions{Keywords: []string{"semicolons", "formatting"}},
+		},
+	}
+
+	conflicts := d.Detect(patterns)
+	found := false
+	for _, c := range conflicts {
+		if c.Type == ConflictContradiction {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected contradiction for patterns about the same topic with opposing advice")
+	}
+}
+
 func TestKeywordConflictDetector_Supersedes(t *testing.T) {
 	d := NewKeywordConflictDetector()
 
