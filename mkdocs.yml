@@ -65,12 +65,18 @@ nav:
     - run: commands/run.md
     - sync: commands/sync.md
     - learn: commands/learn.md
+    - consolidate: commands/consolidate.md
+    - verify & preview: commands/verify.md
+    - audit: commands/audit.md
     - stats: commands/stats.md
     - team: commands/team.md
   - Concepts:
     - Patterns: concepts/patterns.md
     - Smart Routing: concepts/routing.md
     - Cross-CLI Sync: concepts/cross-cli-sync.md
+    - Memory Cache: concepts/memory-cache.md
+    - Privacy & PII: concepts/privacy.md
+  - Security: security.md
   - Integrations:
     - Claude Code: integrations/claude-code.md
     - Gemini CLI: integrations/gemini-cli.md

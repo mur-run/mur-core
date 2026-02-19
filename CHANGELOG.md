@@ -2,6 +2,70 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [1.9.0] - 2026-02-19
+
+### Added
+- **🧠 Pattern Consolidation** (`mur consolidate`) — Self-healing memory for your patterns
+  - 4-dimension health scoring: Freshness (90-day decay), Engagement (log-scale usage), Quality (feedback ratio), Uniqueness (embedding similarity)
+  - Duplicate detection via cosine similarity with union-find clustering
+  - Keep-best merge strategy (LLM merge planned)
+  - Keyword-based contradiction detection between conflicting patterns
+  - `--dry-run` (default), `--auto`, `--interactive`, `--force` modes
+  - Configurable: `consolidation.schedule`, `decay_half_life_days`, `merge_threshold`
+
+- **⚡ In-Process Memory Cache** — Sub-millisecond pattern matching
+  - Pattern YAML files cached in `map[string]*Pattern` with inverted tag index
+  - Embedding vectors in contiguous `[]float32` matrix with pre-normalized copies
+  - Cosine similarity = single dot product (no magnitude calculation needed)
+  - Lazy loading: metadata loads eagerly, embeddings on-demand
+  - ~9 MB RAM for 1,000 patterns + embeddings (768d), negligible for most users
+  - `--no-cache` flag for debugging; `Disabled` option in MemoryCacheOptions
+
+- **🛡️ Privacy & PII Protection** — Share patterns without leaking identity
+  - Regex PII scanner: emails, internal IPs (RFC 1918), user file paths, internal URLs, phone numbers
+  - User-defined blocklist: `privacy.redact_terms` and `privacy.replacements` in config
+  - Auto-detect toggles: `privacy.auto_detect.emails`, `.internal_ips`, `.file_paths`, `.phone_numbers`
+  - `--dry-run` preview on `mur community share` (shows redacted content before upload)
+  - Interactive `[Y/n]` confirmation in non-quiet mode
+  - PII action is **redact** (replace in content), not skip (unlike secret scanner)
+
+- **🔐 Pattern Integrity & Security** — Injection-proof pattern pipeline
+  - SHA256 hash verification on pattern load; warns and marks untrusted on mismatch
+  - Prompt injection scanner with 11 detection rules: instruction override, role markers, role hijacking, base64 payloads, HTML/markdown comment injection, unicode homoglyphs, delimiter injection, jailbreak keywords
+  - High-risk untrusted patterns auto-blocked during injection
+  - `InjectionRisk` field added to `SecurityMeta` (low/medium/high)
+  - Append-only audit log (`~/.mur/audit/audit.jsonl`) with auto-rotation at 10MB
+  - `mur verify` — check all pattern hashes, `--fix` to recalculate
+  - `mur preview <name>` — show content + trust level + injection scan results
+  - `mur audit` — view injection history, `--pattern` and `--limit` filters
+
+- **🧬 LLM Semantic Anonymization** — Deep privacy for community sharing
+  - Ollama-powered content analysis detects company/person/project names regex can't catch
+  - Structured JSON change output with category (company/person/project/metric/location)
+  - In-memory + disk cache (`~/.mur/cache/anonymization/<sha256>.txt`)
+  - Levenshtein validation: rejects LLM responses diverging >50% from original
+  - Opt-in via `privacy.semantic_anonymization.enabled: true`
+  - Configurable: provider (ollama), model (llama3.2), ollama_url, cache_results
+
+### New Commands
+- `mur consolidate` — Pattern health analysis and automated cleanup
+- `mur verify` — Integrity verification with `--fix`
+- `mur preview <pattern>` — Security preview for community patterns
+- `mur audit` — Pattern injection audit trail
+
+### Changed
+- `mur community share` now runs 4-layer pipeline: Regex PII → LLM Semantic → Secret Scan → Preview
+- Inject pipeline scans for prompt injection before use; blocks high-risk untrusted patterns
+- Pattern schema v2 extended: `Relations` (supersedes, related, conflicts_with), `HealthMeta` (score, last_consolidated), `InjectionRisk`
+- Embed search uses fast matrix dot-product path when memory cache is available
+- Keyword fallback matching reads from in-process cache instead of disk
+
+### Fixed
+- Pattern store tests now use `t.TempDir()` (isolated from local `~/.mur/patterns/`)
+- Store `List()` no longer falls back to repo patterns when running in non-standard directories
+- Conflict detector: removed overly broad negation pairs, added minimum keyword overlap threshold
+- Audit log auto-rotates when exceeding 10MB
+
 ## [1.8.3] - 2026-02-18
 
 ### Fixed

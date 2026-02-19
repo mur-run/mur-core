@@ -52,6 +52,44 @@ You're using Claude Code, Gemini CLI, maybe Cursor or Windsurf. But:
 
 </div>
 
+## What Sets mur Apart <small>v1.9</small>
+
+<div class="grid cards" markdown>
+
+-   :material-shield-check: **Privacy by Design**
+
+    ---
+
+    Share patterns without leaking your company name, email, or infrastructure. 3-layer PII protection: regex → blocklist → LLM semantic analysis.
+
+    [:octicons-arrow-right-24: Privacy docs](concepts/privacy.md)
+
+-   :material-brain: **Self-Healing Memory**
+
+    ---
+
+    Patterns don't just accumulate — they evolve. Health scoring detects stale, duplicate, and contradictory patterns. Like your brain consolidating memories during sleep.
+
+    [:octicons-arrow-right-24: Consolidation](commands/consolidate.md)
+
+-   :material-lightning-bolt: **Sub-Millisecond Matching**
+
+    ---
+
+    In-process cache with pre-normalized embedding vectors. Pattern lookup drops from ~15ms disk I/O to <0.1ms RAM. You won't feel it — that's the point.
+
+    [:octicons-arrow-right-24: Cache architecture](concepts/memory-cache.md)
+
+-   :material-lock: **Injection-Proof Patterns**
+
+    ---
+
+    Every pattern scanned for prompt injection before use. Untrusted community patterns with high-risk payloads are auto-blocked. Full audit trail of every injection.
+
+    [:octicons-arrow-right-24: Security](security.md)
+
+</div>
+
 ## Quick Example
 
 ```bash
