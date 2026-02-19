@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/mur-run/mur-core/internal/cache"
 	"github.com/mur-run/mur-core/internal/cloud"
@@ -328,10 +329,11 @@ func runCommunityAutoShare(cfg *config.Config) error {
 		return nil
 	}
 
-	// Initialize scanner
+	// Initialize scanners
 	scanner := security.NewScanner()
+	piiScanner := security.NewPIIScanner(cfg.Privacy)
 
-	var shared, skipped int
+	var shared, skipped, redacted int
 	for _, p := range patterns {
 		// Skip patterns without content
 		if p.Content == "" {
@@ -341,7 +343,28 @@ func runCommunityAutoShare(cfg *config.Config) error {
 		// Build content to scan (name + description + content)
 		contentToScan := p.Name + "\n" + p.Description + "\n" + p.Content
 
-		// Scan for secrets
+		// PII scan and redact first
+		cleaned, piiFindings := piiScanner.ScanAndRedact(contentToScan)
+		if len(piiFindings) > 0 {
+			redacted++
+			if !syncQuiet {
+				fmt.Printf("  🔒 %s → %d PII items redacted\n", p.Name, len(piiFindings))
+			}
+			// Reconstruct cleaned parts
+			parts := strings.SplitN(cleaned, "\n", 3)
+			if len(parts) >= 1 {
+				p.Name = parts[0]
+			}
+			if len(parts) >= 2 {
+				p.Description = parts[1]
+			}
+			if len(parts) >= 3 {
+				p.Content = parts[2]
+			}
+			contentToScan = cleaned
+		}
+
+		// Scan for secrets (on already-redacted content)
 		result := scanner.ScanContent(contentToScan)
 		if !result.Safe {
 			if !syncQuiet {
@@ -385,6 +408,9 @@ func runCommunityAutoShare(cfg *config.Config) error {
 	if !syncQuiet {
 		if shared > 0 {
 			fmt.Printf("\n✨ %d patterns shared! You're helping developers worldwide.\n", shared)
+		}
+		if redacted > 0 {
+			fmt.Printf("   🔒 %d patterns had PII redacted before sharing.\n", redacted)
 		}
 		if skipped > 0 {
 			fmt.Printf("   %d patterns skipped due to detected secrets.\n", skipped)

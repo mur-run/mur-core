@@ -1,12 +1,15 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/mur-run/mur-core/internal/cloud"
 	"github.com/mur-run/mur-core/internal/config"
 	"github.com/mur-run/mur-core/internal/core/pattern"
+	"github.com/mur-run/mur-core/internal/security"
 	"github.com/spf13/cobra"
 )
 
@@ -66,12 +69,13 @@ Examples:
 }
 
 var (
-	communityLimit    int
-	communityTeamID   string
-	shareCategory     string
-	shareTags         string
-	shareDescription  string
+	communityLimit     int
+	communityTeamID    string
+	shareCategory      string
+	shareTags          string
+	shareDescription   string
 	shareAutoTranslate bool
+	shareDryRun        bool
 )
 
 func init() {
@@ -91,6 +95,7 @@ func init() {
 	communityShareCmd.Flags().StringVarP(&shareTags, "tags", "t", "", "Comma-separated tags")
 	communityShareCmd.Flags().StringVarP(&shareDescription, "description", "d", "", "Override pattern description")
 	communityShareCmd.Flags().BoolVar(&shareAutoTranslate, "translate", true, "Auto-translate non-English patterns to English")
+	communityShareCmd.Flags().BoolVar(&shareDryRun, "dry-run", false, "Preview PII redactions without sharing")
 }
 
 func runCommunity(cmd *cobra.Command, args []string) error {
@@ -419,6 +424,56 @@ func runCommunityShare(cmd *cobra.Command, args []string) error {
 			}
 		}
 		return nil
+	}
+
+	// PII scanning and redaction
+	piiScanner := security.NewPIIScanner(cfg.Privacy)
+	contentToScan := targetPattern.Name + "\n" + targetPattern.Description + "\n" + targetPattern.Content
+	cleaned, findings := piiScanner.ScanAndRedact(contentToScan)
+
+	if len(findings) > 0 {
+		fmt.Println("🔒 PII detected and redacted:")
+		fmt.Print(security.FormatFindings(findings))
+		fmt.Println()
+
+		// Reconstruct the cleaned parts
+		parts := strings.SplitN(cleaned, "\n", 3)
+		if len(parts) >= 1 {
+			targetPattern.Name = parts[0]
+		}
+		if len(parts) >= 2 {
+			targetPattern.Description = parts[1]
+		}
+		if len(parts) >= 3 {
+			targetPattern.Content = parts[2]
+		}
+	}
+
+	if shareDryRun {
+		fmt.Println("🔍 Dry run — content after redaction:")
+		fmt.Println(strings.Repeat("─", 50))
+		fmt.Printf("Name: %s\n", targetPattern.Name)
+		fmt.Printf("Description: %s\n", targetPattern.Description)
+		fmt.Println(strings.Repeat("─", 50))
+		fmt.Println(targetPattern.Content)
+		fmt.Println(strings.Repeat("─", 50))
+		fmt.Println("No changes were made. Remove --dry-run to share.")
+		return nil
+	}
+
+	// Interactive preview (non-quiet mode)
+	if !cmd.Flags().Changed("quiet") {
+		if len(findings) > 0 {
+			fmt.Println("Content will be shared with the above redactions applied.")
+		}
+		fmt.Print("Proceed with sharing? [Y/n] ")
+		reader := bufio.NewReader(os.Stdin)
+		answer, _ := reader.ReadString('\n')
+		answer = strings.TrimSpace(strings.ToLower(answer))
+		if answer != "" && answer != "y" && answer != "yes" {
+			fmt.Println("Share cancelled.")
+			return nil
+		}
 	}
 
 	// Check if translation is needed

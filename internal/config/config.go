@@ -31,6 +31,7 @@ type Config struct {
 	TechStack     []string            `yaml:"tech_stack"` // User's tech stack for filtering (e.g., ["swift", "go", "docker"])
 	Cache         CacheConfig         `yaml:"cache"`      // Local cache settings
 	Community     CommunityConfig     `yaml:"community"`  // Community sharing settings
+	Privacy       PrivacyConfig       `yaml:"privacy"`    // Privacy & PII protection settings
 }
 
 // CacheConfig represents local cache settings for community patterns.
@@ -51,6 +52,75 @@ func DefaultCommunityConfig() CommunityConfig {
 		ShareEnabled:    false, // Will be asked during init, default N until confirmed
 		AutoShareOnPush: true,  // If sharing enabled, auto-share on push
 		ShareExtracted:  false, // Extracted patterns may contain secrets
+	}
+}
+
+// PrivacyConfig represents privacy and PII protection settings.
+type PrivacyConfig struct {
+	RedactTerms  []string          `yaml:"redact_terms"`  // Terms to always redact
+	Replacements map[string]string `yaml:"replacements"`  // Custom replacement mappings
+	AutoDetect   AutoDetectConfig  `yaml:"auto_detect"`   // Auto-detection toggles
+}
+
+// AutoDetectConfig controls which PII types are auto-detected.
+type AutoDetectConfig struct {
+	Emails       *bool `yaml:"emails"`        // Detect email addresses (default: true)
+	InternalIPs  *bool `yaml:"internal_ips"`   // Detect internal IPs (default: true)
+	FilePaths    *bool `yaml:"file_paths"`     // Detect user file paths (default: true)
+	PhoneNumbers *bool `yaml:"phone_numbers"`  // Detect phone numbers (default: true)
+	InternalURLs *bool `yaml:"internal_urls"`  // Detect internal URLs (default: true)
+}
+
+// IsEmailsEnabled returns whether email detection is enabled (default: true).
+func (a AutoDetectConfig) IsEmailsEnabled() bool {
+	if a.Emails == nil {
+		return true
+	}
+	return *a.Emails
+}
+
+// IsInternalIPsEnabled returns whether internal IP detection is enabled (default: true).
+func (a AutoDetectConfig) IsInternalIPsEnabled() bool {
+	if a.InternalIPs == nil {
+		return true
+	}
+	return *a.InternalIPs
+}
+
+// IsFilePathsEnabled returns whether file path detection is enabled (default: true).
+func (a AutoDetectConfig) IsFilePathsEnabled() bool {
+	if a.FilePaths == nil {
+		return true
+	}
+	return *a.FilePaths
+}
+
+// IsPhoneNumbersEnabled returns whether phone number detection is enabled (default: true).
+func (a AutoDetectConfig) IsPhoneNumbersEnabled() bool {
+	if a.PhoneNumbers == nil {
+		return true
+	}
+	return *a.PhoneNumbers
+}
+
+// IsInternalURLsEnabled returns whether internal URL detection is enabled (default: true).
+func (a AutoDetectConfig) IsInternalURLsEnabled() bool {
+	if a.InternalURLs == nil {
+		return true
+	}
+	return *a.InternalURLs
+}
+
+// DefaultPrivacyConfig returns default privacy settings.
+func DefaultPrivacyConfig() PrivacyConfig {
+	return PrivacyConfig{
+		AutoDetect: AutoDetectConfig{
+			Emails:       boolPtr(true),
+			InternalIPs:  boolPtr(true),
+			FilePaths:    boolPtr(true),
+			PhoneNumbers: boolPtr(true),
+			InternalURLs: boolPtr(true),
+		},
 	}
 }
 
@@ -527,5 +597,6 @@ func defaultConfig() *Config {
 			OnPatterns: true,
 		},
 		Community: DefaultCommunityConfig(),
+		Privacy:   DefaultPrivacyConfig(),
 	}
 }
