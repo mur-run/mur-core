@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/mur-run/mur-core/internal/cache"
 	"github.com/mur-run/mur-core/internal/core/classifier"
 	"github.com/mur-run/mur-core/internal/core/embed"
 	"github.com/mur-run/mur-core/internal/core/pattern"
@@ -46,6 +47,7 @@ type Injector struct {
 	store      *pattern.Store
 	classifier *classifier.HybridClassifier
 	searcher   *embed.PatternSearcher // Optional semantic search
+	cache      *cache.MemoryCache     // Optional in-process cache
 }
 
 // NewInjector creates a new pattern injector.
@@ -54,6 +56,12 @@ func NewInjector(store *pattern.Store) *Injector {
 		store:      store,
 		classifier: classifier.NewHybridClassifier(),
 	}
+}
+
+// WithCache attaches an in-process memory cache so the injector
+// reads patterns from RAM instead of re-reading YAML files on every call.
+func (inj *Injector) WithCache(mc *cache.MemoryCache) {
+	inj.cache = mc
 }
 
 // WithSemanticSearch enables semantic search for pattern matching.
@@ -177,12 +185,7 @@ func (inj *Injector) findMatchingPatterns(ctx *ProjectContext, classes []classif
 	}
 
 	// Fallback: keyword-based matching
-	allPatterns, err := inj.store.List()
-	if err != nil {
-		return nil, err
-	}
-
-	// Score each pattern
+	// Use cached patterns if available, otherwise fall back to store
 	type scoredPattern struct {
 		pattern pattern.Pattern
 		score   float64
@@ -191,14 +194,27 @@ func (inj *Injector) findMatchingPatterns(ctx *ProjectContext, classes []classif
 	var scored []scoredPattern
 	promptLower := strings.ToLower(prompt)
 
-	for _, p := range allPatterns {
-		if !p.IsActive() {
-			continue
+	if inj.cache != nil {
+		// Read from in-process cache (no disk I/O)
+		for _, p := range inj.cache.Patterns.Active() {
+			score := inj.scorePattern(p, ctx, classes, promptLower)
+			if score > 0.1 {
+				scored = append(scored, scoredPattern{*p, score})
+			}
 		}
-
-		score := inj.scorePattern(&p, ctx, classes, promptLower)
-		if score > 0.1 { // Minimum threshold
-			scored = append(scored, scoredPattern{p, score})
+	} else {
+		allPatterns, err := inj.store.List()
+		if err != nil {
+			return nil, err
+		}
+		for _, p := range allPatterns {
+			if !p.IsActive() {
+				continue
+			}
+			score := inj.scorePattern(&p, ctx, classes, promptLower)
+			if score > 0.1 {
+				scored = append(scored, scoredPattern{p, score})
+			}
 		}
 	}
 

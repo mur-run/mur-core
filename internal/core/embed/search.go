@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/mur-run/mur-core/internal/cache"
 	"github.com/mur-run/mur-core/internal/core/pattern"
 )
 
@@ -14,6 +15,8 @@ type PatternSearcher struct {
 	store    *pattern.Store
 	cache    *Cache
 	embedder Embedder
+	matrix   *cache.EmbeddingMatrix // optional in-process matrix
+	pcache   *cache.PatternCache    // optional in-process pattern cache
 }
 
 // PatternMatch represents a semantically matched pattern.
@@ -62,6 +65,17 @@ func NewPatternSearcher(store *pattern.Store, cfg Config) (*PatternSearcher, err
 	return searcher, nil
 }
 
+// WithMemoryCache attaches in-process caches so searches use the
+// pre-normalized EmbeddingMatrix (dot-product) instead of per-call
+// cosine similarity, and pattern lookups come from RAM.
+func (s *PatternSearcher) WithMemoryCache(mc *cache.MemoryCache) {
+	if mc == nil {
+		return
+	}
+	s.matrix = mc.Embeddings
+	s.pcache = mc.Patterns
+}
+
 // IndexPatterns indexes all patterns for semantic search.
 func (s *PatternSearcher) IndexPatterns() error {
 	patterns, err := s.store.List()
@@ -94,31 +108,75 @@ func (s *PatternSearcher) Search(query string, topK int) ([]PatternMatch, error)
 		return nil, fmt.Errorf("failed to embed query: %w", err)
 	}
 
-	// Search cache
-	results := s.cache.Search(queryVec, topK*2) // Get extra to filter
+	// Use EmbeddingMatrix (fast path) or disk cache (fallback)
+	if s.matrix != nil && s.matrix.IsLoaded() && s.matrix.Len() > 0 {
+		return s.searchMatrix(queryVec, topK)
+	}
 
-	// Convert to PatternMatch
+	// Fallback: per-call cosine similarity on disk cache
+	results := s.cache.Search(queryVec, topK*2)
+	return s.resultsToMatches(results, topK)
+}
+
+// searchMatrix uses the pre-normalized EmbeddingMatrix for fast search.
+func (s *PatternSearcher) searchMatrix(queryVec Vector, topK int) ([]PatternMatch, error) {
+	mResults := s.matrix.Search(queryVec, topK*2)
+
 	matches := make([]PatternMatch, 0, topK)
-	for _, r := range results {
-		// Find pattern by ID
-		patterns, _ := s.store.List()
-		for _, p := range patterns {
-			if p.ID == r.ID {
-				pCopy := p
-				matches = append(matches, PatternMatch{
-					Pattern:    &pCopy,
-					Score:      r.Score,
-					Confidence: s.computeConfidence(r.Score, &pCopy),
-				})
-				break
-			}
+	for _, r := range mResults {
+		p := s.lookupPattern(r.ID)
+		if p == nil {
+			continue
 		}
+		matches = append(matches, PatternMatch{
+			Pattern:    p,
+			Score:      r.Score,
+			Confidence: s.computeConfidence(r.Score, p),
+		})
 		if len(matches) >= topK {
 			break
 		}
 	}
-
 	return matches, nil
+}
+
+// resultsToMatches converts disk cache SearchResults to PatternMatches.
+func (s *PatternSearcher) resultsToMatches(results []SearchResult, topK int) ([]PatternMatch, error) {
+	matches := make([]PatternMatch, 0, topK)
+	for _, r := range results {
+		p := s.lookupPattern(r.ID)
+		if p == nil {
+			continue
+		}
+		matches = append(matches, PatternMatch{
+			Pattern:    p,
+			Score:      r.Score,
+			Confidence: s.computeConfidence(r.Score, p),
+		})
+		if len(matches) >= topK {
+			break
+		}
+	}
+	return matches, nil
+}
+
+// lookupPattern finds a pattern by ID, preferring the in-process cache.
+func (s *PatternSearcher) lookupPattern(id string) *pattern.Pattern {
+	// Fast path: in-process cache
+	if s.pcache != nil {
+		if p := s.pcache.Get(id); p != nil {
+			return p
+		}
+	}
+	// Fallback: read from store
+	patterns, _ := s.store.List()
+	for _, p := range patterns {
+		if p.ID == id {
+			pCopy := p
+			return &pCopy
+		}
+	}
+	return nil
 }
 
 // SearchWithContext combines semantic search with context.
