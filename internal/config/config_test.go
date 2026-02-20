@@ -3,7 +3,10 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"gopkg.in/yaml.v3"
 )
 
 func TestLoad(t *testing.T) {
@@ -172,5 +175,48 @@ func TestEnsureTool(t *testing.T) {
 
 	if err := cfg.EnsureTool("unknown"); err == nil {
 		t.Error("EnsureTool(unknown) should error")
+	}
+}
+
+func TestMarshalDefaultConfigClean(t *testing.T) {
+	cfg := defaultConfig()
+
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		t.Fatalf("yaml.Marshal(defaultConfig()) error = %v", err)
+	}
+
+	output := string(data)
+
+	// These zero-value fields should NOT appear in marshaled output
+	noiseFields := []string{
+		"tier: \"\"",
+		"capabilities: []",
+		"prefix_domain: null",
+		"webhook_url: \"\"",
+		"channel: \"\"",
+		"repo: \"\"",
+		"branch: \"\"",
+		"interval_minutes: 0",
+	}
+
+	for _, noise := range noiseFields {
+		if strings.Contains(output, noise) {
+			t.Errorf("marshaled config contains zero-value noise: %q", noise)
+		}
+	}
+
+	// These fields SHOULD be present (non-zero defaults)
+	requiredFields := []string{
+		"schema_version:",
+		"default_tool:",
+		"tools:",
+		"enabled: true",
+	}
+
+	for _, field := range requiredFields {
+		if !strings.Contains(output, field) {
+			t.Errorf("marshaled config missing required field: %q", field)
+		}
 	}
 }

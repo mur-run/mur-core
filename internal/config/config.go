@@ -18,33 +18,33 @@ type Config struct {
 	SchemaVersion int                 `yaml:"schema_version" json:"schema_version"`
 	DefaultTool   string              `yaml:"default_tool"`
 	Tools         map[string]Tool     `yaml:"tools"`
-	Routing       RoutingConfig       `yaml:"routing"`
-	Learning      LearningConfig      `yaml:"learning"`
-	Sync          SyncConfig          `yaml:"sync"`
-	Search        SearchConfig        `yaml:"search"`
-	Embeddings    EmbeddingsConfig    `yaml:"embeddings"`
-	MCP           MCPConfig           `yaml:"mcp"`
-	Hooks         HooksConfig         `yaml:"hooks"`
-	Team          TeamConfig          `yaml:"team"`
-	Server        ServerConfig        `yaml:"server"`
-	Notifications NotificationsConfig `yaml:"notifications"`
-	TechStack     []string            `yaml:"tech_stack"`    // User's tech stack for filtering (e.g., ["swift", "go", "docker"])
-	Cache         CacheConfig         `yaml:"cache"`         // Local cache settings
-	Community     CommunityConfig     `yaml:"community"`     // Community sharing settings
-	Privacy       PrivacyConfig       `yaml:"privacy"`       // Privacy & PII protection settings
-	Consolidation ConsolidationConfig `yaml:"consolidation"` // Pattern consolidation settings
+	Routing       RoutingConfig       `yaml:"routing,omitempty"`
+	Learning      LearningConfig      `yaml:"learning,omitempty"`
+	Sync          SyncConfig          `yaml:"sync,omitempty"`
+	Search        SearchConfig        `yaml:"search,omitempty"`
+	Embeddings    EmbeddingsConfig    `yaml:"embeddings,omitempty"`
+	MCP           MCPConfig           `yaml:"mcp,omitempty"`
+	Hooks         HooksConfig         `yaml:"hooks,omitempty"`
+	Team          TeamConfig          `yaml:"team,omitempty"`
+	Server        ServerConfig        `yaml:"server,omitempty"`
+	Notifications NotificationsConfig `yaml:"notifications,omitempty"`
+	TechStack     []string            `yaml:"tech_stack,omitempty"` // User's tech stack for filtering (e.g., ["swift", "go", "docker"])
+	Cache         CacheConfig         `yaml:"cache,omitempty"`      // Local cache settings
+	Community      CommunityConfig      `yaml:"community,omitempty"`      // Community sharing settings
+	Privacy        PrivacyConfig        `yaml:"privacy,omitempty"`        // Privacy & PII protection settings
+	Consolidation  ConsolidationConfig  `yaml:"consolidation,omitempty"`  // Pattern consolidation settings
 }
 
 // CacheConfig represents local cache settings for community patterns.
 type CacheConfig struct {
-	Community CommunityCacheConfig `yaml:"community"`
+	Community CommunityCacheConfig `yaml:"community,omitempty"`
 }
 
 // CommunityConfig represents community sharing settings.
 type CommunityConfig struct {
-	ShareEnabled    bool `yaml:"share_enabled"`      // Enable community sharing
-	AutoShareOnPush bool `yaml:"auto_share_on_push"` // Auto-share when pushing
-	ShareExtracted  bool `yaml:"share_extracted"`    // Share extracted patterns (may contain secrets)
+	ShareEnabled    bool `yaml:"share_enabled,omitempty"`     // Enable community sharing
+	AutoShareOnPush bool `yaml:"auto_share_on_push,omitempty"` // Auto-share when pushing
+	ShareExtracted  bool `yaml:"share_extracted,omitempty"`   // Share extracted patterns (may contain secrets)
 }
 
 // DefaultCommunityConfig returns default community settings.
@@ -58,28 +58,28 @@ func DefaultCommunityConfig() CommunityConfig {
 
 // PrivacyConfig represents privacy and PII protection settings.
 type PrivacyConfig struct {
-	RedactTerms           []string                    `yaml:"redact_terms"`           // Terms to always redact
-	Replacements          map[string]string           `yaml:"replacements"`           // Custom replacement mappings
-	AutoDetect            AutoDetectConfig            `yaml:"auto_detect"`            // Auto-detection toggles
-	SemanticAnonymization SemanticAnonymizationConfig `yaml:"semantic_anonymization"` // LLM-based anonymization
+	RedactTerms            []string                      `yaml:"redact_terms,omitempty"`             // Terms to always redact
+	Replacements           map[string]string             `yaml:"replacements,omitempty"`             // Custom replacement mappings
+	AutoDetect             AutoDetectConfig              `yaml:"auto_detect,omitempty"`              // Auto-detection toggles
+	SemanticAnonymization  SemanticAnonymizationConfig   `yaml:"semantic_anonymization,omitempty"`   // LLM-based anonymization
 }
 
 // SemanticAnonymizationConfig controls LLM-based semantic anonymization.
 type SemanticAnonymizationConfig struct {
-	Enabled      bool   `yaml:"enabled"`       // Opt-in (default: false)
-	Provider     string `yaml:"provider"`      // ollama | openai | anthropic
-	Model        string `yaml:"model"`         // Model for anonymization
-	OllamaURL    string `yaml:"ollama_url"`    // Ollama API URL
-	CacheResults bool   `yaml:"cache_results"` // Cache anonymization results (default: true)
+	Enabled      bool   `yaml:"enabled,omitempty"`       // Opt-in (default: false)
+	Provider     string `yaml:"provider,omitempty"`      // ollama | openai | anthropic
+	Model        string `yaml:"model,omitempty"`         // Model for anonymization
+	OllamaURL    string `yaml:"ollama_url,omitempty"`    // Ollama API URL
+	CacheResults bool   `yaml:"cache_results,omitempty"` // Cache anonymization results (default: true)
 }
 
 // AutoDetectConfig controls which PII types are auto-detected.
 type AutoDetectConfig struct {
-	Emails       *bool `yaml:"emails"`        // Detect email addresses (default: true)
-	InternalIPs  *bool `yaml:"internal_ips"`  // Detect internal IPs (default: true)
-	FilePaths    *bool `yaml:"file_paths"`    // Detect user file paths (default: true)
-	PhoneNumbers *bool `yaml:"phone_numbers"` // Detect phone numbers (default: true)
-	InternalURLs *bool `yaml:"internal_urls"` // Detect internal URLs (default: true)
+	Emails       *bool `yaml:"emails,omitempty"`        // Detect email addresses (default: true)
+	InternalIPs  *bool `yaml:"internal_ips,omitempty"`   // Detect internal IPs (default: true)
+	FilePaths    *bool `yaml:"file_paths,omitempty"`     // Detect user file paths (default: true)
+	PhoneNumbers *bool `yaml:"phone_numbers,omitempty"`  // Detect phone numbers (default: true)
+	InternalURLs *bool `yaml:"internal_urls,omitempty"`  // Detect internal URLs (default: true)
 }
 
 // IsEmailsEnabled returns whether email detection is enabled (default: true).
@@ -144,15 +144,15 @@ func DefaultPrivacyConfig() PrivacyConfig {
 
 // ConsolidationConfig represents pattern consolidation settings.
 type ConsolidationConfig struct {
-	Enabled              bool    `yaml:"enabled"`
-	Schedule             string  `yaml:"schedule"` // daily | weekly | monthly
-	AutoArchive          bool    `yaml:"auto_archive"`
-	AutoMerge            string  `yaml:"auto_merge"`      // off | keep-best | llm-merge
-	MergeThreshold       float64 `yaml:"merge_threshold"` // cosine similarity threshold
-	DecayHalfLifeDays    int     `yaml:"decay_half_life_days"`
-	GracePeriodDays      int     `yaml:"grace_period_days"`
-	MinPatternsBeforeRun int     `yaml:"min_patterns_before_run"`
-	NotifyOnRun          bool    `yaml:"notify_on_run"`
+	Enabled              bool    `yaml:"enabled,omitempty"`
+	Schedule             string  `yaml:"schedule,omitempty"`                // daily | weekly | monthly
+	AutoArchive          bool    `yaml:"auto_archive,omitempty"`
+	AutoMerge            string  `yaml:"auto_merge,omitempty"`              // off | keep-best | llm-merge
+	MergeThreshold       float64 `yaml:"merge_threshold,omitempty"`         // cosine similarity threshold
+	DecayHalfLifeDays    int     `yaml:"decay_half_life_days,omitempty"`
+	GracePeriodDays      int     `yaml:"grace_period_days,omitempty"`
+	MinPatternsBeforeRun int     `yaml:"min_patterns_before_run,omitempty"`
+	NotifyOnRun          bool    `yaml:"notify_on_run,omitempty"`
 }
 
 // DefaultConsolidationConfig returns default consolidation settings.
@@ -172,10 +172,10 @@ func DefaultConsolidationConfig() ConsolidationConfig {
 
 // CommunityCacheConfig represents community pattern cache settings.
 type CommunityCacheConfig struct {
-	Enabled   bool   `yaml:"enabled"`     // Enable caching (default: true)
-	TTLDays   int    `yaml:"ttl_days"`    // Days to keep cached patterns (default: 7)
-	MaxSizeMB int    `yaml:"max_size_mb"` // Max cache size in MB (default: 50)
-	Cleanup   string `yaml:"cleanup"`     // When to cleanup: on_sync | daily | manual (default: on_sync)
+	Enabled   bool   `yaml:"enabled,omitempty"`     // Enable caching (default: true)
+	TTLDays   int    `yaml:"ttl_days,omitempty"`    // Days to keep cached patterns (default: 7)
+	MaxSizeMB int    `yaml:"max_size_mb,omitempty"` // Max cache size in MB (default: 50)
+	Cleanup   string `yaml:"cleanup,omitempty"`     // When to cleanup: on_sync | daily | manual (default: on_sync)
 }
 
 // GetTechStack returns the configured tech stack.
@@ -212,92 +212,92 @@ func (c *Config) GetCacheConfig() CommunityCacheConfig {
 
 // ServerConfig represents mur-server cloud sync settings.
 type ServerConfig struct {
-	URL  string `yaml:"url"`  // Server URL (default: https://api.mur.run)
-	Team string `yaml:"team"` // Active team slug
+	URL  string `yaml:"url,omitempty"`  // Server URL (default: https://api.mur.run)
+	Team string `yaml:"team,omitempty"` // Active team slug
 }
 
 // NotificationsConfig represents notification settings.
 type NotificationsConfig struct {
-	Enabled    bool          `yaml:"enabled"`
-	System     bool          `yaml:"system"`      // Enable macOS system notifications
-	OnError    bool          `yaml:"on_error"`    // Notify on errors
-	OnPatterns bool          `yaml:"on_patterns"` // Notify when patterns are extracted
-	Slack      SlackConfig   `yaml:"slack"`
-	Discord    DiscordConfig `yaml:"discord"`
+	Enabled    bool          `yaml:"enabled,omitempty"`
+	System     bool          `yaml:"system,omitempty"`      // Enable macOS system notifications
+	OnError    bool          `yaml:"on_error,omitempty"`    // Notify on errors
+	OnPatterns bool          `yaml:"on_patterns,omitempty"` // Notify when patterns are extracted
+	Slack      SlackConfig   `yaml:"slack,omitempty"`
+	Discord    DiscordConfig `yaml:"discord,omitempty"`
 }
 
 // SlackConfig represents Slack webhook settings.
 type SlackConfig struct {
-	WebhookURL string `yaml:"webhook_url"`
-	Channel    string `yaml:"channel"`
+	WebhookURL string `yaml:"webhook_url,omitempty"`
+	Channel    string `yaml:"channel,omitempty"`
 }
 
 // DiscordConfig represents Discord webhook settings.
 type DiscordConfig struct {
-	WebhookURL string `yaml:"webhook_url"`
+	WebhookURL string `yaml:"webhook_url,omitempty"`
 }
 
 // TeamConfig represents team sharing settings.
 type TeamConfig struct {
-	Repo     string `yaml:"repo"`      // Git repo URL
-	Branch   string `yaml:"branch"`    // Branch name (default: main)
-	AutoSync bool   `yaml:"auto_sync"` // Auto sync on pull
+	Repo     string `yaml:"repo,omitempty"`      // Git repo URL
+	Branch   string `yaml:"branch,omitempty"`    // Branch name (default: main)
+	AutoSync bool   `yaml:"auto_sync,omitempty"` // Auto sync on pull
 }
 
 // RoutingConfig controls automatic tool selection.
 type RoutingConfig struct {
-	Mode                string  `yaml:"mode"`                 // auto | manual | cost-first | quality-first
-	ComplexityThreshold float64 `yaml:"complexity_threshold"` // 0-1, default 0.5
+	Mode                string  `yaml:"mode,omitempty"`                 // auto | manual | cost-first | quality-first
+	ComplexityThreshold float64 `yaml:"complexity_threshold,omitempty"` // 0-1, default 0.5
 }
 
 // HooksConfig represents hooks configuration for sync to AI CLIs.
 type HooksConfig struct {
-	UserPromptSubmit []HookGroup `yaml:"UserPromptSubmit"`
-	Stop             []HookGroup `yaml:"Stop"`
-	BeforeTool       []HookGroup `yaml:"BeforeTool"`
-	AfterTool        []HookGroup `yaml:"AfterTool"`
+	UserPromptSubmit []HookGroup `yaml:"UserPromptSubmit,omitempty"`
+	Stop             []HookGroup `yaml:"Stop,omitempty"`
+	BeforeTool       []HookGroup `yaml:"BeforeTool,omitempty"`
+	AfterTool        []HookGroup `yaml:"AfterTool,omitempty"`
 }
 
 // HookGroup represents a group of hooks with a matcher pattern.
 type HookGroup struct {
-	Matcher string `yaml:"matcher"`
-	Hooks   []Hook `yaml:"hooks"`
+	Matcher string `yaml:"matcher,omitempty"`
+	Hooks   []Hook `yaml:"hooks,omitempty"`
 }
 
 // Hook represents a single hook command.
 type Hook struct {
-	Type    string `yaml:"type"`
-	Command string `yaml:"command"`
+	Type    string `yaml:"type,omitempty"`
+	Command string `yaml:"command,omitempty"`
 }
 
 // Tool represents configuration for an AI tool.
 type Tool struct {
 	Enabled      bool     `yaml:"enabled"`
-	Binary       string   `yaml:"binary"`
-	Flags        []string `yaml:"flags"`
-	Tier         string   `yaml:"tier"`         // free | paid
-	Capabilities []string `yaml:"capabilities"` // coding, analysis, simple-qa, tool-use, architecture
+	Binary       string   `yaml:"binary,omitempty"`
+	Flags        []string `yaml:"flags,omitempty"`
+	Tier         string   `yaml:"tier,omitempty"`         // free | paid
+	Capabilities []string `yaml:"capabilities,omitempty"` // coding, analysis, simple-qa, tool-use, architecture
 }
 
 // SyncConfig represents sync-related settings.
 type SyncConfig struct {
-	Format          string `yaml:"format"`           // "directory" or "single"
-	PrefixDomain    *bool  `yaml:"prefix_domain"`    // use domain--name format (default: true)
-	L3Threshold     int    `yaml:"l3_threshold"`     // chars above which content goes to examples.md
-	CleanOld        bool   `yaml:"clean_old"`        // remove old single-file format on sync
-	Auto            bool   `yaml:"auto"`             // enable automatic sync
-	IntervalMinutes int    `yaml:"interval_minutes"` // sync interval in minutes (default: 30)
+	Format          string `yaml:"format,omitempty"`           // "directory" or "single"
+	PrefixDomain    *bool  `yaml:"prefix_domain,omitempty"`    // use domain--name format (default: true)
+	L3Threshold     int    `yaml:"l3_threshold,omitempty"`     // chars above which content goes to examples.md
+	CleanOld        bool   `yaml:"clean_old,omitempty"`        // remove old single-file format on sync
+	Auto            bool   `yaml:"auto,omitempty"`             // enable automatic sync
+	IntervalMinutes int    `yaml:"interval_minutes,omitempty"` // sync interval in minutes (default: 30)
 }
 
 // SearchConfig represents semantic search settings.
 type SearchConfig struct {
-	Enabled    *bool   `yaml:"enabled"`     // nil = use default (true)
-	Provider   string  `yaml:"provider"`    // ollama | openai | none
-	Model      string  `yaml:"model"`       // embedding model name
-	OllamaURL  string  `yaml:"ollama_url"`  // Ollama API URL
-	TopK       int     `yaml:"top_k"`       // default number of results
-	MinScore   float64 `yaml:"min_score"`   // minimum similarity score
-	AutoInject *bool   `yaml:"auto_inject"` // auto-inject to prompt via hooks (default: true)
+	Enabled    *bool   `yaml:"enabled,omitempty"`     // nil = use default (true)
+	Provider   string  `yaml:"provider,omitempty"`    // ollama | openai | none
+	Model      string  `yaml:"model,omitempty"`       // embedding model name
+	OllamaURL  string  `yaml:"ollama_url,omitempty"`  // Ollama API URL
+	TopK       int     `yaml:"top_k,omitempty"`       // default number of results
+	MinScore   float64 `yaml:"min_score,omitempty"`   // minimum similarity score
+	AutoInject *bool   `yaml:"auto_inject,omitempty"` // auto-inject to prompt via hooks (default: true)
 }
 
 // IsEnabled returns whether search is enabled (default: true).
@@ -318,9 +318,9 @@ func (s SearchConfig) IsAutoInject() bool {
 
 // EmbeddingsConfig represents embedding cache settings.
 type EmbeddingsConfig struct {
-	CacheEnabled bool   `yaml:"cache_enabled"`
-	CacheDir     string `yaml:"cache_dir"`
-	BatchSize    int    `yaml:"batch_size"`
+	CacheEnabled bool   `yaml:"cache_enabled,omitempty"`
+	CacheDir     string `yaml:"cache_dir,omitempty"`
+	BatchSize    int    `yaml:"batch_size,omitempty"`
 }
 
 // GetPrefixDomain returns whether to use domain prefixes (default: true).
@@ -338,28 +338,28 @@ func boolPtr(b bool) *bool {
 
 // LearningConfig represents learning-related settings.
 type LearningConfig struct {
-	AutoExtract  bool `yaml:"auto_extract"`
-	SyncToTools  bool `yaml:"sync_to_tools"`
-	PatternLimit int  `yaml:"pattern_limit"`
+	AutoExtract  bool `yaml:"auto_extract,omitempty"`
+	SyncToTools  bool `yaml:"sync_to_tools,omitempty"`
+	PatternLimit int  `yaml:"pattern_limit,omitempty"`
 	// Learning repo sync settings
-	Repo         string `yaml:"repo"`           // git repo URL for syncing patterns
-	Branch       string `yaml:"branch"`         // branch name (default: hostname)
-	AutoPush     bool   `yaml:"auto_push"`      // auto push after extract
-	PullFromMain bool   `yaml:"pull_from_main"` // also pull shared patterns from main
+	Repo         string `yaml:"repo,omitempty"`           // git repo URL for syncing patterns
+	Branch       string `yaml:"branch,omitempty"`         // branch name (default: hostname)
+	AutoPush     bool   `yaml:"auto_push,omitempty"`      // auto push after extract
+	PullFromMain bool   `yaml:"pull_from_main,omitempty"` // also pull shared patterns from main
 	// Auto-merge settings
-	AutoMerge      bool    `yaml:"auto_merge"`      // enable auto-merge to main
-	MergeThreshold float64 `yaml:"merge_threshold"` // confidence threshold for auto-merge (default: 0.8)
+	AutoMerge      bool    `yaml:"auto_merge,omitempty"`      // enable auto-merge to main
+	MergeThreshold float64 `yaml:"merge_threshold,omitempty"` // confidence threshold for auto-merge (default: 0.8)
 	// LLM extraction settings
-	LLM LLMConfig `yaml:"llm"`
+	LLM LLMConfig `yaml:"llm,omitempty"`
 }
 
 // LLMConfig represents LLM settings for pattern extraction.
 type LLMConfig struct {
-	Provider  string `yaml:"provider"`    // ollama | claude | openai | gemini
-	Model     string `yaml:"model"`       // model name
-	OllamaURL string `yaml:"ollama_url"`  // Ollama API URL (default: http://localhost:11434)
-	OpenAIURL string `yaml:"openai_url"`  // OpenAI-compatible API URL
-	APIKeyEnv string `yaml:"api_key_env"` // Env var name for API key
+	Provider  string `yaml:"provider,omitempty"`    // ollama | claude | openai | gemini
+	Model     string `yaml:"model,omitempty"`       // model name
+	OllamaURL string `yaml:"ollama_url,omitempty"`  // Ollama API URL (default: http://localhost:11434)
+	OpenAIURL string `yaml:"openai_url,omitempty"`  // OpenAI-compatible API URL
+	APIKeyEnv string `yaml:"api_key_env,omitempty"` // Env var name for API key
 
 	// Premium model for important sessions
 	Premium *LLMProviderConfig `yaml:"premium,omitempty"`
@@ -368,10 +368,15 @@ type LLMConfig struct {
 	Routing *LLMRoutingConfig `yaml:"routing,omitempty"`
 }
 
+// IsZero reports whether the LLM config is empty (enables yaml omitempty on structs).
+func (l LLMConfig) IsZero() bool {
+	return l.Provider == "" && l.Model == "" && l.Premium == nil && l.Routing == nil
+}
+
 // LLMProviderConfig represents a single LLM provider configuration.
 type LLMProviderConfig struct {
-	Provider  string `yaml:"provider"`
-	Model     string `yaml:"model"`
+	Provider  string `yaml:"provider,omitempty"`
+	Model     string `yaml:"model,omitempty"`
 	OllamaURL string `yaml:"ollama_url,omitempty"`
 	OpenAIURL string `yaml:"openai_url,omitempty"`
 	APIKeyEnv string `yaml:"api_key_env,omitempty"`
@@ -379,14 +384,14 @@ type LLMProviderConfig struct {
 
 // LLMRoutingConfig defines when to use premium model.
 type LLMRoutingConfig struct {
-	MinMessages int      `yaml:"min_messages"` // Use premium if session has >= N messages
-	Projects    []string `yaml:"projects"`     // Use premium for these projects
+	MinMessages int      `yaml:"min_messages,omitempty"` // Use premium if session has >= N messages
+	Projects    []string `yaml:"projects,omitempty"`     // Use premium for these projects
 }
 
 // MCPConfig represents MCP-related settings.
 type MCPConfig struct {
-	SyncEnabled bool                   `yaml:"sync_enabled"`
-	Servers     map[string]interface{} `yaml:"servers"`
+	SyncEnabled bool                   `yaml:"sync_enabled,omitempty"`
+	Servers     map[string]interface{} `yaml:"servers,omitempty"`
 }
 
 // ConfigPath returns the path to the config file (~/.mur/config.yaml).

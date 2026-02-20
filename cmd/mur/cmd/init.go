@@ -354,51 +354,69 @@ learning:
   
   # LLM for pattern extraction
   # If not configured, mur will auto-detect Ollama or fall back to keyword extraction
-  llm:
-    # --- Ollama (local, free) ---
-    # provider: ollama
-    # model: deepseek-r1:8b
-    # ollama_url: http://localhost:11434
-    
-    # --- OpenAI-compatible (OpenAI, Groq, Together, etc.) ---
-    # provider: openai
-    # model: gpt-4o-mini
-    # openai_url: https://api.openai.com/v1
-    # api_key_env: OPENAI_API_KEY    # env var NAME (not the key!)
-    
-    # --- Google Gemini ---
-    # provider: gemini
-    # model: gemini-2.0-flash
-    # api_key_env: GEMINI_API_KEY    # env var NAME (not the key!)
-    
-    # --- Anthropic Claude ---
-    # provider: claude
-    # model: claude-sonnet-4-20250514
-    # api_key_env: ANTHROPIC_API_KEY  # env var NAME (not the key!)
-    
-    # --- Premium model for important sessions ---
-    # premium:
-    #   provider: claude
-    #   model: claude-sonnet-4-20250514
-    #   api_key_env: ANTHROPIC_API_KEY
-    
-    # --- When to use premium model ---
-    # routing:
-    #   min_messages: 20        # Sessions with >= 20 messages
-    #   projects:               # Or these projects
-    #     - important-project
+  # llm:
+  #   --- Ollama (Free, Local, GPU Required) ---
+  #   provider: ollama
+  #   model: deepseek-r1:8b
+  #   ollama_url: http://localhost:11434
+  #
+  #   --- OpenAI-compatible (OpenAI, Groq, Together, etc.) ---
+  #   provider: openai
+  #   model: gpt-4o-mini
+  #   openai_url: https://api.openai.com/v1
+  #   api_key_env: OPENAI_API_KEY    # env var NAME (not the key!)
+  #
+  #   --- Google Gemini ---
+  #   provider: gemini
+  #   model: gemini-2.0-flash
+  #   api_key_env: GEMINI_API_KEY    # env var NAME (not the key!)
+  #
+  #   --- Anthropic Claude ---
+  #   provider: claude
+  #   model: claude-sonnet-4-20250514
+  #   api_key_env: ANTHROPIC_API_KEY  # env var NAME (not the key!)
+  #
+  #   --- Premium model for important sessions (optional) ---
+  #   premium:
+  #     provider: gemini
+  #     model: gemini-2.0-flash
+  #     api_key_env: GEMINI_API_KEY
+  #
+  #   --- When to use premium model ---
+  #   routing:
+  #     min_messages: 20
+  #     projects: [important-project]
 
-# Semantic Search (requires Ollama with embedding model)
-# search:
-#   enabled: true
-#   provider: ollama           # ollama | openai
-#   model: nomic-embed-text    # embedding model
-#   ollama_url: http://localhost:11434
-#   top_k: 3                   # max results per search
-#   min_score: 0.5             # minimum similarity (0.0-1.0)
-#   auto_inject: false
-#     # false = inject patterns by project/tags only (mur context)
-#     # true  = also inject semantically similar patterns (mur search --inject)
+# Semantic Search
+search:
+  enabled: true
+  # --- Ollama (Free, Local, GPU Required) ---
+  # provider: ollama
+  # model: nomic-embed-text
+  # ollama_url: http://localhost:11434
+  # min_score: 0.5
+
+  # --- OpenAI (No GPU Required) ---
+  # provider: openai
+  # model: text-embedding-3-small
+  # min_score: 0.7              # OpenAI scores are higher
+
+  top_k: 3
+  auto_inject: true
+  # false = inject patterns by project/tags only
+  # true  = also inject semantically similar patterns
+
+# Pattern Consolidation
+consolidation:
+  enabled: true
+  schedule: weekly
+  auto_archive: false           # Enable after accumulating patterns
+  auto_merge: keep-best
+  merge_threshold: 0.85
+  decay_half_life_days: 90
+  grace_period_days: 14
+  min_patterns_before_run: 50
+  notify_on_run: false
 
 # Routing
 routing:
