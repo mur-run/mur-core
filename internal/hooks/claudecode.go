@@ -14,12 +14,18 @@ type ClaudeCodeHook struct {
 	Command string `json:"command"`
 }
 
-// ClaudeCodeHooks represents the hooks configuration.
+// ClaudeCodeHookMatcher represents a hook matcher with hooks array (new format).
+type ClaudeCodeHookMatcher struct {
+	Matcher string           `json:"matcher"`
+	Hooks   []ClaudeCodeHook `json:"hooks"`
+}
+
+// ClaudeCodeHooks represents the hooks configuration (new matcher format).
 type ClaudeCodeHooks struct {
-	PreToolUse       map[string][]ClaudeCodeHook `json:"PreToolUse,omitempty"`
-	PostToolUse      map[string][]ClaudeCodeHook `json:"PostToolUse,omitempty"`
-	UserPromptSubmit []ClaudeCodeHook            `json:"UserPromptSubmit,omitempty"`
-	Stop             []ClaudeCodeHook            `json:"Stop,omitempty"`
+	PreToolUse       map[string][]ClaudeCodeHookMatcher `json:"PreToolUse,omitempty"`
+	PostToolUse      map[string][]ClaudeCodeHookMatcher `json:"PostToolUse,omitempty"`
+	UserPromptSubmit []ClaudeCodeHookMatcher             `json:"UserPromptSubmit,omitempty"`
+	Stop             []ClaudeCodeHookMatcher             `json:"Stop,omitempty"`
 }
 
 // ClaudeCodeSettings represents the Claude Code settings file.
@@ -71,7 +77,7 @@ func InstallClaudeCodeHooks(enableSearch bool) error {
 		Type:    "command",
 		Command: fmt.Sprintf("%s learn extract --auto --quiet 2>/dev/null || true", murBin),
 	}
-	hooks.Stop = []ClaudeCodeHook{learnHook}
+	hooks.Stop = []ClaudeCodeHookMatcher{{Matcher: "", Hooks: []ClaudeCodeHook{learnHook}}}
 
 	// Search hook (on UserPromptSubmit - suggests relevant patterns)
 	if enableSearch {
@@ -79,7 +85,7 @@ func InstallClaudeCodeHooks(enableSearch bool) error {
 			Type:    "command",
 			Command: fmt.Sprintf(`%s search --inject "$PROMPT" 2>/dev/null || true`, murBin),
 		}
-		hooks.UserPromptSubmit = []ClaudeCodeHook{searchHook}
+		hooks.UserPromptSubmit = []ClaudeCodeHookMatcher{{Matcher: "", Hooks: []ClaudeCodeHook{searchHook}}}
 	}
 
 	settings.Hooks = hooks
