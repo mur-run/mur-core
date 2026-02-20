@@ -418,6 +418,11 @@ consolidation:
   min_patterns_before_run: 50
   notify_on_run: false
 
+# Community Sharing
+community:
+  share_enabled: true
+  auto_share_on_push: true
+
 # Routing
 routing:
   mode: auto  # auto | manual | cost-first
@@ -686,14 +691,21 @@ func askCommunitySharing() {
 
 	enabled := input == "" || input == "y" || input == "yes"
 
-	cfg, err := config.Load()
-	if err != nil {
-		cfg = config.Default()
-	}
-	cfg.Community.ShareEnabled = enabled
-	cfg.Community.AutoShareOnPush = enabled
-	if err := cfg.Save(); err != nil {
-		fmt.Printf("  ⚠ Warning: could not save config: %v\n", err)
+	// Update config file without destroying template comments
+	// Use sed-style replacement on the YAML key
+	configPath, err := config.ConfigPath()
+	if err == nil {
+		content, readErr := os.ReadFile(configPath)
+		if readErr == nil {
+			s := string(content)
+			// The template already has a community section placeholder
+			// Just update the values in-place
+			s = strings.ReplaceAll(s, "share_enabled: true", fmt.Sprintf("share_enabled: %t", enabled))
+			s = strings.ReplaceAll(s, "share_enabled: false", fmt.Sprintf("share_enabled: %t", enabled))
+			s = strings.ReplaceAll(s, "auto_share_on_push: true", fmt.Sprintf("auto_share_on_push: %t", enabled))
+			s = strings.ReplaceAll(s, "auto_share_on_push: false", fmt.Sprintf("auto_share_on_push: %t", enabled))
+			os.WriteFile(configPath, []byte(s), 0644)
+		}
 	}
 
 	fmt.Println()
