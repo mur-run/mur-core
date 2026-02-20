@@ -2,6 +2,15 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [1.9.2] - 2026-02-20
+
+### Improved
+- **🧹 Clean Default Config** — `mur init` now generates a much cleaner `config.yaml`
+  - LLM section: commented examples for all 4 providers (Ollama, OpenAI, Gemini, Claude) + premium/routing
+  - Search: defaults to `enabled: true`, `auto_inject: true`, with Ollama & OpenAI provider examples
+  - Consolidation: included with `enabled: true`, `schedule: weekly`
+  - All optional struct fields use `omitempty` — no more zero-value noise (`tier: ""`, `capabilities: []`, `llm: null`) after `config set`
+
 ## [1.9.0] - 2026-02-19
 
 ### Added
