@@ -2,6 +2,11 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [1.9.3] - 2026-02-20
+
+### Fixed
+- **🐛 Init template preservation** — `mur init` no longer overwrites template comments when setting community sharing
+
 ## [1.9.2] - 2026-02-20
 
 ### Improved
