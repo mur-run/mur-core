@@ -75,13 +75,13 @@ Queries:`, summary)
 		"prompt": prompt,
 		"stream": false,
 		"options": map[string]interface{}{
-			"temperature": 0.7,
-			"num_predict": 200,
+			"temperature": 0.3,
+			"num_predict": 500,
 		},
 	}
 
 	body, _ := json.Marshal(payload)
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := &http.Client{Timeout: 120 * time.Second}
 	resp, err := client.Post(ollamaURL+"/api/generate", "application/json", bytes.NewReader(body))
 	if err != nil {
 		return fmt.Errorf("ollama request failed: %w", err)
@@ -100,14 +100,21 @@ Queries:`, summary)
 		return fmt.Errorf("failed to parse response: %w", err)
 	}
 
+	// Strip reasoning model thinking tags (e.g. deepseek-r1)
+	response := result.Response
+	if idx := strings.Index(response, "</think>"); idx >= 0 {
+		response = response[idx+len("</think>"):]
+	}
+
 	// Parse lines into queries
 	var queries []string
-	for _, line := range strings.Split(result.Response, "\n") {
+	for _, line := range strings.Split(response, "\n") {
 		line = strings.TrimSpace(line)
-		// Remove numbering like "1. " or "- "
-		line = strings.TrimLeft(line, "0123456789.-) ")
+		// Remove numbering like "1. " or "- " or "**1.**"
+		line = strings.TrimLeft(line, "0123456789.-)*# ")
+		line = strings.Trim(line, "\"'`")
 		line = strings.TrimSpace(line)
-		if line != "" && len(line) > 3 && len(line) < 100 {
+		if line != "" && len(line) > 5 && len(line) < 100 && !strings.HasPrefix(line, "<") {
 			queries = append(queries, strings.ToLower(line))
 		}
 	}

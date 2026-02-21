@@ -166,7 +166,16 @@ func runIndexRebuild(cmd *cobra.Command, args []string) error {
 		// Determine LLM model for expansion (use learn.model or fallback)
 		llmModel := cfg.Learning.LLM.Model
 		if llmModel == "" {
-			llmModel = "qwen2.5:3b" // Fast small model for query generation
+			// Try to find an available model on ollama
+			for _, candidate := range []string{"llama3.2:3b", "qwen2.5:3b", "gemma2:2b", "deepseek-r1:8b"} {
+				if embed.HasOllamaModel(cfg.Search.OllamaURL, candidate) {
+					llmModel = candidate
+					break
+				}
+			}
+			if llmModel == "" {
+				return fmt.Errorf("no LLM model available for expansion. Install one: ollama pull llama3.2:3b")
+			}
 		}
 		fmt.Printf("  📝 Expanding with LLM (%s)...\n\n", llmModel)
 
