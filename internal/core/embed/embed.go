@@ -198,9 +198,11 @@ func (e *OpenAIEmbedder) EmbedBatch(texts []string) ([]Vector, error) {
 
 // OllamaEmbedder uses Ollama's local embedding API.
 type OllamaEmbedder struct {
-	endpoint string
-	model    string
-	client   *http.Client
+	endpoint  string
+	model     string
+	client    *http.Client
+	dimCache  int // cached dimension after first embed call
+	dimOnce   sync.Once
 }
 
 // NewOllamaEmbedder creates an Ollama embedder.
@@ -217,7 +219,8 @@ func NewOllamaEmbedder(endpoint, model string) *OllamaEmbedder {
 
 func (e *OllamaEmbedder) Name() string { return "ollama" }
 
-func (e *OllamaEmbedder) Dimension() int {
+// knownDimension returns dimension for well-known models, or 0 if unknown.
+func (e *OllamaEmbedder) knownDimension() int {
 	switch {
 	case strings.Contains(e.model, "mxbai-embed-large"):
 		return 1024
@@ -226,8 +229,25 @@ func (e *OllamaEmbedder) Dimension() int {
 	case strings.Contains(e.model, "all-minilm"):
 		return 384
 	default:
-		return 768
+		return 0
 	}
+}
+
+func (e *OllamaEmbedder) Dimension() int {
+	if d := e.knownDimension(); d > 0 {
+		return d
+	}
+	// Unknown model: probe by embedding a test string
+	e.dimOnce.Do(func() {
+		vec, err := e.Embed("dimension probe")
+		if err == nil && len(vec) > 0 {
+			e.dimCache = len(vec)
+		}
+	})
+	if e.dimCache > 0 {
+		return e.dimCache
+	}
+	return 768 // last resort fallback
 }
 
 // QueryPrefix returns the prefix needed for retrieval queries.

@@ -163,6 +163,12 @@ func runIndexRebuild(cmd *cobra.Command, args []string) error {
 	var lastProgress int
 
 	if indexExpand {
+		// Expansion currently requires Ollama for LLM generation
+		llmProvider := cfg.Learning.LLM.Provider
+		if llmProvider != "" && llmProvider != "ollama" {
+			return fmt.Errorf("--expand currently requires Ollama for LLM generation (configured: %s). Cloud LLM expansion coming soon", llmProvider)
+		}
+
 		// Determine LLM model for expansion (use learn.model or fallback)
 		llmModel := cfg.Learning.LLM.Model
 		if llmModel == "" {

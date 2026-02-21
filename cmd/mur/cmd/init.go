@@ -151,7 +151,10 @@ func runInteractiveInit(home, murDir string) error {
 
 	// Model setup
 	fmt.Println()
-	models := askModelSetup()
+	models, err := askModelSetup()
+	if err != nil {
+		return err
+	}
 
 	// Create directories
 	fmt.Println()
@@ -355,7 +358,7 @@ func defaultLocalSetup() modelSetup {
 	}
 }
 
-func askModelSetup() modelSetup {
+func askModelSetup() (modelSetup, error) {
 	fmt.Println("📦 Model Setup")
 	fmt.Println("  mur uses AI models for pattern search and extraction.")
 	fmt.Println()
@@ -371,14 +374,14 @@ func askModelSetup() modelSetup {
 		Default: "☁️  Cloud (recommended) - API keys, best quality, ~$0.02/month",
 	}
 	if err := survey.AskOne(modePrompt, &mode); err != nil {
-		return defaultLocalSetup()
+		return modelSetup{}, fmt.Errorf("setup cancelled")
 	}
 
 	if strings.HasPrefix(mode, "🏠") {
 		fmt.Println()
 		fmt.Println("  Models needed: mxbai-embed-large (669MB) + llama3.2:3b (2GB)")
 		fmt.Println("  Install with: ollama pull mxbai-embed-large && ollama pull llama3.2:3b")
-		return defaultLocalSetup()
+		return defaultLocalSetup(), nil
 	}
 
 	if strings.HasPrefix(mode, "☁️") {
@@ -388,7 +391,7 @@ func askModelSetup() modelSetup {
 	return askCustomSetup()
 }
 
-func askCloudSetup() modelSetup {
+func askCloudSetup() (modelSetup, error) {
 	m := defaultCloudSetup()
 
 	fmt.Println()
@@ -410,14 +413,17 @@ func askCloudSetup() modelSetup {
 		Message: "Use a different provider? (Gemini, Claude, etc.)",
 		Default: false,
 	}
-	if err := survey.AskOne(diffPrompt, &wantDifferent); err != nil || !wantDifferent {
-		return m
+	if err := survey.AskOne(diffPrompt, &wantDifferent); err != nil {
+		return modelSetup{}, fmt.Errorf("setup cancelled")
+	}
+	if !wantDifferent {
+		return m, nil
 	}
 
 	return askCustomSetup()
 }
 
-func askCustomSetup() modelSetup {
+func askCustomSetup() (modelSetup, error) {
 	m := defaultCloudSetup()
 
 	fmt.Println()
@@ -434,7 +440,7 @@ func askCustomSetup() modelSetup {
 		},
 	}
 	if err := survey.AskOne(embedPrompt, &embedChoice); err != nil {
-		return m
+		return modelSetup{}, fmt.Errorf("setup cancelled")
 	}
 
 	switch {
@@ -471,7 +477,7 @@ func askCustomSetup() modelSetup {
 		},
 	}
 	if err := survey.AskOne(llmPrompt, &llmChoice); err != nil {
-		return m
+		return modelSetup{}, fmt.Errorf("setup cancelled")
 	}
 
 	switch {
@@ -492,7 +498,7 @@ func askCustomSetup() modelSetup {
 		m.LLMModel = "llama3.2:3b"
 	}
 
-	return m
+	return m, nil
 }
 
 func (m modelSetup) llmYaml() string {
