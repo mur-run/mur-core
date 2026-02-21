@@ -78,6 +78,7 @@ nav:
     - Memory Cache: concepts/memory-cache.md
     - Privacy & PII: concepts/privacy.md
   - Security: security.md
+  - Semantic Search: semantic-search.md
   - Integrations:
     - Claude Code: integrations/claude-code.md
     - Gemini CLI: integrations/gemini-cli.md

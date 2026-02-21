@@ -52,9 +52,17 @@ You're using Claude Code, Gemini CLI, maybe Cursor or Windsurf. But:
 
 </div>
 
-## What Sets MUR Core Apart <small>v1.9</small>
+## What Sets MUR Core Apart <small>v1.10</small>
 
 <div class="grid cards" markdown>
+
+-   :material-magnify: **Semantic Search**
+
+    ---
+
+    Find patterns by meaning, not keywords. Cloud (OpenAI, Google, Voyage) or local (Ollama) embeddings. Natural language queries just work. ~$0.001 for 200 patterns.
+
+    [:octicons-arrow-right-24: Search docs](semantic-search.md)
 
 -   :material-shield-check: **Privacy by Design**
 
@@ -79,14 +87,6 @@ You're using Claude Code, Gemini CLI, maybe Cursor or Windsurf. But:
     In-process cache with pre-normalized embedding vectors. Pattern lookup drops from ~15ms disk I/O to <0.1ms RAM. You won't feel it — that's the point.
 
     [:octicons-arrow-right-24: Cache architecture](concepts/memory-cache.md)
-
--   :material-lock: **Injection-Proof Patterns**
-
-    ---
-
-    Every pattern scanned for prompt injection before use. Untrusted community patterns with high-risk payloads are auto-blocked. Full audit trail of every injection.
-
-    [:octicons-arrow-right-24: Security](security.md)
 
 </div>
 
