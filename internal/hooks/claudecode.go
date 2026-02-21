@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // ClaudeCodeHook represents a hook entry for Claude Code.
@@ -47,6 +48,11 @@ func ClaudeCodeInstalled() bool {
 }
 
 // InstallClaudeCodeHooks installs mur hooks for Claude Code.
+//
+// Instead of hardcoding commands, this creates shell scripts in ~/.mur/hooks/
+// and points Claude Code's settings.json at them. If scripts already exist,
+// they are preserved (user customizations are kept). Settings.json hooks are
+// merged — existing non-mur hooks are not removed.
 func InstallClaudeCodeHooks(enableSearch bool) error {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -58,45 +64,114 @@ func InstallClaudeCodeHooks(enableSearch bool) error {
 		murBin = "mur"
 	}
 
+	hooksDir := filepath.Join(home, ".mur", "hooks")
 	settingsPath := filepath.Join(home, ".claude", "settings.json")
 
-	// Read existing settings
-	var settings ClaudeCodeSettings
-	if data, err := os.ReadFile(settingsPath); err == nil {
-		if err := json.Unmarshal(data, &settings); err != nil {
-			// If parsing fails, start fresh
-			settings = ClaudeCodeSettings{}
+	// Ensure hooks directory exists
+	if err := os.MkdirAll(hooksDir, 0755); err != nil {
+		return fmt.Errorf("cannot create hooks directory: %w", err)
+	}
+
+	// Create default hook scripts (only if they don't exist)
+	stopScript := filepath.Join(hooksDir, "on-stop.sh")
+	if _, err := os.Stat(stopScript); os.IsNotExist(err) {
+		content := fmt.Sprintf(`#!/bin/bash
+# Extract patterns from session using LLM (auto-save high confidence ones)
+%s learn extract --llm --auto --accept-all --quiet 2>/dev/null || true
+
+# Sync patterns to all CLIs
+%s sync --quiet 2>/dev/null || true
+`, murBin, murBin)
+		if err := os.WriteFile(stopScript, []byte(content), 0755); err != nil {
+			return fmt.Errorf("cannot write on-stop.sh: %w", err)
+		}
+		fmt.Printf("  + Created %s\n", stopScript)
+	} else {
+		fmt.Printf("  ~ Kept existing %s\n", stopScript)
+	}
+
+	promptScript := filepath.Join(hooksDir, "on-prompt.sh")
+	if _, err := os.Stat(promptScript); os.IsNotExist(err) {
+		content := fmt.Sprintf(`#!/bin/bash
+# Inject context-aware patterns based on current project
+%s context --compact 2>/dev/null || true
+`, murBin)
+		if err := os.WriteFile(promptScript, []byte(content), 0755); err != nil {
+			return fmt.Errorf("cannot write on-prompt.sh: %w", err)
+		}
+		fmt.Printf("  + Created %s\n", promptScript)
+	} else {
+		fmt.Printf("  ~ Kept existing %s\n", promptScript)
+	}
+
+	reminderFile := filepath.Join(hooksDir, "on-prompt-reminder.md")
+	if _, err := os.Stat(reminderFile); os.IsNotExist(err) {
+		content := fmt.Sprintf(`[ContinuousLearning] If during this task you discover something non-obvious (a debugging technique, a workaround, a pattern), save it:
+
+  %s learn add --name "pattern-name" --content "description"
+
+Or create a file in ~/.mur/patterns/
+
+Only save if: it required discovery, it helps future tasks, and it's verified.
+`, murBin)
+		if err := os.WriteFile(reminderFile, []byte(content), 0644); err != nil {
+			return fmt.Errorf("cannot write on-prompt-reminder.md: %w", err)
 		}
 	}
 
-	// Build hooks
-	hooks := ClaudeCodeHooks{}
-
-	// Learn hook (on Stop - captures learnings from session)
-	learnHook := ClaudeCodeHook{
-		Type:    "command",
-		Command: fmt.Sprintf("%s learn extract --auto --quiet 2>/dev/null || true", murBin),
+	// Read existing settings (preserve non-hook fields like permissions, etc.)
+	var rawSettings map[string]json.RawMessage
+	if data, err := os.ReadFile(settingsPath); err == nil {
+		_ = json.Unmarshal(data, &rawSettings)
 	}
-	hooks.Stop = []ClaudeCodeHookMatcher{{Matcher: "", Hooks: []ClaudeCodeHook{learnHook}}}
+	if rawSettings == nil {
+		rawSettings = make(map[string]json.RawMessage)
+	}
 
-	// Search hook (on UserPromptSubmit - suggests relevant patterns)
+	// Read existing hooks to merge
+	var existingHooks map[string]json.RawMessage
+	if raw, ok := rawSettings["hooks"]; ok {
+		_ = json.Unmarshal(raw, &existingHooks)
+	}
+	if existingHooks == nil {
+		existingHooks = make(map[string]json.RawMessage)
+	}
+
+	// Build mur hook entries — pointing to shell scripts
+	stopMatcher := ClaudeCodeHookMatcher{
+		Matcher: "",
+		Hooks: []ClaudeCodeHook{
+			{Type: "command", Command: fmt.Sprintf("bash %s", stopScript)},
+		},
+	}
+
+	promptHooks := []ClaudeCodeHook{
+		{Type: "command", Command: fmt.Sprintf("cat %s >&2", reminderFile)},
+	}
 	if enableSearch {
-		searchHook := ClaudeCodeHook{
+		promptHooks = append(promptHooks, ClaudeCodeHook{
 			Type:    "command",
 			Command: fmt.Sprintf(`%s search --inject "$PROMPT" 2>/dev/null || true`, murBin),
-		}
-		hooks.UserPromptSubmit = []ClaudeCodeHookMatcher{{Matcher: "", Hooks: []ClaudeCodeHook{searchHook}}}
+		})
+	}
+	promptMatcher := ClaudeCodeHookMatcher{
+		Matcher: "",
+		Hooks:   promptHooks,
 	}
 
-	settings.Hooks = hooks
+	// Merge: replace mur-managed matchers, keep user-added non-mur matchers
+	existingHooks["Stop"] = mustMarshal(mergeMurMatchers(existingHooks["Stop"], stopMatcher))
+	existingHooks["UserPromptSubmit"] = mustMarshal(mergeMurMatchers(existingHooks["UserPromptSubmit"], promptMatcher))
+
+	// Write back
+	rawSettings["hooks"] = mustMarshal(existingHooks)
 
 	// Ensure .claude directory exists
 	if err := os.MkdirAll(filepath.Join(home, ".claude"), 0755); err != nil {
 		return fmt.Errorf("cannot create .claude directory: %w", err)
 	}
 
-	// Write settings
-	data, err := json.MarshalIndent(settings, "", "  ")
+	data, err := json.MarshalIndent(rawSettings, "", "  ")
 	if err != nil {
 		return fmt.Errorf("cannot marshal settings: %w", err)
 	}
@@ -106,14 +181,50 @@ func InstallClaudeCodeHooks(enableSearch bool) error {
 	}
 
 	fmt.Printf("✓ Installed Claude Code hooks at %s\n", settingsPath)
+	fmt.Println("  + Stop hook → on-stop.sh (learn + sync)")
+	fmt.Println("  + Prompt hook → on-prompt-reminder.md")
 	if enableSearch {
-		fmt.Println("  + Learn hook (captures patterns on stop)")
 		fmt.Println("  + Search hook (suggests patterns on prompt)")
-	} else {
-		fmt.Println("  + Learn hook (captures patterns on stop)")
 	}
 
 	return nil
+}
+
+// mergeMurMatchers replaces the mur-managed matcher (matcher="") in an existing
+// hook array, preserving any non-mur matchers (matcher != "").
+func mergeMurMatchers(existing json.RawMessage, murMatcher ClaudeCodeHookMatcher) []ClaudeCodeHookMatcher {
+	var matchers []ClaudeCodeHookMatcher
+	if existing != nil {
+		_ = json.Unmarshal(existing, &matchers)
+	}
+
+	// Keep non-mur matchers (those with a non-empty matcher or no mur references)
+	var kept []ClaudeCodeHookMatcher
+	for _, m := range matchers {
+		if m.Matcher != "" && !isMurMatcher(m) {
+			kept = append(kept, m)
+		}
+	}
+
+	// Add mur matcher
+	return append(kept, murMatcher)
+}
+
+// isMurMatcher checks if a matcher was created by mur.
+func isMurMatcher(m ClaudeCodeHookMatcher) bool {
+	for _, h := range m.Hooks {
+		if strings.Contains(h.Command, ".mur/") ||
+			strings.Contains(h.Command, "mur ") ||
+			strings.HasPrefix(h.Command, "mur\t") {
+			return true
+		}
+	}
+	return false
+}
+
+func mustMarshal(v interface{}) json.RawMessage {
+	data, _ := json.Marshal(v)
+	return data
 }
 
 // UninstallClaudeCodeHooks removes mur hooks from Claude Code.

@@ -43,7 +43,7 @@ func init() {
 	rootCmd.AddCommand(initCmd)
 	initCmd.Flags().BoolVar(&initNonInteractive, "non-interactive", false, "Skip interactive prompts, use defaults")
 	initCmd.Flags().BoolVar(&initHooks, "hooks", false, "Quick setup: install hooks with defaults (implies --non-interactive)")
-	initCmd.Flags().BoolVar(&initSearchHooks, "search", false, "Enable search hooks (suggest patterns on prompt)")
+	initCmd.Flags().BoolVar(&initSearchHooks, "search", true, "Enable search hooks (suggest patterns on prompt)")
 	initCmd.Flags().BoolVar(&initForce, "force", false, "Force overwrite existing config (ignore existing settings)")
 }
 
