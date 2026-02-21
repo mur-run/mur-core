@@ -118,6 +118,11 @@ func (idx *PatternIndexer) cacheKey(p pattern.Pattern) string {
 
 // IndexPattern indexes a single pattern.
 func (idx *PatternIndexer) IndexPattern(p pattern.Pattern) error {
+	return idx.indexPatternWithExpansion(p, nil)
+}
+
+// IndexPatternExpanded indexes a pattern with optional expanded queries.
+func (idx *PatternIndexer) indexPatternWithExpansion(p pattern.Pattern, eq *ExpandedQueries) error {
 	cacheKey := idx.cacheKey(p)
 
 	// Skip if already cached with same hash
@@ -127,6 +132,13 @@ func (idx *PatternIndexer) IndexPattern(p pattern.Pattern) error {
 
 	// Generate rich embedding text: name, tags, keywords, description, content
 	text := strings.ToLower(buildIndexText(p))
+
+	// Append expanded queries if available
+	if eq != nil {
+		if queries := eq.Get(p.Name); len(queries) > 0 {
+			text += " | search queries: " + strings.Join(queries, " | ")
+		}
+	}
 
 	// Embed
 	vec, err := idx.embedder.Embed(text)
@@ -167,6 +179,49 @@ func (idx *PatternIndexer) Rebuild(progress func(current, total int)) error {
 
 	// Re-index all
 	return idx.IndexAll(progress)
+}
+
+// RebuildWithExpansion rebuilds the index with LLM-generated query expansion.
+func (idx *PatternIndexer) RebuildWithExpansion(ollamaURL, llmModel string, progress func(current, total int, phase string)) error {
+	patterns, err := idx.store.List()
+	if err != nil {
+		return fmt.Errorf("cannot list patterns: %w", err)
+	}
+
+	// Phase 1: Generate expanded queries
+	eq := LoadExpandedQueries(idx.cache.dir)
+	generated := 0
+	for i, p := range patterns {
+		if progress != nil {
+			progress(i+1, len(patterns), "expanding")
+		}
+		if eq.Get(p.Name) != nil {
+			continue // Already expanded
+		}
+		if err := eq.GenerateForPattern(p, ollamaURL, llmModel); err != nil {
+			// Non-fatal: skip this pattern
+			continue
+		}
+		generated++
+		// Save periodically
+		if generated%10 == 0 {
+			_ = eq.Save()
+		}
+	}
+	_ = eq.Save()
+
+	// Phase 2: Rebuild embeddings with expanded text
+	idx.cache = NewCache(idx.cache.dir, idx.embedder)
+	for i, p := range patterns {
+		if progress != nil {
+			progress(i+1, len(patterns), "embedding")
+		}
+		if err := idx.indexPatternWithExpansion(p, eq); err != nil {
+			return err
+		}
+	}
+
+	return idx.cache.Save()
 }
 
 // Search searches for patterns similar to the query.

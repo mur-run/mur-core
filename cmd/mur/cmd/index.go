@@ -49,11 +49,14 @@ var indexPatternCmd = &cobra.Command{
 	RunE:  runIndexPattern,
 }
 
+var indexExpand bool
+
 func init() {
 	rootCmd.AddCommand(indexCmd)
 	indexCmd.AddCommand(indexStatusCmd)
 	indexCmd.AddCommand(indexRebuildCmd)
 	indexCmd.AddCommand(indexPatternCmd)
+	indexRebuildCmd.Flags().BoolVar(&indexExpand, "expand", false, "Generate search queries per pattern using LLM (slower but better search)")
 }
 
 func runIndexStatus(cmd *cobra.Command, args []string) error {
@@ -159,14 +162,36 @@ func runIndexRebuild(cmd *cobra.Command, args []string) error {
 	start := time.Now()
 	var lastProgress int
 
-	err = indexer.Rebuild(func(current, total int) {
-		pct := current * 100 / total
-		if pct != lastProgress && pct%5 == 0 {
-			lastProgress = pct
-			bar := progressBar(current, total, 30)
-			fmt.Printf("\r  %s %d/%d", bar, current, total)
+	if indexExpand {
+		// Determine LLM model for expansion (use learn.model or fallback)
+		llmModel := cfg.Learning.LLM.Model
+		if llmModel == "" {
+			llmModel = "qwen2.5:3b" // Fast small model for query generation
 		}
-	})
+		fmt.Printf("  📝 Expanding with LLM (%s)...\n\n", llmModel)
+
+		err = indexer.RebuildWithExpansion(cfg.Search.OllamaURL, llmModel, func(current, total int, phase string) {
+			pct := current * 100 / total
+			if pct != lastProgress || current == total {
+				lastProgress = pct
+				bar := progressBar(current, total, 30)
+				label := "expanding"
+				if phase == "embedding" {
+					label = "embedding"
+				}
+				fmt.Printf("\r  %s %d/%d [%s]", bar, current, total, label)
+			}
+		})
+	} else {
+		err = indexer.Rebuild(func(current, total int) {
+			pct := current * 100 / total
+			if pct != lastProgress && pct%5 == 0 {
+				lastProgress = pct
+				bar := progressBar(current, total, 30)
+				fmt.Printf("\r  %s %d/%d", bar, current, total)
+			}
+		})
+	}
 
 	fmt.Println() // New line after progress
 
