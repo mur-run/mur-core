@@ -32,5 +32,5 @@ func init() {
 	rootCmd.SetVersionTemplate("mur version {{.Version}}\n")
 
 	// Global flags
-	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose output")
+	rootCmd.PersistentFlags().BoolP("verbose", "V", false, "verbose output")
 }

@@ -233,5 +233,5 @@ func init() {
 	runCmd.Flags().StringP("tool", "t", "", "Force specific tool (overrides routing)")
 	runCmd.Flags().Bool("explain", false, "Show routing decision without executing")
 	runCmd.Flags().Bool("no-inject", false, "Disable automatic pattern injection")
-	runCmd.Flags().BoolP("verbose", "v", false, "Show pattern injection details")
+	runCmd.Flags().BoolP("verbose", "V", false, "Show pattern injection details")
 }

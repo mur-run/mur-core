@@ -34,7 +34,7 @@ var statusVerbose bool
 
 func init() {
 	rootCmd.AddCommand(statusCmd)
-	statusCmd.Flags().BoolVarP(&statusVerbose, "verbose", "v", false, "Show detailed status")
+	statusCmd.Flags().BoolVarP(&statusVerbose, "verbose", "V", false, "Show detailed status")
 }
 
 func runStatus(cmd *cobra.Command, args []string) error {
