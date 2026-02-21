@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -598,7 +599,7 @@ func (c *Client) SearchCommunity(query string, limit int) (*CommunityListRespons
 // SearchCommunityWithTech searches community patterns with tech stack filter
 func (c *Client) SearchCommunityWithTech(query string, techStack []string, limit int) (*CommunityListResponse, error) {
 	var resp CommunityListResponse
-	path := fmt.Sprintf("/api/v1/core/community/patterns/search?q=%s&limit=%d", query, limit)
+	path := fmt.Sprintf("/api/v1/core/community/patterns/search?q=%s&limit=%d", url.QueryEscape(query), limit)
 
 	// Add tech stack filter
 	if len(techStack) > 0 {
