@@ -174,6 +174,9 @@ func (idx *PatternIndexer) Search(query string, topK int) ([]PatternMatch, error
 	// Normalize query to lowercase for case-insensitive matching
 	query = strings.ToLower(query)
 
+	// Expand compound words (e.g. "codesigning" → "codesigning code signing")
+	query = expandCompoundQuery(query)
+
 	// Embed query
 	queryVec, err := idx.embedder.Embed(query)
 	if err != nil {
@@ -252,6 +255,44 @@ func HasOllamaModel(baseURL, model string) bool {
 	}
 
 	return false
+}
+
+// expandCompoundQuery splits camelCase and concatenated words to help embedding models.
+// e.g. "codesigning" → "codesigning code signing", "swiftui" → "swiftui swift ui"
+func expandCompoundQuery(query string) string {
+	words := strings.Fields(query)
+	var expanded []string
+	for _, word := range words {
+		expanded = append(expanded, word)
+		// Try common split points for compound words
+		if parts := trySplitCompound(word); len(parts) > 1 {
+			expanded = append(expanded, strings.Join(parts, " "))
+		}
+	}
+	return strings.Join(expanded, " ")
+}
+
+// trySplitCompound tries to split a compound word at common boundaries.
+func trySplitCompound(word string) []string {
+	if len(word) < 5 {
+		return nil
+	}
+
+	// Known compound word prefixes in dev context
+	prefixes := []string{
+		"code", "auto", "web", "dev", "pre", "post", "re",
+		"un", "multi", "cross", "over", "under", "sub",
+		"super", "meta", "type", "live", "hot",
+	}
+
+	for _, prefix := range prefixes {
+		if strings.HasPrefix(word, prefix) && len(word) > len(prefix)+2 {
+			rest := word[len(prefix):]
+			return []string{prefix, rest}
+		}
+	}
+
+	return nil
 }
 
 // SaveCache saves the embedding cache to disk.
