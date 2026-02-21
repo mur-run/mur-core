@@ -1,80 +1,87 @@
 # Quick Start
 
-This guide will get you up and running with MUR Core in under 5 minutes.
+Get up and running with MUR Core in under 5 minutes.
+
+## Install
+
+```bash
+# macOS (Homebrew)
+brew tap mur-run/tap && brew install mur
+
+# Or via Go
+CGO_ENABLED=0 go install github.com/mur-run/mur-core/cmd/mur@latest
+```
 
 ## Initialize
-
-First, create your configuration:
 
 ```bash
 mur init
 ```
 
-This creates `~/.mur/config.yaml` with sensible defaults.
+The setup wizard will guide you through:
 
-## Check Available Tools
+1. **AI CLI detection** — finds Claude Code, Gemini CLI, etc.
+2. **Model setup** — choose cloud (recommended) or local
+3. **Hook installation** — enables real-time pattern injection
 
-See which AI CLI tools are installed and working:
+```
+📦 Model Setup
+? Choose setup mode:
+  > ☁️  Cloud (recommended) - API keys, best quality, ~$0.02/month
+    🏠 Local - Ollama, free, needs ~2.7GB disk
+    🔧 Custom - pick providers individually
+```
+
+**Cloud mode** uses OpenAI for both search and extraction. Set your API key:
 
 ```bash
-mur health
+export OPENAI_API_KEY=sk-...
 ```
 
-Example output:
-
-```
-AI Tool Health Check
-====================
-
-  ✓ claude      Claude Code     ~/.npm-global/bin/claude
-  ✓ gemini      Gemini CLI      /usr/local/bin/gemini
-  ✗ auggie      Auggie          not found
-
-Available: 2/3 tools
-```
-
-## Run Your First Prompt
+**Local mode** uses Ollama (free, no API key needed):
 
 ```bash
-mur run -p "what is a goroutine in Go?"
+ollama pull mxbai-embed-large   # 669MB, for search
+ollama pull llama3.2:3b          # 2GB, for extraction
 ```
 
-MUR Core analyzes your prompt and routes it to the most appropriate tool:
+## Quick Setup (Non-Interactive)
 
-```
-→ gemini (auto: complexity 0.15 < 0.50 threshold, using free tool)
-
-A goroutine is a lightweight thread managed by the Go runtime...
-```
-
-## Try Different Prompts
+For quick setup with defaults:
 
 ```bash
-# Simple question → routes to free tool
-mur run -p "explain REST APIs"
-
-# Complex task → routes to paid tool
-mur run -p "refactor this authentication module for OAuth2 support"
-
-# See the routing decision without running
-mur run -p "debug this memory leak" --explain
+mur init --hooks
 ```
 
-## Force a Specific Tool
+This installs hooks for all detected AI CLIs with local (Ollama) defaults.
 
-Override automatic routing when needed:
+## Verify
 
 ```bash
-# Always use Claude for this prompt
-mur run -t claude -p "write a haiku about coding"
+mur status
+mur doctor    # Check for issues
+```
 
-# Always use Gemini
-mur run -t gemini -p "complex analysis" 
+## Use It
+
+Just use your AI CLI normally — MUR works in the background:
+
+```bash
+claude "fix this bug"
+# → MUR automatically injects relevant patterns
+```
+
+## Build Search Index
+
+```bash
+mur index rebuild
+
+# With document expansion (better natural language search)
+mur index rebuild --expand
 ```
 
 ## What's Next?
 
-- **[Configuration](configuration.md)** - Customize routing behavior
-- **[Smart Routing](../concepts/routing.md)** - Understand how routing works
-- **[Pattern Learning](../concepts/patterns.md)** - Extract and share patterns
-- **[Cross-CLI Sync](../concepts/cross-cli-sync.md)** - Sync MCP and hooks
+- **[Configuration](configuration.md)** — Customize providers and models
+- **[Semantic Search](../semantic-search.md)** — Advanced search features
+- **[Commands](../commands.md)** — Full command reference

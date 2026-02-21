@@ -216,36 +216,45 @@ mur sync --cloud    # Sync with cloud
 
 ## 🔍 Semantic Search
 
-Find patterns by meaning using local embeddings:
+Find patterns by meaning, not keywords:
 
 ```bash
-# Install Ollama (one-time)
-brew install ollama && ollama pull nomic-embed-text
-
-# Build index
+# Option 1: Cloud (recommended, ~$0.001 for 200 patterns)
+export OPENAI_API_KEY=sk-...
 mur index rebuild
 
-# Search by meaning
-mur search "async testing in Swift"
+# Option 2: Local (free, needs Ollama)
+ollama pull mxbai-embed-large
+mur index rebuild
+
+# Search naturally
+mur search "how to sign a macOS app"
+# → bitl-binary-signing-workaround (0.71)
 ```
 
-See [docs/semantic-search.md](docs/semantic-search.md) for OpenAI embeddings and advanced config.
+See [docs/semantic-search.md](docs/semantic-search.md) for all providers (OpenAI, Google, Voyage, Ollama) and advanced features like document expansion.
 
 ## ⚙️ Configuration
 
 ```yaml
-# ~/.mur/config.yaml (or %USERPROFILE%\.mur\config.yaml on Windows)
-
+# ~/.mur/config.yaml
 tools:
   claude:
     enabled: true
   gemini:
     enabled: true
 
+# Semantic search (cloud or local)
+search:
+  provider: openai                # openai | ollama | google | voyage
+  model: text-embedding-3-small
+  api_key_env: OPENAI_API_KEY
+
+# Pattern extraction LLM
 learning:
   llm:
-    provider: ollama
-    model: deepseek-r1:8b
+    provider: ollama              # ollama | openai | gemini | claude
+    model: llama3.2:3b
 ```
 
 See [docs/configuration.md](docs/configuration.md) for all options.

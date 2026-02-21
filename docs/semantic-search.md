@@ -4,22 +4,9 @@ MUR Core v1.1+ includes intelligent pattern matching using embeddings. Instead o
 
 ## Quick Setup
 
-### Option 1: Ollama (Free, Local)
+### Option 1: Cloud (Recommended)
 
-```bash
-# Install Ollama
-brew install ollama          # macOS
-# or: curl -fsSL https://ollama.com/install.sh | sh  # Linux
-
-# Start and pull model
-ollama serve &
-ollama pull nomic-embed-text
-
-# Build index
-mur index rebuild
-```
-
-### Option 2: OpenAI (No GPU Required)
+No GPU, no downloads. Best search quality.
 
 ```bash
 export OPENAI_API_KEY=sk-xxx
@@ -28,13 +15,47 @@ export OPENAI_API_KEY=sk-xxx
 ```yaml
 # ~/.mur/config.yaml
 search:
+  enabled: true
   provider: openai
   model: text-embedding-3-small
-  min_score: 0.7                 # OpenAI scores are higher
+  api_key_env: OPENAI_API_KEY
+  min_score: 0.3
 ```
 
 ```bash
 mur index rebuild
+```
+
+**Cost:** ~$0.001 for 200 patterns. Virtually free.
+
+### Option 2: Ollama (Free, Local)
+
+```bash
+# Install Ollama
+brew install ollama          # macOS
+# or: curl -fsSL https://ollama.com/install.sh | sh  # Linux
+
+# Start and pull model
+ollama serve &
+ollama pull mxbai-embed-large
+
+# Build index
+mur index rebuild
+```
+
+> **Note:** Previous versions used `nomic-embed-text`. We now recommend `mxbai-embed-large` for significantly better search quality (54.4 vs 45.6 on MTEB retrieval benchmarks).
+
+### Interactive Setup
+
+`mur init` will guide you through model selection:
+
+```bash
+mur init
+
+# Choose setup mode:
+#   ☁️  Cloud (recommended) - API keys, best quality, ~$0.02/month
+#   🏠 Local - Ollama, free, needs ~2.7GB disk
+#   🔧 Custom - pick providers individually
 ```
 
 ## Usage
@@ -42,7 +63,11 @@ mur index rebuild
 ```bash
 # Search by meaning
 mur search "How to test async Swift code"
-# → swift-testing-macro-over-xctest (0.58)
+# → swift-testing-macro-over-xctest (0.78)
+
+# Natural language works great
+mur search "how to sign a macOS app"
+# → bitl-binary-signing-workaround (0.71)
 
 # JSON output for scripts
 mur search --json "error handling"
@@ -57,31 +82,131 @@ mur index status
 # ~/.mur/config.yaml
 search:
   enabled: true
-  provider: ollama              # ollama | openai
-  model: nomic-embed-text       # See model table below
-  ollama_url: http://localhost:11434
+  provider: openai              # openai | ollama | google | voyage
+  model: text-embedding-3-small # See model table below
+  api_key_env: OPENAI_API_KEY   # env var name (not the key itself!)
   top_k: 3                      # Max results
-  min_score: 0.5                # Minimum similarity (0.0-1.0)
-  auto_inject: false
-    # false = inject patterns by project/tags only
-    # true  = also inject semantically similar patterns
+  min_score: 0.3                # Minimum similarity (0.0-1.0)
+  auto_inject: true             # Auto-inject to AI CLI prompts
 ```
 
-## Embedding Models
+## Embedding Providers
 
-| Provider | Model | min_score | Cost |
-|----------|-------|-----------|------|
-| ollama | `nomic-embed-text` | 0.5 | Free |
-| openai | `text-embedding-3-small` | 0.7 | $0.02/1M tokens |
-| openai | `text-embedding-3-large` | 0.7 | $0.13/1M tokens |
+| Provider | Model | Cost | Quality | GPU? |
+|----------|-------|------|---------|------|
+| **OpenAI** | `text-embedding-3-small` | $0.02/1M tokens | ⭐⭐⭐⭐ | No |
+| **OpenAI** | `text-embedding-3-large` | $0.13/1M tokens | ⭐⭐⭐⭐⭐ | No |
+| **Google** | `text-embedding-004` | Free tier (1500 req/min) | ⭐⭐⭐⭐ | No |
+| **Voyage** | `voyage-3-large` | $0.18/1M tokens | ⭐⭐⭐⭐⭐ | No |
+| **Ollama** | `mxbai-embed-large` | Free | ⭐⭐⭐ | Local |
+| **Ollama** | `nomic-embed-text` (legacy) | Free | ⭐⭐ | Local |
 
-**Ollama vs OpenAI:**
-- Ollama: Free, offline, needs local GPU, scores ~0.5-0.6
-- OpenAI: Paid, needs internet, no GPU, scores ~0.7-0.9
+**Recommended:** `text-embedding-3-small` for best cost/quality ratio. 200 patterns costs ~$0.001.
+
+### Provider Configuration
+
+<details>
+<summary>OpenAI</summary>
+
+```yaml
+search:
+  provider: openai
+  model: text-embedding-3-small
+  api_key_env: OPENAI_API_KEY
+  min_score: 0.3
+```
+
+```bash
+export OPENAI_API_KEY=sk-...
+```
+</details>
+
+<details>
+<summary>Google (nearly free)</summary>
+
+```yaml
+search:
+  provider: google
+  model: text-embedding-004
+  api_key_env: GEMINI_API_KEY
+  min_score: 0.3
+```
+
+```bash
+export GEMINI_API_KEY=...
+```
+</details>
+
+<details>
+<summary>Voyage (best for code)</summary>
+
+```yaml
+search:
+  provider: voyage
+  model: voyage-3-large
+  api_key_env: VOYAGE_API_KEY
+  min_score: 0.3
+```
+
+```bash
+export VOYAGE_API_KEY=...
+```
+</details>
+
+<details>
+<summary>Ollama (free, local)</summary>
+
+```yaml
+search:
+  provider: ollama
+  model: mxbai-embed-large
+  ollama_url: http://localhost:11434
+  min_score: 0.5
+```
+
+```bash
+ollama pull mxbai-embed-large
+```
+</details>
+
+## Document Expansion
+
+Improve search quality by generating search queries for each pattern using a local LLM:
+
+```bash
+# Requires an LLM model (e.g., llama3.2:3b via Ollama)
+ollama pull llama3.2:3b
+mur index rebuild --expand
+```
+
+This generates 5 likely search queries per pattern (e.g., "how to sign macos binary" for `bitl-binary-signing-workaround`), making natural language searches much more effective.
+
+**Expansion is cached** — subsequent rebuilds reuse generated queries unless you delete `~/.mur/embeddings/expanded_queries.json`.
+
+## LLM Configuration
+
+The LLM used for extraction and expansion is configured separately:
+
+```yaml
+# ~/.mur/config.yaml
+learning:
+  llm:
+    provider: ollama              # ollama | openai | gemini | claude
+    model: llama3.2:3b            # Non-reasoning model recommended
+```
+
+| Provider | Model | Cost | Speed |
+|----------|-------|------|-------|
+| **Ollama** | `llama3.2:3b` | Free | ~1s/pattern |
+| **OpenAI** | `gpt-4o-mini` | $0.15/1M in | Fast |
+| **Gemini** | `gemini-2.0-flash` | $0.10/1M in | Fastest |
+| **Claude** | `claude-haiku` | $0.25/1M in | Fast |
+
+> **Avoid reasoning models** (deepseek-r1, qwq) for expansion — they "think out loud" and waste tokens.
 
 ## Automatic Injection
 
-When enabled, MUR Core automatically suggests relevant patterns in Claude Code:
+When enabled, MUR automatically suggests relevant patterns in Claude Code:
 
 ```
 claude "fix this async test"
@@ -112,6 +237,12 @@ mur sync --format single  # Legacy single-file format
 
 ## Troubleshooting
 
+**"OpenAI API key required"**
+```bash
+export OPENAI_API_KEY=sk-...
+# Or set api_key_env in config to use a different env var
+```
+
 **"Ollama not running"**
 ```bash
 ollama serve &
@@ -124,6 +255,9 @@ mur index status
 mur index rebuild
 ```
 
-**Slow search?**
-- Reduce `top_k` in config
-- Use smaller embedding model
+**Switching from nomic-embed-text to mxbai-embed-large?**
+```bash
+ollama pull mxbai-embed-large
+# Update config.yaml: model: mxbai-embed-large
+mur index rebuild   # Full rebuild needed (different dimensions)
+```

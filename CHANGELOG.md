@@ -2,6 +2,36 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [1.10.0] - 2026-02-21
+
+### Added
+- **☁️ Cloud-first model setup** — `mur init` now offers interactive model selection:
+  - ☁️ Cloud (recommended): OpenAI for embedding + extraction (~$0.02/month)
+  - 🏠 Local: Ollama with mxbai-embed-large + llama3.2:3b (free)
+  - 🔧 Custom: mix & match OpenAI, Gemini, Claude, Voyage, Ollama
+
+- **🔍 Major search quality improvements:**
+  - Upgraded default embedding model from `nomic-embed-text` to `mxbai-embed-large` (15%+ better retrieval)
+  - Enriched index text with tags, keywords, languages, and frameworks
+  - Document expansion via `mur index rebuild --expand` — generates search queries per pattern using LLM
+  - Query prefix support for mxbai-embed-large (asymmetric retrieval)
+  - Case-insensitive matching throughout
+  - Compound word expansion (e.g., "codesigning" → "code signing")
+
+- **🌍 New embedding providers:**
+  - Google (`text-embedding-004`) — nearly free with generous free tier
+  - Voyage (`voyage-3-large`) — best for code-focused search
+
+### Improved
+- **🪝 Hook installation** — `mur init --hooks` now merges into existing `settings.json` instead of overwriting, preserving user customizations
+- **🔍 `--search` defaults to true** — dynamic pattern injection enabled by default
+- **🐛 Community search** — URL encoding fix, per-word AND matching, tag search, content demoted in ranking
+- **📝 Config template** — includes cost estimates, provider options, and clear documentation
+
+### Fixed
+- Community search returning incorrect/missing results
+- URL encoding for search queries with special characters
+
 ## [1.9.3] - 2026-02-20
 
 ### Fixed

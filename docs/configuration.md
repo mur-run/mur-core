@@ -4,10 +4,14 @@ MUR configuration is stored in:
 - **macOS/Linux:** `~/.mur/config.yaml`
 - **Windows:** `%USERPROFILE%\.mur\config.yaml`
 
+Run `mur init` for interactive setup, or edit the file directly.
+
 ## Full Configuration Reference
 
 ```yaml
-# Default AI tool for commands
+schema_version: 2
+
+# Default AI tool
 default_tool: claude
 
 # Tool-specific settings
@@ -16,126 +20,107 @@ tools:
     enabled: true
   gemini:
     enabled: true
-  codex:
-    enabled: true
-  cursor:
-    enabled: true
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 🔍 Semantic Search
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Cost: ~$0.001 for 200 patterns with OpenAI.
+search:
+  enabled: true
+  provider: openai                # openai | ollama | google | voyage
+  model: text-embedding-3-small  # See provider table below
+  api_key_env: OPENAI_API_KEY    # env var name (not the key!)
+  min_score: 0.3                 # OpenAI: 0.3 | Ollama: 0.5
+  top_k: 3
+  auto_inject: true
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 🧠 Learning & Extraction
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Cost: ~$0.02 for 200 patterns with paid models.
+learning:
+  auto_extract: true
+  sync_to_tools: true
+  llm:
+    provider: ollama              # ollama | openai | gemini | claude
+    model: llama3.2:3b            # See provider table below
+    # api_key_env: OPENAI_API_KEY # For cloud providers
 
 # Sync settings
 sync:
-  format: directory    # directory (recommended) or single
-  clean_old: false     # Remove old single-file format
+  format: directory               # directory (recommended) | single
+  clean_old: false
 
 # Cloud sync (requires mur.run account)
 server:
   url: https://api.mur.run
-  team: ""             # Team slug for team sync
 
-# Semantic search settings
-search:
+# Pattern consolidation
+consolidation:
   enabled: true
-  provider: ollama              # ollama | openai
-  model: nomic-embed-text       # Embedding model
-  ollama_url: http://localhost:11434
-  top_k: 3                      # Max results per search
-  min_score: 0.5                # Minimum similarity (0.0-1.0)
-  auto_inject: false            # Auto-inject similar patterns
+  schedule: weekly
+  auto_merge: keep-best
 
-# Pattern learning settings
-learning:
-  repo: ""                      # Git repo for sync (optional)
-  auto_push: false              # Auto-push after learning
-  
-  llm:
-    provider: ollama            # ollama | openai | gemini | claude
-    model: deepseek-r1:8b       # Model for extraction
-    ollama_url: http://localhost:11434
-    
-    # Premium model for important sessions (optional)
-    premium:
-      provider: gemini
-      model: gemini-2.0-flash
-      api_key_env: GEMINI_API_KEY
-    
-    # When to use premium model
-    routing:
-      min_messages: 20          # Long sessions
-      projects: [important-project]
+# Community sharing
+community:
+  share_enabled: true
+  auto_share_on_push: true
 
 # Cache settings
 cache:
   community:
     ttl_minutes: 60
-    cleanup: on_sync            # on_sync | manual
+    cleanup: on_sync
 ```
+
+## Embedding Providers
+
+| Provider | Model | Cost | Quality | Config |
+|----------|-------|------|---------|--------|
+| **OpenAI** | `text-embedding-3-small` | $0.02/1M tokens | ⭐⭐⭐⭐ | `api_key_env: OPENAI_API_KEY` |
+| **Google** | `text-embedding-004` | Free tier | ⭐⭐⭐⭐ | `api_key_env: GEMINI_API_KEY` |
+| **Voyage** | `voyage-3-large` | $0.18/1M tokens | ⭐⭐⭐⭐⭐ | `api_key_env: VOYAGE_API_KEY` |
+| **Ollama** | `mxbai-embed-large` | Free | ⭐⭐⭐ | `ollama_url: http://localhost:11434` |
+
+## LLM Providers (Extraction & Expansion)
+
+| Provider | Model | Cost | Config |
+|----------|-------|------|--------|
+| **Ollama** | `llama3.2:3b` | Free | No API key needed |
+| **OpenAI** | `gpt-4o-mini` | $0.15/1M in | `api_key_env: OPENAI_API_KEY` |
+| **Gemini** | `gemini-2.0-flash` | $0.10/1M in | `api_key_env: GEMINI_API_KEY` |
+| **Claude** | `claude-haiku` | $0.25/1M in | `api_key_env: ANTHROPIC_API_KEY` |
 
 ## API Keys
 
-API keys are set via environment variables (not in config for security):
+API keys are set via environment variables (never stored in config):
 
 ```bash
 # Add to ~/.zshrc or ~/.bashrc
-export ANTHROPIC_API_KEY="sk-ant-..."     # Claude
-export OPENAI_API_KEY="sk-..."            # OpenAI
-export GEMINI_API_KEY="..."               # Gemini
+export OPENAI_API_KEY="sk-..."
+export GEMINI_API_KEY="..."
+export ANTHROPIC_API_KEY="sk-ant-..."
+export VOYAGE_API_KEY="..."
 ```
 
-Reference in config by variable name:
+The `api_key_env` field in config specifies which env var to read.
 
-```yaml
-learning:
-  llm:
-    provider: claude
-    model: claude-sonnet-4-20250514
-    api_key_env: ANTHROPIC_API_KEY    # Variable NAME, not the key
-```
+## View & Change Settings
 
-## Embedding Models
-
-| Provider | Model | min_score | Notes |
-|----------|-------|-----------|-------|
-| ollama | `nomic-embed-text` | 0.5 | Free, local |
-| openai | `text-embedding-3-small` | 0.7 | $0.02/1M tokens |
-| openai | `text-embedding-3-large` | 0.7 | $0.13/1M tokens |
-
-## LLM Models for Extraction
-
-| Provider | Model | Notes |
-|----------|-------|-------|
-| ollama | `deepseek-r1:8b` | Best local, 5GB |
-| ollama | `qwen2.5:14b` | Good for code, 9GB |
-| openai | `gpt-4o-mini` | Cheap & fast |
-| gemini | `gemini-2.0-flash` | Free tier available |
-| claude | `claude-sonnet-4-20250514` | Best quality |
-
-## Remote Ollama (LAN Setup)
-
-Run Ollama on a server and access from other machines.
-
-### Server Setup
-
-**macOS:**
 ```bash
-launchctl setenv OLLAMA_HOST "0.0.0.0"
-brew services restart ollama
+mur config show                      # View current config
+mur config default gemini            # Set default tool
+mur config set search.provider openai
+mur config set search.model text-embedding-3-small
 ```
 
-**Linux:**
-```bash
-sudo systemctl edit ollama
-# Add: Environment="OLLAMA_HOST=0.0.0.0"
-sudo systemctl restart ollama
-```
+## Configuration Locations
 
-### Client Config
-
-```yaml
-search:
-  provider: ollama
-  ollama_url: http://192.168.1.100:11434
-
-learning:
-  llm:
-    provider: ollama
-    ollama_url: http://192.168.1.100:11434
-```
+| Path | Purpose |
+|------|---------|
+| `~/.mur/config.yaml` | Main configuration |
+| `~/.mur/patterns/` | Learned patterns |
+| `~/.mur/embeddings/` | Embedding cache + expanded queries |
+| `~/.mur/hooks/` | Hook scripts (on-stop.sh, on-prompt.sh) |
+| `~/.mur/transcripts/` | Session transcripts |
+| `~/.mur/tracking/` | Usage tracking |
