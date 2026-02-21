@@ -292,9 +292,10 @@ type SyncConfig struct {
 // SearchConfig represents semantic search settings.
 type SearchConfig struct {
 	Enabled    *bool   `yaml:"enabled,omitempty"`     // nil = use default (true)
-	Provider   string  `yaml:"provider,omitempty"`    // ollama | openai | none
+	Provider   string  `yaml:"provider,omitempty"`    // ollama | openai | google | voyage | none
 	Model      string  `yaml:"model,omitempty"`       // embedding model name
 	OllamaURL  string  `yaml:"ollama_url,omitempty"`  // Ollama API URL
+	APIKeyEnv  string  `yaml:"api_key_env,omitempty"` // env var name for API key (e.g. OPENAI_API_KEY)
 	TopK       int     `yaml:"top_k,omitempty"`       // default number of results
 	MinScore   float64 `yaml:"min_score,omitempty"`   // minimum similarity score
 	AutoInject *bool   `yaml:"auto_inject,omitempty"` // auto-inject to prompt via hooks (default: true)
@@ -635,6 +636,10 @@ func defaultConfig() *Config {
 		Learning: LearningConfig{
 			AutoExtract:  true,
 			SyncToTools:  true,
+			LLM: LLMConfig{
+				Provider: "ollama",
+				Model:    "llama3.2:3b",
+			},
 			PatternLimit: 5,
 		},
 		Sync: SyncConfig{

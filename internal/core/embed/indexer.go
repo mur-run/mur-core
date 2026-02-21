@@ -48,10 +48,15 @@ func NewPatternIndexer(cfg *config.Config) (*PatternIndexer, error) {
 	}
 
 	// Create embedder based on config
+	apiKey := ""
+	if cfg.Search.APIKeyEnv != "" {
+		apiKey = os.Getenv(cfg.Search.APIKeyEnv)
+	}
 	embedCfg := Config{
 		Provider: cfg.Search.Provider,
 		Model:    cfg.Search.Model,
 		Endpoint: cfg.Search.OllamaURL,
+		APIKey:   apiKey,
 	}
 	embedder, err := NewEmbedder(embedCfg)
 	if err != nil {

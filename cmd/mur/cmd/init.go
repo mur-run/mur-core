@@ -149,6 +149,10 @@ func runInteractiveInit(home, murDir string) error {
 		}
 	}
 
+	// Model setup
+	fmt.Println()
+	models := askModelSetup()
+
 	// Create directories
 	fmt.Println()
 	dirs := []string{
@@ -167,7 +171,7 @@ func runInteractiveInit(home, murDir string) error {
 	fmt.Println("✓ Created ~/.mur/ directory")
 
 	// Create config
-	if err := createConfig(murDir, selectedCLIs, defaultCLI); err != nil {
+	if err := createConfigWithModels(murDir, selectedCLIs, defaultCLI, models); err != nil {
 		return err
 	}
 	fmt.Println("✓ Created config.yaml")
@@ -312,7 +316,208 @@ func detectCLIs() []cliTool {
 	return tools
 }
 
+// modelSetup holds the user's model provider choices.
+type modelSetup struct {
+	Mode         string // "cloud", "local", "custom"
+	LLMProvider  string // "openai", "gemini", "claude", "ollama"
+	LLMModel     string
+	LLMAPIKeyEnv string
+	EmbedProvider  string // "openai", "ollama", "google", "voyage"
+	EmbedModel     string
+	EmbedAPIKeyEnv string
+	EmbedMinScore  string
+	OllamaURL      string
+}
+
+func defaultCloudSetup() modelSetup {
+	return modelSetup{
+		Mode:           "cloud",
+		LLMProvider:    "openai",
+		LLMModel:       "gpt-4o-mini",
+		LLMAPIKeyEnv:   "OPENAI_API_KEY",
+		EmbedProvider:  "openai",
+		EmbedModel:     "text-embedding-3-small",
+		EmbedAPIKeyEnv: "OPENAI_API_KEY",
+		EmbedMinScore:  "0.3",
+		OllamaURL:      "http://localhost:11434",
+	}
+}
+
+func defaultLocalSetup() modelSetup {
+	return modelSetup{
+		Mode:          "local",
+		LLMProvider:   "ollama",
+		LLMModel:      "llama3.2:3b",
+		EmbedProvider: "ollama",
+		EmbedModel:    "mxbai-embed-large",
+		EmbedMinScore: "0.5",
+		OllamaURL:     "http://localhost:11434",
+	}
+}
+
+func askModelSetup() modelSetup {
+	fmt.Println("📦 Model Setup")
+	fmt.Println("  mur uses AI models for pattern search and extraction.")
+	fmt.Println()
+
+	var mode string
+	modePrompt := &survey.Select{
+		Message: "Choose setup mode:",
+		Options: []string{
+			"☁️  Cloud (recommended) - API keys, best quality, ~$0.02/month",
+			"🏠 Local - Ollama, free, needs ~2.7GB disk",
+			"🔧 Custom - pick providers individually",
+		},
+		Default: "☁️  Cloud (recommended) - API keys, best quality, ~$0.02/month",
+	}
+	if err := survey.AskOne(modePrompt, &mode); err != nil {
+		return defaultLocalSetup()
+	}
+
+	if strings.HasPrefix(mode, "🏠") {
+		fmt.Println()
+		fmt.Println("  Models needed: mxbai-embed-large (669MB) + llama3.2:3b (2GB)")
+		fmt.Println("  Install with: ollama pull mxbai-embed-large && ollama pull llama3.2:3b")
+		return defaultLocalSetup()
+	}
+
+	if strings.HasPrefix(mode, "☁️") {
+		return askCloudSetup()
+	}
+
+	return askCustomSetup()
+}
+
+func askCloudSetup() modelSetup {
+	m := defaultCloudSetup()
+
+	fmt.Println()
+	fmt.Println("  Using OpenAI for both embedding and extraction.")
+	fmt.Println("  Estimated cost: ~$0.02/month for typical usage.")
+	fmt.Println()
+
+	// Check if OPENAI_API_KEY is set
+	if os.Getenv("OPENAI_API_KEY") != "" {
+		fmt.Println("  ✅ OPENAI_API_KEY detected in environment")
+	} else {
+		fmt.Println("  ⚠️  Set OPENAI_API_KEY in your shell profile:")
+		fmt.Println("     export OPENAI_API_KEY=sk-...")
+	}
+
+	// Ask if they want a different provider
+	var wantDifferent bool
+	diffPrompt := &survey.Confirm{
+		Message: "Use a different provider? (Gemini, Claude, etc.)",
+		Default: false,
+	}
+	if err := survey.AskOne(diffPrompt, &wantDifferent); err != nil || !wantDifferent {
+		return m
+	}
+
+	return askCustomSetup()
+}
+
+func askCustomSetup() modelSetup {
+	m := defaultCloudSetup()
+
+	fmt.Println()
+
+	// Embedding provider
+	var embedChoice string
+	embedPrompt := &survey.Select{
+		Message: "Embedding provider (for search):",
+		Options: []string{
+			"OpenAI text-embedding-3-small ($0.02/1M tokens, recommended)",
+			"Google text-embedding-004 (free tier available)",
+			"Voyage voyage-3-large ($0.18/1M, best for code)",
+			"Ollama mxbai-embed-large (free, local, 669MB)",
+		},
+	}
+	if err := survey.AskOne(embedPrompt, &embedChoice); err != nil {
+		return m
+	}
+
+	switch {
+	case strings.HasPrefix(embedChoice, "OpenAI"):
+		m.EmbedProvider = "openai"
+		m.EmbedModel = "text-embedding-3-small"
+		m.EmbedAPIKeyEnv = "OPENAI_API_KEY"
+		m.EmbedMinScore = "0.3"
+	case strings.HasPrefix(embedChoice, "Google"):
+		m.EmbedProvider = "google"
+		m.EmbedModel = "text-embedding-004"
+		m.EmbedAPIKeyEnv = "GEMINI_API_KEY"
+		m.EmbedMinScore = "0.3"
+	case strings.HasPrefix(embedChoice, "Voyage"):
+		m.EmbedProvider = "voyage"
+		m.EmbedModel = "voyage-3-large"
+		m.EmbedAPIKeyEnv = "VOYAGE_API_KEY"
+		m.EmbedMinScore = "0.3"
+	case strings.HasPrefix(embedChoice, "Ollama"):
+		m.EmbedProvider = "ollama"
+		m.EmbedModel = "mxbai-embed-large"
+		m.EmbedMinScore = "0.5"
+	}
+
+	// LLM provider
+	var llmChoice string
+	llmPrompt := &survey.Select{
+		Message: "LLM provider (for extraction & expansion):",
+		Options: []string{
+			"OpenAI gpt-4o-mini ($0.15/$0.60 per 1M, recommended)",
+			"Gemini gemini-2.0-flash ($0.10/$0.40 per 1M, cheapest)",
+			"Claude claude-haiku ($0.25/$1.25 per 1M, best quality)",
+			"Ollama llama3.2:3b (free, local, 2GB)",
+		},
+	}
+	if err := survey.AskOne(llmPrompt, &llmChoice); err != nil {
+		return m
+	}
+
+	switch {
+	case strings.HasPrefix(llmChoice, "OpenAI"):
+		m.LLMProvider = "openai"
+		m.LLMModel = "gpt-4o-mini"
+		m.LLMAPIKeyEnv = "OPENAI_API_KEY"
+	case strings.HasPrefix(llmChoice, "Gemini"):
+		m.LLMProvider = "gemini"
+		m.LLMModel = "gemini-2.0-flash"
+		m.LLMAPIKeyEnv = "GEMINI_API_KEY"
+	case strings.HasPrefix(llmChoice, "Claude"):
+		m.LLMProvider = "claude"
+		m.LLMModel = "claude-haiku"
+		m.LLMAPIKeyEnv = "ANTHROPIC_API_KEY"
+	case strings.HasPrefix(llmChoice, "Ollama"):
+		m.LLMProvider = "ollama"
+		m.LLMModel = "llama3.2:3b"
+	}
+
+	return m
+}
+
+func (m modelSetup) llmYaml() string {
+	switch m.LLMProvider {
+	case "ollama":
+		return fmt.Sprintf("    provider: ollama\n    model: %s\n    ollama_url: %s", m.LLMModel, m.OllamaURL)
+	default:
+		return fmt.Sprintf("    provider: %s\n    model: %s\n    api_key_env: %s", m.LLMProvider, m.LLMModel, m.LLMAPIKeyEnv)
+	}
+}
+
+func (m modelSetup) searchYaml() string {
+	switch m.EmbedProvider {
+	case "ollama":
+		return fmt.Sprintf("  provider: ollama\n  model: %s\n  ollama_url: %s\n  min_score: %s", m.EmbedModel, m.OllamaURL, m.EmbedMinScore)
+	default:
+		return fmt.Sprintf("  provider: %s\n  model: %s\n  api_key_env: %s\n  min_score: %s", m.EmbedProvider, m.EmbedModel, m.EmbedAPIKeyEnv, m.EmbedMinScore)
+	}
+}
+
 func createConfig(murDir string, selectedCLIs []string, defaultCLI string) error {
+	return createConfigWithModels(murDir, selectedCLIs, defaultCLI, defaultLocalSetup())
+}
+
+func createConfigWithModels(murDir string, selectedCLIs []string, defaultCLI string, models modelSetup) error {
 	configPath := filepath.Join(murDir, "config.yaml")
 
 	// Map CLI names to config keys
@@ -347,64 +552,35 @@ default_tool: %s
 # Available tools
 tools:
 %s
-# Learning settings
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 🧠 Learning & Pattern Extraction
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# LLM used for: pattern extraction from transcripts,
+# search query expansion (mur index rebuild --expand).
+#
+# 💡 Cost: ~$0.02 for 200 patterns. Paid models extract
+#    2-3x more patterns with better quality.
+#
+# Providers: ollama (free/local) | openai | gemini | claude
 learning:
   auto_extract: true
   sync_to_tools: true
-  
-  # LLM for pattern extraction
-  # If not configured, mur will auto-detect Ollama or fall back to keyword extraction
-  # llm:
-  #   --- Ollama (Free, Local, GPU Required) ---
-  #   provider: ollama
-  #   model: deepseek-r1:8b
-  #   ollama_url: http://localhost:11434
-  #
-  #   --- OpenAI-compatible (OpenAI, Groq, Together, etc.) ---
-  #   provider: openai
-  #   model: gpt-4o-mini
-  #   openai_url: https://api.openai.com/v1
-  #   api_key_env: OPENAI_API_KEY    # env var NAME (not the key!)
-  #
-  #   --- Google Gemini ---
-  #   provider: gemini
-  #   model: gemini-2.0-flash
-  #   api_key_env: GEMINI_API_KEY    # env var NAME (not the key!)
-  #
-  #   --- Anthropic Claude ---
-  #   provider: claude
-  #   model: claude-sonnet-4-20250514
-  #   api_key_env: ANTHROPIC_API_KEY  # env var NAME (not the key!)
-  #
-  #   --- Premium model for important sessions (optional) ---
-  #   premium:
-  #     provider: gemini
-  #     model: gemini-2.0-flash
-  #     api_key_env: GEMINI_API_KEY
-  #
-  #   --- When to use premium model ---
-  #   routing:
-  #     min_messages: 20
-  #     projects: [important-project]
-
-# Semantic Search
+  llm:
+%s
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 🔍 Semantic Search
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Embedding model for pattern search and auto-injection.
+#
+# 💡 Cost: ~$0.001 for 200 patterns. OpenAI gives ~15%%
+#    better search quality vs local models.
+#
+# Providers: ollama (free/local) | openai | voyage | google
 search:
   enabled: true
-  # --- Ollama (Free, Local, GPU Required) ---
-  # provider: ollama
-  # model: nomic-embed-text
-  # ollama_url: http://localhost:11434
-  # min_score: 0.5
-
-  # --- OpenAI (No GPU Required) ---
-  # provider: openai
-  # model: text-embedding-3-small
-  # min_score: 0.7              # OpenAI scores are higher
-
+%s
   top_k: 3
   auto_inject: true
-  # false = inject patterns by project/tags only
-  # true  = also inject semantically similar patterns
 
 # Pattern Consolidation
 consolidation:
@@ -442,7 +618,7 @@ routing:
 #   Stop: []
 #   BeforeTool: []
 #   AfterTool: []
-`, defaultKey, toolsYaml)
+`, defaultKey, toolsYaml, models.llmYaml(), models.searchYaml())
 
 	return os.WriteFile(configPath, []byte(config), 0644)
 }

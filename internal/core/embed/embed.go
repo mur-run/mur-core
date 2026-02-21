@@ -56,9 +56,33 @@ func NewEmbedder(cfg Config) (Embedder, error) {
 			apiKey = os.Getenv("OPENAI_API_KEY")
 		}
 		if apiKey == "" {
-			return nil, fmt.Errorf("OpenAI API key required")
+			return nil, fmt.Errorf("OpenAI API key required: set OPENAI_API_KEY env var")
 		}
 		return NewOpenAIEmbedder(apiKey, cfg.Model), nil
+
+	case "voyage":
+		apiKey := cfg.APIKey
+		if apiKey == "" {
+			apiKey = os.Getenv("VOYAGE_API_KEY")
+		}
+		if apiKey == "" {
+			return nil, fmt.Errorf("Voyage API key required: set VOYAGE_API_KEY env var")
+		}
+		e := NewOpenAIEmbedder(apiKey, cfg.Model)
+		e.baseURL = "https://api.voyageai.com/v1"
+		return e, nil
+
+	case "google":
+		apiKey := cfg.APIKey
+		if apiKey == "" {
+			apiKey = os.Getenv("GEMINI_API_KEY")
+		}
+		if apiKey == "" {
+			return nil, fmt.Errorf("Google API key required: set GEMINI_API_KEY env var")
+		}
+		e := NewOpenAIEmbedder(apiKey, cfg.Model)
+		e.baseURL = "https://generativelanguage.googleapis.com/v1beta/openai"
+		return e, nil
 
 	case "ollama":
 		endpoint := cfg.Endpoint
@@ -78,9 +102,10 @@ func NewEmbedder(cfg Config) (Embedder, error) {
 
 // OpenAIEmbedder uses OpenAI's embedding API.
 type OpenAIEmbedder struct {
-	apiKey string
-	model  string
-	client *http.Client
+	apiKey  string
+	model   string
+	baseURL string
+	client  *http.Client
 }
 
 // NewOpenAIEmbedder creates an OpenAI embedder.
@@ -89,9 +114,10 @@ func NewOpenAIEmbedder(apiKey, model string) *OpenAIEmbedder {
 		model = "text-embedding-3-small"
 	}
 	return &OpenAIEmbedder{
-		apiKey: apiKey,
-		model:  model,
-		client: &http.Client{Timeout: 30 * time.Second},
+		apiKey:  apiKey,
+		model:   model,
+		baseURL: "https://api.openai.com/v1",
+		client:  &http.Client{Timeout: 30 * time.Second},
 	}
 }
 
@@ -138,7 +164,7 @@ func (e *OpenAIEmbedder) EmbedBatch(texts []string) ([]Vector, error) {
 		Input: texts,
 	})
 
-	req, _ := http.NewRequest("POST", "https://api.openai.com/v1/embeddings", bytes.NewReader(reqBody))
+	req, _ := http.NewRequest("POST", e.baseURL+"/embeddings", bytes.NewReader(reqBody))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+e.apiKey)
 
