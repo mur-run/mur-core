@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -191,8 +192,26 @@ func NewOllamaEmbedder(endpoint, model string) *OllamaEmbedder {
 func (e *OllamaEmbedder) Name() string { return "ollama" }
 
 func (e *OllamaEmbedder) Dimension() int {
-	// nomic-embed-text uses 768 dimensions
-	return 768
+	switch {
+	case strings.Contains(e.model, "mxbai-embed-large"):
+		return 1024
+	case strings.Contains(e.model, "nomic-embed"):
+		return 768
+	case strings.Contains(e.model, "all-minilm"):
+		return 384
+	default:
+		return 768
+	}
+}
+
+// QueryPrefix returns the prefix needed for retrieval queries.
+// Some models (like mxbai-embed-large) require a specific prefix for queries
+// but NOT for documents being indexed.
+func (e *OllamaEmbedder) QueryPrefix() string {
+	if strings.Contains(e.model, "mxbai-embed-large") {
+		return "Represent this sentence for searching relevant passages: "
+	}
+	return ""
 }
 
 type ollamaRequest struct {

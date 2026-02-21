@@ -125,8 +125,8 @@ func (idx *PatternIndexer) IndexPattern(p pattern.Pattern) error {
 		return nil
 	}
 
-	// Generate embedding text (name + description + content), lowercase for consistent matching
-	text := strings.ToLower(p.Name + " " + p.Description + " " + p.Content)
+	// Generate rich embedding text: name, tags, keywords, description, content
+	text := strings.ToLower(buildIndexText(p))
 
 	// Embed
 	vec, err := idx.embedder.Embed(text)
@@ -177,8 +177,16 @@ func (idx *PatternIndexer) Search(query string, topK int) ([]PatternMatch, error
 	// Expand compound words (e.g. "codesigning" → "codesigning code signing")
 	query = expandCompoundQuery(query)
 
+	// Apply query prefix if the model requires it (e.g. mxbai-embed-large)
+	embQuery := query
+	if qp, ok := idx.embedder.(interface{ QueryPrefix() string }); ok {
+		if prefix := qp.QueryPrefix(); prefix != "" {
+			embQuery = prefix + query
+		}
+	}
+
 	// Embed query
-	queryVec, err := idx.embedder.Embed(query)
+	queryVec, err := idx.embedder.Embed(embQuery)
 	if err != nil {
 		return nil, fmt.Errorf("failed to embed query: %w", err)
 	}
@@ -255,6 +263,59 @@ func HasOllamaModel(baseURL, model string) bool {
 	}
 
 	return false
+}
+
+// buildIndexText creates a rich text representation of a pattern for embedding.
+// Includes name, tags, keywords, description, and content with structured formatting
+// to give the embedding model better semantic signals.
+func buildIndexText(p pattern.Pattern) string {
+	var parts []string
+
+	// Name (most important, repeated for emphasis)
+	parts = append(parts, p.Name)
+
+	// Tags
+	var tags []string
+	for _, t := range p.Tags.Confirmed {
+		tags = append(tags, t)
+	}
+	for _, ts := range p.Tags.Inferred {
+		if ts.Confidence >= 0.7 {
+			tags = append(tags, ts.Tag)
+		}
+	}
+	if len(tags) > 0 {
+		parts = append(parts, "tags: "+strings.Join(tags, " "))
+	}
+
+	// Apply conditions keywords
+	if len(p.Applies.Keywords) > 0 {
+		parts = append(parts, "keywords: "+strings.Join(p.Applies.Keywords, " "))
+	}
+
+	// Languages and frameworks
+	if len(p.Applies.Languages) > 0 {
+		parts = append(parts, "languages: "+strings.Join(p.Applies.Languages, " "))
+	}
+	if len(p.Applies.Frameworks) > 0 {
+		parts = append(parts, "frameworks: "+strings.Join(p.Applies.Frameworks, " "))
+	}
+
+	// Description
+	if p.Description != "" {
+		parts = append(parts, p.Description)
+	}
+
+	// Content (truncate to avoid diluting the embedding with too much text)
+	content := p.Content
+	if len(content) > 1000 {
+		content = content[:1000]
+	}
+	if content != "" {
+		parts = append(parts, content)
+	}
+
+	return strings.Join(parts, " | ")
 }
 
 // expandCompoundQuery splits camelCase and concatenated words to help embedding models.

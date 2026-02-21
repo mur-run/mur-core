@@ -106,8 +106,16 @@ func (s *PatternSearcher) Search(query string, topK int) ([]PatternMatch, error)
 	// Normalize query to lowercase for case-insensitive matching
 	query = strings.ToLower(query)
 
+	// Apply query prefix if the model requires it
+	embQuery := query
+	if qp, ok := s.embedder.(interface{ QueryPrefix() string }); ok {
+		if prefix := qp.QueryPrefix(); prefix != "" {
+			embQuery = prefix + query
+		}
+	}
+
 	// Embed query
-	queryVec, err := s.embedder.Embed(query)
+	queryVec, err := s.embedder.Embed(embQuery)
 	if err != nil {
 		return nil, fmt.Errorf("failed to embed query: %w", err)
 	}

@@ -446,7 +446,7 @@ func (c *Config) applyDefaults() {
 		c.Search.Provider = "ollama"
 	}
 	if c.Search.Model == "" {
-		c.Search.Model = "nomic-embed-text"
+		c.Search.Model = "mxbai-embed-large"
 	}
 	if c.Search.OllamaURL == "" {
 		c.Search.OllamaURL = "http://localhost:11434"
@@ -646,7 +646,7 @@ func defaultConfig() *Config {
 		Search: SearchConfig{
 			Enabled:    boolPtr(true),
 			Provider:   "ollama",
-			Model:      "nomic-embed-text",
+			Model:      "mxbai-embed-large",
 			OllamaURL:  "http://localhost:11434",
 			TopK:       3,
 			MinScore:   0.6,
