@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/mur-run/mur-core/internal/cache"
 	"github.com/mur-run/mur-core/internal/core/pattern"
@@ -103,19 +102,8 @@ func (s *PatternSearcher) IndexPatterns() error {
 
 // Search finds patterns semantically similar to the query.
 func (s *PatternSearcher) Search(query string, topK int) ([]PatternMatch, error) {
-	// Normalize query to lowercase for case-insensitive matching
-	query = strings.ToLower(query)
-
-	// Apply query prefix if the model requires it
-	embQuery := query
-	if qp, ok := s.embedder.(interface{ QueryPrefix() string }); ok {
-		if prefix := qp.QueryPrefix(); prefix != "" {
-			embQuery = prefix + query
-		}
-	}
-
 	// Embed query
-	queryVec, err := s.embedder.Embed(embQuery)
+	queryVec, err := s.embedder.Embed(PrepareQuery(query, s.embedder))
 	if err != nil {
 		return nil, fmt.Errorf("failed to embed query: %w", err)
 	}

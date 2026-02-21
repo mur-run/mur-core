@@ -231,22 +231,8 @@ func (idx *PatternIndexer) RebuildWithExpansion(ollamaURL, llmModel string, prog
 
 // Search searches for patterns similar to the query.
 func (idx *PatternIndexer) Search(query string, topK int) ([]PatternMatch, error) {
-	// Normalize query to lowercase for case-insensitive matching
-	query = strings.ToLower(query)
-
-	// Expand compound words (e.g. "codesigning" → "codesigning code signing")
-	query = expandCompoundQuery(query)
-
-	// Apply query prefix if the model requires it (e.g. mxbai-embed-large)
-	embQuery := query
-	if qp, ok := idx.embedder.(interface{ QueryPrefix() string }); ok {
-		if prefix := qp.QueryPrefix(); prefix != "" {
-			embQuery = prefix + query
-		}
-	}
-
 	// Embed query
-	queryVec, err := idx.embedder.Embed(embQuery)
+	queryVec, err := idx.embedder.Embed(PrepareQuery(query, idx.embedder))
 	if err != nil {
 		return nil, fmt.Errorf("failed to embed query: %w", err)
 	}
@@ -378,6 +364,18 @@ func buildIndexText(p pattern.Pattern) string {
 	return strings.Join(parts, " | ")
 }
 
+// PrepareQuery normalizes a search query: lowercase, expand compounds, add model prefix.
+func PrepareQuery(query string, embedder Embedder) string {
+	query = strings.ToLower(query)
+	query = expandCompoundQuery(query)
+	if qp, ok := embedder.(interface{ QueryPrefix() string }); ok {
+		if prefix := qp.QueryPrefix(); prefix != "" {
+			query = prefix + query
+		}
+	}
+	return query
+}
+
 // expandCompoundQuery splits camelCase and concatenated words to help embedding models.
 // e.g. "codesigning" → "codesigning code signing", "swiftui" → "swiftui swift ui"
 func expandCompoundQuery(query string) string {
@@ -393,23 +391,42 @@ func expandCompoundQuery(query string) string {
 	return strings.Join(expanded, " ")
 }
 
-// trySplitCompound tries to split a compound word at common boundaries.
+// trySplitCompound tries to split a compound word at known boundaries.
+// Only splits when the remainder is also a recognizable word (≥4 chars)
+// to avoid false splits like "return" → "re turn" or "under" → "un der".
 func trySplitCompound(word string) []string {
-	if len(word) < 5 {
+	if len(word) < 7 {
 		return nil
 	}
 
-	// Known compound word prefixes in dev context
-	prefixes := []string{
-		"code", "auto", "web", "dev", "pre", "post", "re",
-		"un", "multi", "cross", "over", "under", "sub",
-		"super", "meta", "type", "live", "hot",
+	// Known compound word mappings in dev context (prefix → min rest length)
+	prefixes := []struct {
+		prefix  string
+		minRest int
+	}{
+		{"code", 4},  // codesigning, codepoint
+		{"auto", 4},  // autoformat, autodetect
+		{"web", 4},   // webhook, websocket
+		{"live", 4},  // livereload, liveview
+		{"hot", 4},   // hotreload, hotfix
+		{"type", 4},  // typescript, typecheck
+		{"meta", 4},  // metadata, metafield
+		{"multi", 4}, // multithread, multipart
+		{"cross", 4}, // crossplatform, crossorigin
+		{"over", 4},  // override, overflow
+		{"super", 4}, // superclass, superuser
+		{"sub", 4},   // subprocess, submodule
+		{"pre", 5},   // precompile, prerender (min 5 to avoid "press")
+		{"post", 5},  // postinstall, postprocess (min 5 to avoid "posts")
+		{"under", 5}, // underscore, underlying (min 5 to avoid "under" alone)
 	}
 
-	for _, prefix := range prefixes {
-		if strings.HasPrefix(word, prefix) && len(word) > len(prefix)+2 {
-			rest := word[len(prefix):]
-			return []string{prefix, rest}
+	for _, p := range prefixes {
+		if strings.HasPrefix(word, p.prefix) {
+			rest := word[len(p.prefix):]
+			if len(rest) >= p.minRest {
+				return []string{p.prefix, rest}
+			}
 		}
 	}
 
