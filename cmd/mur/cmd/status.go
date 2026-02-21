@@ -276,17 +276,33 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	// Hooks status
 	fmt.Println()
 	fmt.Println("🪝 Hooks")
-	hookPaths := []struct {
-		name string
-		path string
-	}{
-		{"Claude Code", filepath.Join(home, ".claude", "hooks.json")},
-		{"Gemini CLI", filepath.Join(home, ".gemini", "hooks.json")},
+	type hookCheck struct {
+		name  string
+		paths []string // check multiple possible locations
+	}
+	hookChecks := []hookCheck{
+		{"Claude Code", []string{
+			filepath.Join(home, ".claude", "settings.json"),
+			filepath.Join(home, ".claude", "hooks.json"),
+		}},
+		{"Gemini CLI", []string{
+			filepath.Join(home, ".gemini", "settings.json"),
+			filepath.Join(home, ".gemini", "hooks.json"),
+		}},
 	}
 
 	hooksInstalled := 0
-	for _, h := range hookPaths {
-		if _, err := os.Stat(h.path); err == nil {
+	for _, h := range hookChecks {
+		found := false
+		for _, p := range h.paths {
+			if data, err := os.ReadFile(p); err == nil {
+				if strings.Contains(string(data), "mur") {
+					found = true
+					break
+				}
+			}
+		}
+		if found {
 			hooksInstalled++
 			if statusVerbose {
 				fmt.Printf("   ✓ %s\n", h.name)
@@ -298,7 +314,7 @@ func runStatus(cmd *cobra.Command, args []string) error {
 
 	if !statusVerbose {
 		if hooksInstalled > 0 {
-			fmt.Printf("   %d/%d CLI hooks installed\n", hooksInstalled, len(hookPaths))
+			fmt.Printf("   %d/%d CLI hooks installed\n", hooksInstalled, len(hookChecks))
 		} else {
 			fmt.Println("   No hooks installed")
 			fmt.Println("   Run: mur init --hooks")
