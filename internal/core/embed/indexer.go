@@ -125,8 +125,8 @@ func (idx *PatternIndexer) IndexPattern(p pattern.Pattern) error {
 		return nil
 	}
 
-	// Generate embedding text (name + description + content)
-	text := p.Name + " " + p.Description + " " + p.Content
+	// Generate embedding text (name + description + content), lowercase for consistent matching
+	text := strings.ToLower(p.Name + " " + p.Description + " " + p.Content)
 
 	// Embed
 	vec, err := idx.embedder.Embed(text)
@@ -171,6 +171,9 @@ func (idx *PatternIndexer) Rebuild(progress func(current, total int)) error {
 
 // Search searches for patterns similar to the query.
 func (idx *PatternIndexer) Search(query string, topK int) ([]PatternMatch, error) {
+	// Normalize query to lowercase for case-insensitive matching
+	query = strings.ToLower(query)
+
 	// Embed query
 	queryVec, err := idx.embedder.Embed(query)
 	if err != nil {

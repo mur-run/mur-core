@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/mur-run/mur-core/internal/cache"
 	"github.com/mur-run/mur-core/internal/core/pattern"
@@ -102,6 +103,9 @@ func (s *PatternSearcher) IndexPatterns() error {
 
 // Search finds patterns semantically similar to the query.
 func (s *PatternSearcher) Search(query string, topK int) ([]PatternMatch, error) {
+	// Normalize query to lowercase for case-insensitive matching
+	query = strings.ToLower(query)
+
 	// Embed query
 	queryVec, err := s.embedder.Embed(query)
 	if err != nil {
