@@ -334,9 +334,22 @@ Examples:
 
 			if !pushResp.OK {
 				if forceLocal {
-					// TODO: Force push implementation
-					fmt.Println("  --force-local: Forcing local versions...")
-					// Re-push with force flag
+					fmt.Printf("  ⚠️  %d conflict(s) detected — forcing local versions...\n", len(pushResp.Conflicts))
+					forcePushReq := cloud.PushRequest{
+						BaseVersion: localVersion,
+						Changes:     changes,
+						ForceLocal:  true,
+					}
+					forceResp, err := client.Push(teamID, forcePushReq)
+					if err != nil {
+						return fmt.Errorf("force push failed: %w", err)
+					}
+					if forceResp.OK {
+						saveLocalSyncVersion(teamSlug, forceResp.Version)
+						fmt.Printf("  ✓ %d patterns force-pushed\n", len(changes))
+					} else {
+						return fmt.Errorf("force push rejected by server")
+					}
 				} else if forceServer {
 					// Accept server versions - pull them
 					fmt.Println("  --force-server: Accepting server versions...")

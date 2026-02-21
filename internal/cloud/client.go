@@ -412,6 +412,7 @@ type SyncChange struct {
 type PushRequest struct {
 	BaseVersion int64        `json:"base_version"`
 	Changes     []SyncChange `json:"changes"`
+	ForceLocal  bool         `json:"force_local,omitempty"`
 }
 
 // Conflict represents a sync conflict
