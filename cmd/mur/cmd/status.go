@@ -289,6 +289,10 @@ func runStatus(cmd *cobra.Command, args []string) error {
 			filepath.Join(home, ".gemini", "settings.json"),
 			filepath.Join(home, ".gemini", "hooks.json"),
 		}},
+		{"Auggie", []string{
+			filepath.Join(home, ".augment", "settings.json"),
+			filepath.Join(home, ".augment", "hooks.json"),
+		}},
 	}
 
 	hooksInstalled := 0
