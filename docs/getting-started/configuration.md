@@ -41,7 +41,7 @@ search:
   enabled: true
   provider: openai                    # openai (recommended) | ollama (free)
   model: text-embedding-3-small      # OpenAI: text-embedding-3-small
-                                      # Ollama: mxbai-embed-large
+                                      # Ollama: qwen3-embedding
                                       # Google: text-embedding-004
   api_key_env: OPENAI_API_KEY        # env var name (cloud providers only)
   ollama_url: http://localhost:11434  # Ollama only

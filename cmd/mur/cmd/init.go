@@ -352,7 +352,7 @@ func defaultLocalSetup() modelSetup {
 		LLMProvider:   "ollama",
 		LLMModel:      "llama3.2:3b",
 		EmbedProvider: "ollama",
-		EmbedModel:    "mxbai-embed-large",
+		EmbedModel:    "qwen3-embedding",
 		EmbedMinScore: "0.5",
 		OllamaURL:     "http://localhost:11434",
 	}
@@ -379,8 +379,8 @@ func askModelSetup() (modelSetup, error) {
 
 	if strings.HasPrefix(mode, "🏠") {
 		fmt.Println()
-		fmt.Println("  Models needed: mxbai-embed-large (669MB) + llama3.2:3b (2GB)")
-		fmt.Println("  Install with: ollama pull mxbai-embed-large && ollama pull llama3.2:3b")
+		fmt.Println("  Models needed: qwen3-embedding (639MB) + llama3.2:3b (2GB)")
+		fmt.Println("  Install with: ollama pull qwen3-embedding && ollama pull llama3.2:3b")
 		return defaultLocalSetup(), nil
 	}
 
@@ -461,7 +461,7 @@ func askCustomSetup() (modelSetup, error) {
 		m.EmbedMinScore = "0.3"
 	case strings.HasPrefix(embedChoice, "Ollama"):
 		m.EmbedProvider = "ollama"
-		m.EmbedModel = "mxbai-embed-large"
+		m.EmbedModel = "qwen3-embedding"
 		m.EmbedMinScore = "0.5"
 	}
 

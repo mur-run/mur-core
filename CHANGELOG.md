@@ -2,12 +2,24 @@
 
 All notable changes to mur-core will be documented in this file.
 
+## [1.12.0] - 2026-02-22
+
+### Changed
+- **🔄 Default embedding model: `qwen3-embedding`** — Upgraded from `mxbai-embed-large` to Qwen3-Embedding-0.6B:
+  - MTEB score: 70.7 vs 64.7 (significantly better retrieval quality)
+  - 100+ language support including Chinese (mxbai was English-only)
+  - Cross-lingual semantic matching (e.g., EN↔CN pattern retrieval)
+  - Same 1024 dimensions, smaller model size (639MB vs 669MB)
+  - Instruction-aware embedding for better task-specific results
+  - Backward compatible: existing `mxbai-embed-large` users unaffected
+  - Run `mur index rebuild` after switching models
+
 ## [1.10.0] - 2026-02-21
 
 ### Added
 - **☁️ Cloud-first model setup** — `mur init` now offers interactive model selection:
   - ☁️ Cloud (recommended): OpenAI for embedding + extraction (~$0.02/month)
-  - 🏠 Local: Ollama with mxbai-embed-large + llama3.2:3b (free)
+  - 🏠 Local: Ollama with qwen3-embedding + llama3.2:3b (free)
   - 🔧 Custom: mix & match OpenAI, Gemini, Claude, Voyage, Ollama
 
 - **🔍 Major search quality improvements:**

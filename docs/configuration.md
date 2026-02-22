@@ -80,7 +80,7 @@ cache:
 | **OpenAI** | `text-embedding-3-small` | $0.02/1M tokens | ⭐⭐⭐⭐ | `api_key_env: OPENAI_API_KEY` |
 | **Google** | `text-embedding-004` | Free tier | ⭐⭐⭐⭐ | `api_key_env: GEMINI_API_KEY` |
 | **Voyage** | `voyage-3-large` | $0.18/1M tokens | ⭐⭐⭐⭐⭐ | `api_key_env: VOYAGE_API_KEY` |
-| **Ollama** | `mxbai-embed-large` | Free | ⭐⭐⭐ | `ollama_url: http://localhost:11434` |
+| **Ollama** | `qwen3-embedding` | Free | ⭐⭐⭐ | `ollama_url: http://localhost:11434` |
 
 ## LLM Providers (Extraction & Expansion)
 
