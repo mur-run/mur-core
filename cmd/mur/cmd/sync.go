@@ -86,7 +86,6 @@ func runSync(cmd *cobra.Command, args []string) error {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutDur)
 	defer cancel()
-	_ = ctx // TODO: pass to sync functions
 
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -158,6 +157,9 @@ func runSync(cmd *cobra.Command, args []string) error {
 
 	// Execute cloud sync
 	if useCloud {
+		if err := ctx.Err(); err != nil {
+			return fmt.Errorf("timeout exceeded: %w", err)
+		}
 		if err := runCloudSync(cmd, cfg); err != nil {
 			if !syncQuiet {
 				fmt.Printf("⚠️  Cloud sync failed: %v\n", err)
@@ -171,7 +173,10 @@ func runSync(cmd *cobra.Command, args []string) error {
 
 	// Execute git sync
 	if useGit {
-		if err := runGitSync(home, cfg); err != nil {
+		if err := ctx.Err(); err != nil {
+			return fmt.Errorf("timeout exceeded: %w", err)
+		}
+		if err := runGitSync(ctx, home, cfg); err != nil {
 			if !syncQuiet {
 				fmt.Printf("⚠️  Git sync failed: %v\n", err)
 			}
@@ -263,7 +268,7 @@ func runCloudSync(cmd *cobra.Command, cfg *config.Config) error {
 }
 
 // runGitSync executes git-based sync
-func runGitSync(home string, cfg *config.Config) error {
+func runGitSync(ctx context.Context, home string, cfg *config.Config) error {
 	patternsDir := filepath.Join(home, ".mur", "repo")
 	gitDir := filepath.Join(patternsDir, ".git")
 
@@ -274,7 +279,7 @@ func runGitSync(home string, cfg *config.Config) error {
 	if !syncQuiet {
 		fmt.Println("Pulling from remote...")
 	}
-	pullCmd := exec.Command("git", "-C", patternsDir, "pull", "--rebase")
+	pullCmd := exec.CommandContext(ctx, "git", "-C", patternsDir, "pull", "--rebase")
 	if !syncQuiet {
 		pullCmd.Stdout = os.Stdout
 		pullCmd.Stderr = os.Stderr
@@ -295,16 +300,16 @@ func runGitSync(home string, cfg *config.Config) error {
 			fmt.Println("Pushing to remote...")
 		}
 
-		addCmd := exec.Command("git", "-C", patternsDir, "add", "-A")
+		addCmd := exec.CommandContext(ctx, "git", "-C", patternsDir, "add", "-A")
 		_ = addCmd.Run()
 
-		diffCmd := exec.Command("git", "-C", patternsDir, "diff", "--cached", "--quiet")
+		diffCmd := exec.CommandContext(ctx, "git", "-C", patternsDir, "diff", "--cached", "--quiet")
 		if diffCmd.Run() != nil {
-			commitCmd := exec.Command("git", "-C", patternsDir, "commit", "-m", "mur: sync patterns")
+			commitCmd := exec.CommandContext(ctx, "git", "-C", patternsDir, "commit", "-m", "mur: sync patterns")
 			_ = commitCmd.Run()
 		}
 
-		pushCmd := exec.Command("git", "-C", patternsDir, "push")
+		pushCmd := exec.CommandContext(ctx, "git", "-C", patternsDir, "push")
 		if !syncQuiet {
 			pushCmd.Stdout = os.Stdout
 			pushCmd.Stderr = os.Stderr
