@@ -74,34 +74,39 @@ func InstallClaudeCodeHooks(enableSearch bool) error {
 
 	// Create default hook scripts (only if they don't exist)
 	stopScript := filepath.Join(hooksDir, "on-stop.sh")
-	if _, err := os.Stat(stopScript); os.IsNotExist(err) {
+	if shouldUpgradeHook(stopScript) {
 		content := fmt.Sprintf(`#!/bin/bash
-# Extract patterns from session using LLM (auto-save high confidence ones)
-%s learn extract --llm --auto --accept-all --quiet 2>/dev/null || true
-
-# Sync patterns to all CLIs
+# mur-managed-hook v%d
+# Lightweight sync (blocking, fast)
 %s sync --quiet 2>/dev/null || true
-`, murBin, murBin)
+
+# LLM extract in background (non-blocking)
+(%s learn extract --llm --auto --accept-all --quiet 2>/dev/null &) || true
+
+# Load user customizations if they exist
+[ -f ~/.mur/hooks/on-stop.local.sh ] && source ~/.mur/hooks/on-stop.local.sh
+`, CurrentHookVersion, murBin, murBin)
 		if err := os.WriteFile(stopScript, []byte(content), 0755); err != nil {
 			return fmt.Errorf("cannot write on-stop.sh: %w", err)
 		}
-		fmt.Printf("  + Created %s\n", stopScript)
+		fmt.Printf("  + Created/upgraded %s (v%d)\n", stopScript, CurrentHookVersion)
 	} else {
-		fmt.Printf("  ~ Kept existing %s\n", stopScript)
+		fmt.Printf("  ~ Kept existing %s (v%d)\n", stopScript, parseHookVersion(stopScript))
 	}
 
 	promptScript := filepath.Join(hooksDir, "on-prompt.sh")
-	if _, err := os.Stat(promptScript); os.IsNotExist(err) {
+	if shouldUpgradeHook(promptScript) {
 		content := fmt.Sprintf(`#!/bin/bash
+# mur-managed-hook v%d
 # Inject context-aware patterns based on current project
 %s context --compact 2>/dev/null || true
-`, murBin)
+`, CurrentHookVersion, murBin)
 		if err := os.WriteFile(promptScript, []byte(content), 0755); err != nil {
 			return fmt.Errorf("cannot write on-prompt.sh: %w", err)
 		}
-		fmt.Printf("  + Created %s\n", promptScript)
+		fmt.Printf("  + Created/upgraded %s (v%d)\n", promptScript, CurrentHookVersion)
 	} else {
-		fmt.Printf("  ~ Kept existing %s\n", promptScript)
+		fmt.Printf("  ~ Kept existing %s (v%d)\n", promptScript, parseHookVersion(promptScript))
 	}
 
 	reminderFile := filepath.Join(hooksDir, "on-prompt-reminder.md")
