@@ -2,11 +2,48 @@
 package hooks
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"strconv"
 )
+
+// CurrentHookVersion is the version of mur-managed hook scripts.
+// Bump this when the hook template changes to trigger auto-upgrade.
+const CurrentHookVersion = 1
+
+var hookVersionRe = regexp.MustCompile(`#\s*mur-managed-hook\s+v(\d+)`)
+
+// parseHookVersion reads the first 5 lines of a file looking for
+// "# mur-managed-hook v<N>" and returns N. Returns 0 if not found.
+func parseHookVersion(path string) int {
+	f, err := os.Open(path)
+	if err != nil {
+		return 0
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	for i := 0; i < 5 && scanner.Scan(); i++ {
+		if m := hookVersionRe.FindStringSubmatch(scanner.Text()); len(m) == 2 {
+			v, _ := strconv.Atoi(m[1])
+			return v
+		}
+	}
+	return 0
+}
+
+// shouldUpgradeHook returns true if the hook file doesn't exist or has
+// a version older than CurrentHookVersion.
+func shouldUpgradeHook(path string) bool {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return true
+	}
+	return parseHookVersion(path) < CurrentHookVersion
+}
 
 // findMurBinary finds the mur binary path.
 func findMurBinary() (string, error) {

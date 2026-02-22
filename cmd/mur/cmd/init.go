@@ -660,13 +660,17 @@ Only save if: it required discovery, it helps future tasks, and it's verified.
 
 	// Create on-stop.sh
 	stopScriptPath := filepath.Join(murDir, "hooks", "on-stop.sh")
-	stopScript := `#!/bin/bash
-# Extract patterns from session using LLM (auto-save high confidence ones)
-mur learn extract --llm --auto --accept-all --quiet 2>/dev/null || true
-
-# Sync patterns to all CLIs
+	stopScript := fmt.Sprintf(`#!/bin/bash
+# mur-managed-hook v%d
+# Lightweight sync (blocking, fast)
 mur sync --quiet 2>/dev/null || true
-`
+
+# LLM extract in background (non-blocking)
+(mur learn extract --llm --auto --accept-all --quiet 2>/dev/null &) || true
+
+# Load user customizations if they exist
+[ -f ~/.mur/hooks/on-stop.local.sh ] && source ~/.mur/hooks/on-stop.local.sh
+`, murhooks.CurrentHookVersion)
 	if err := os.WriteFile(stopScriptPath, []byte(stopScript), 0755); err != nil {
 		return err
 	}

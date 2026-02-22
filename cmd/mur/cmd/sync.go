@@ -1,14 +1,17 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
+	"github.com/mur-run/mur-core/internal/async"
 	"github.com/mur-run/mur-core/internal/cache"
 	"github.com/mur-run/mur-core/internal/cloud"
 	"github.com/mur-run/mur-core/internal/config"
@@ -25,6 +28,8 @@ var (
 	syncCloud    bool
 	syncGit      bool
 	syncCLI      bool
+	syncAsync    bool
+	syncTimeout  string
 )
 
 var syncCmd = &cobra.Command{
@@ -60,9 +65,29 @@ func init() {
 	syncCmd.Flags().BoolVar(&syncQuiet, "quiet", false, "Silent mode (minimal output)")
 	syncCmd.Flags().StringVar(&syncFormat, "format", "", "CLI sync format: directory (default) or single")
 	syncCmd.Flags().BoolVar(&syncCleanOld, "clean-old", false, "Remove old single-file format files")
+	syncCmd.Flags().BoolVar(&syncAsync, "async", false, "Run in background (detached process, parent exits immediately)")
+	syncCmd.Flags().StringVar(&syncTimeout, "timeout", "", "Timeout duration (e.g. '30s', '2m'). Default: 30s")
 }
 
 func runSync(cmd *cobra.Command, args []string) error {
+	// --async: re-exec as detached background process
+	if syncAsync {
+		return async.RunBackground(os.Args[1:])
+	}
+
+	// --timeout: context with deadline
+	timeoutDur := 30 * time.Second // default
+	if syncTimeout != "" {
+		d, err := time.ParseDuration(syncTimeout)
+		if err != nil {
+			return fmt.Errorf("invalid --timeout value %q: %w", syncTimeout, err)
+		}
+		timeoutDur = d
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeoutDur)
+	defer cancel()
+	_ = ctx // TODO: pass to sync functions
+
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return err
