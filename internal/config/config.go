@@ -28,11 +28,11 @@ type Config struct {
 	Team          TeamConfig          `yaml:"team,omitempty"`
 	Server        ServerConfig        `yaml:"server,omitempty"`
 	Notifications NotificationsConfig `yaml:"notifications,omitempty"`
-	TechStack     []string            `yaml:"tech_stack,omitempty"` // User's tech stack for filtering (e.g., ["swift", "go", "docker"])
-	Cache         CacheConfig         `yaml:"cache,omitempty"`      // Local cache settings
-	Community      CommunityConfig      `yaml:"community,omitempty"`      // Community sharing settings
-	Privacy        PrivacyConfig        `yaml:"privacy,omitempty"`        // Privacy & PII protection settings
-	Consolidation  ConsolidationConfig  `yaml:"consolidation,omitempty"`  // Pattern consolidation settings
+	TechStack     []string            `yaml:"tech_stack,omitempty"`    // User's tech stack for filtering (e.g., ["swift", "go", "docker"])
+	Cache         CacheConfig         `yaml:"cache,omitempty"`         // Local cache settings
+	Community     CommunityConfig     `yaml:"community,omitempty"`     // Community sharing settings
+	Privacy       PrivacyConfig       `yaml:"privacy,omitempty"`       // Privacy & PII protection settings
+	Consolidation ConsolidationConfig `yaml:"consolidation,omitempty"` // Pattern consolidation settings
 }
 
 // CacheConfig represents local cache settings for community patterns.
@@ -42,9 +42,9 @@ type CacheConfig struct {
 
 // CommunityConfig represents community sharing settings.
 type CommunityConfig struct {
-	ShareEnabled    bool `yaml:"share_enabled,omitempty"`     // Enable community sharing
+	ShareEnabled    bool `yaml:"share_enabled,omitempty"`      // Enable community sharing
 	AutoShareOnPush bool `yaml:"auto_share_on_push,omitempty"` // Auto-share when pushing
-	ShareExtracted  bool `yaml:"share_extracted,omitempty"`   // Share extracted patterns (may contain secrets)
+	ShareExtracted  bool `yaml:"share_extracted,omitempty"`    // Share extracted patterns (may contain secrets)
 }
 
 // DefaultCommunityConfig returns default community settings.
@@ -58,10 +58,10 @@ func DefaultCommunityConfig() CommunityConfig {
 
 // PrivacyConfig represents privacy and PII protection settings.
 type PrivacyConfig struct {
-	RedactTerms            []string                      `yaml:"redact_terms,omitempty"`             // Terms to always redact
-	Replacements           map[string]string             `yaml:"replacements,omitempty"`             // Custom replacement mappings
-	AutoDetect             AutoDetectConfig              `yaml:"auto_detect,omitempty"`              // Auto-detection toggles
-	SemanticAnonymization  SemanticAnonymizationConfig   `yaml:"semantic_anonymization,omitempty"`   // LLM-based anonymization
+	RedactTerms           []string                    `yaml:"redact_terms,omitempty"`           // Terms to always redact
+	Replacements          map[string]string           `yaml:"replacements,omitempty"`           // Custom replacement mappings
+	AutoDetect            AutoDetectConfig            `yaml:"auto_detect,omitempty"`            // Auto-detection toggles
+	SemanticAnonymization SemanticAnonymizationConfig `yaml:"semantic_anonymization,omitempty"` // LLM-based anonymization
 }
 
 // SemanticAnonymizationConfig controls LLM-based semantic anonymization.
@@ -76,10 +76,10 @@ type SemanticAnonymizationConfig struct {
 // AutoDetectConfig controls which PII types are auto-detected.
 type AutoDetectConfig struct {
 	Emails       *bool `yaml:"emails,omitempty"`        // Detect email addresses (default: true)
-	InternalIPs  *bool `yaml:"internal_ips,omitempty"`   // Detect internal IPs (default: true)
-	FilePaths    *bool `yaml:"file_paths,omitempty"`     // Detect user file paths (default: true)
-	PhoneNumbers *bool `yaml:"phone_numbers,omitempty"`  // Detect phone numbers (default: true)
-	InternalURLs *bool `yaml:"internal_urls,omitempty"`  // Detect internal URLs (default: true)
+	InternalIPs  *bool `yaml:"internal_ips,omitempty"`  // Detect internal IPs (default: true)
+	FilePaths    *bool `yaml:"file_paths,omitempty"`    // Detect user file paths (default: true)
+	PhoneNumbers *bool `yaml:"phone_numbers,omitempty"` // Detect phone numbers (default: true)
+	InternalURLs *bool `yaml:"internal_urls,omitempty"` // Detect internal URLs (default: true)
 }
 
 // IsEmailsEnabled returns whether email detection is enabled (default: true).
@@ -145,10 +145,10 @@ func DefaultPrivacyConfig() PrivacyConfig {
 // ConsolidationConfig represents pattern consolidation settings.
 type ConsolidationConfig struct {
 	Enabled              bool    `yaml:"enabled,omitempty"`
-	Schedule             string  `yaml:"schedule,omitempty"`                // daily | weekly | monthly
+	Schedule             string  `yaml:"schedule,omitempty"` // daily | weekly | monthly
 	AutoArchive          bool    `yaml:"auto_archive,omitempty"`
-	AutoMerge            string  `yaml:"auto_merge,omitempty"`              // off | keep-best | llm-merge
-	MergeThreshold       float64 `yaml:"merge_threshold,omitempty"`         // cosine similarity threshold
+	AutoMerge            string  `yaml:"auto_merge,omitempty"`      // off | keep-best | llm-merge
+	MergeThreshold       float64 `yaml:"merge_threshold,omitempty"` // cosine similarity threshold
 	DecayHalfLifeDays    int     `yaml:"decay_half_life_days,omitempty"`
 	GracePeriodDays      int     `yaml:"grace_period_days,omitempty"`
 	MinPatternsBeforeRun int     `yaml:"min_patterns_before_run,omitempty"`
@@ -634,8 +634,8 @@ func defaultConfig() *Config {
 			ComplexityThreshold: 0.5,
 		},
 		Learning: LearningConfig{
-			AutoExtract:  true,
-			SyncToTools:  true,
+			AutoExtract: true,
+			SyncToTools: true,
 			LLM: LLMConfig{
 				Provider: "ollama",
 				Model:    "llama3.2:3b",

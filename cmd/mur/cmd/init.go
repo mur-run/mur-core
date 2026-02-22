@@ -321,10 +321,10 @@ func detectCLIs() []cliTool {
 
 // modelSetup holds the user's model provider choices.
 type modelSetup struct {
-	Mode         string // "cloud", "local", "custom"
-	LLMProvider  string // "openai", "gemini", "claude", "ollama"
-	LLMModel     string
-	LLMAPIKeyEnv string
+	Mode           string // "cloud", "local", "custom"
+	LLMProvider    string // "openai", "gemini", "claude", "ollama"
+	LLMModel       string
+	LLMAPIKeyEnv   string
 	EmbedProvider  string // "openai", "ollama", "google", "voyage"
 	EmbedModel     string
 	EmbedAPIKeyEnv string
