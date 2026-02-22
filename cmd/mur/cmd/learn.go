@@ -2,13 +2,16 @@ package cmd
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
+	"github.com/mur-run/mur-core/internal/async"
 	"github.com/mur-run/mur-core/internal/config"
 	"github.com/mur-run/mur-core/internal/learn"
 	"github.com/mur-run/mur-core/internal/learning"
@@ -281,6 +284,30 @@ When --auto is specified, these defaults apply:
   --strict      (use --no-strict to override)
   --accept-all  (use --interactive to override)`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// --async: re-exec as detached background process
+		asyncMode, _ := cmd.Flags().GetBool("async")
+		if asyncMode {
+			return async.RunBackground(os.Args[1:])
+		}
+
+		// --timeout: wrap in context with deadline
+		timeoutStr, _ := cmd.Flags().GetString("timeout")
+		var ctx context.Context
+		var cancel context.CancelFunc
+		if timeoutStr != "" {
+			d, err := time.ParseDuration(timeoutStr)
+			if err != nil {
+				return fmt.Errorf("invalid --timeout value %q: %w", timeoutStr, err)
+			}
+			ctx, cancel = context.WithTimeout(context.Background(), d)
+			defer cancel()
+		} else {
+			// Default timeout for extract: 2 minutes
+			ctx, cancel = context.WithTimeout(context.Background(), 2*time.Minute)
+			defer cancel()
+		}
+		_ = ctx // will be used when we pass context to extract functions
+
 		sessionID, _ := cmd.Flags().GetString("session")
 		auto, _ := cmd.Flags().GetBool("auto")
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
@@ -1227,6 +1254,8 @@ func init() {
 	learnExtractCmd.Flags().StringP("llm", "l", "", "LLM provider: ollama, claude, openai, gemini (default from config)")
 	learnExtractCmd.Flags().Lookup("llm").NoOptDefVal = "default" // --llm without value uses config default
 	learnExtractCmd.Flags().String("llm-model", "", "LLM model (default from config)")
+	learnExtractCmd.Flags().Bool("async", false, "Run in background (detached process, parent exits immediately)")
+	learnExtractCmd.Flags().String("timeout", "", "Timeout duration (e.g. '30s', '2m'). Default: 2m")
 
 	learnPushCmd.Flags().Bool("auto-merge", false, "Check and create PRs for high-confidence patterns after push")
 	learnPushCmd.Flags().Bool("dry-run", false, "Preview auto-merge without creating PRs")
