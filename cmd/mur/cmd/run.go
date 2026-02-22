@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -32,7 +33,7 @@ Use -t to override automatic selection.
 
 Examples:
   mur run -p "what is git?"              # Auto-routes to free tool
-  mur run -p "refactor this module"      # Auto-routes to paid tool  
+  mur run -p "refactor this module"      # Auto-routes to paid tool
   mur run -p "explain x" -t claude       # Force specific tool
   mur run -p "test" --explain            # Show routing decision only
   mur run -p "fix bug" --no-inject       # Skip pattern injection`,
@@ -45,6 +46,21 @@ func runExecute(cmd *cobra.Command, args []string) error {
 	explain, _ := cmd.Flags().GetBool("explain")
 	noInject, _ := cmd.Flags().GetBool("no-inject")
 	verbose, _ := cmd.Flags().GetBool("verbose")
+	timeoutStr, _ := cmd.Flags().GetString("timeout")
+
+	// --timeout: create context with deadline (no default = unlimited)
+	var ctx context.Context
+	var cancel context.CancelFunc
+	if timeoutStr != "" {
+		d, err := time.ParseDuration(timeoutStr)
+		if err != nil {
+			return fmt.Errorf("invalid --timeout value %q: %w", timeoutStr, err)
+		}
+		ctx, cancel = context.WithTimeout(context.Background(), d)
+		defer cancel()
+	} else {
+		ctx = context.Background()
+	}
 
 	if prompt == "" {
 		return fmt.Errorf("prompt is required. Use -p \"your prompt\"")
@@ -186,7 +202,7 @@ func runExecute(cmd *cobra.Command, args []string) error {
 
 	// Execute the tool and track stats
 	startTime := time.Now()
-	execCmd := exec.Command(binPath, cmdArgs...)
+	execCmd := exec.CommandContext(ctx, binPath, cmdArgs...)
 	execCmd.Stdin = os.Stdin
 	execCmd.Stdout = os.Stdout
 	execCmd.Stderr = os.Stderr
@@ -234,4 +250,5 @@ func init() {
 	runCmd.Flags().Bool("explain", false, "Show routing decision without executing")
 	runCmd.Flags().Bool("no-inject", false, "Disable automatic pattern injection")
 	runCmd.Flags().BoolP("verbose", "V", false, "Show pattern injection details")
+	runCmd.Flags().String("timeout", "", "Timeout duration (e.g. '30s', '5m'). Default: unlimited")
 }

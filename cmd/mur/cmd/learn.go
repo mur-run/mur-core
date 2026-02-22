@@ -306,7 +306,6 @@ When --auto is specified, these defaults apply:
 			ctx, cancel = context.WithTimeout(context.Background(), 2*time.Minute)
 			defer cancel()
 		}
-		_ = ctx // will be used when we pass context to extract functions
 
 		sessionID, _ := cmd.Flags().GetString("session")
 		auto, _ := cmd.Flags().GetBool("auto")
@@ -352,19 +351,19 @@ When --auto is specified, these defaults apply:
 
 		// LLM mode
 		if llm != "" {
-			return runExtractLLM(sessionID, llm, llmModel, dryRun, acceptAll, quiet, strict, minConfidence)
+			return runExtractLLM(ctx, sessionID, llm, llmModel, dryRun, acceptAll, quiet, strict, minConfidence)
 		}
 
 		if auto {
-			return runExtractAuto(dryRun, acceptAll, quiet, minConfidence)
+			return runExtractAuto(ctx, dryRun, acceptAll, quiet, minConfidence)
 		}
 
 		if sessionID != "" {
-			return runExtractSession(sessionID, dryRun, acceptAll, minConfidence)
+			return runExtractSession(ctx, sessionID, dryRun, acceptAll, minConfidence)
 		}
 
 		// Interactive mode: list sessions and let user choose
-		return runExtractInteractive(dryRun)
+		return runExtractInteractive(ctx, dryRun)
 	},
 }
 
@@ -585,7 +584,7 @@ shared patterns from main (if pull_from_main is enabled).`,
 	},
 }
 
-func runExtractAuto(dryRun, acceptAll, quiet bool, minConfidence float64) error {
+func runExtractAuto(ctx context.Context, dryRun, acceptAll, quiet bool, minConfidence float64) error {
 	if minConfidence == 0 {
 		minConfidence = 0.6 // Default threshold for auto-accept
 	}
@@ -612,6 +611,9 @@ func runExtractAuto(dryRun, acceptAll, quiet bool, minConfidence float64) error 
 	skippedCount := 0
 
 	for _, session := range sessions {
+		if err := ctx.Err(); err != nil {
+			return fmt.Errorf("timeout exceeded: %w", err)
+		}
 		patterns, err := learn.ExtractFromSession(session.Path)
 		if err != nil {
 			continue
@@ -718,7 +720,7 @@ func runExtractAuto(dryRun, acceptAll, quiet bool, minConfidence float64) error 
 	return nil
 }
 
-func runExtractLLM(sessionID, provider, model string, dryRun, acceptAll, quiet, strict bool, minConfidence float64) error {
+func runExtractLLM(ctx context.Context, sessionID, provider, model string, dryRun, acceptAll, quiet, strict bool, minConfidence float64) error {
 	// Setup quality config for strict mode
 	qualityCfg := learn.DefaultExtractionConfig()
 
@@ -804,7 +806,7 @@ func runExtractLLM(sessionID, provider, model string, dryRun, acceptAll, quiet, 
 			fmt.Fprintln(os.Stderr, "⚠️  No LLM available (Ollama not running, no API keys)")
 			fmt.Fprintln(os.Stderr, "   Falling back to keyword extraction (lower quality)")
 			// Call keyword-based extraction instead
-			return runExtractAuto(dryRun, acceptAll, quiet, minConfidence)
+			return runExtractAuto(ctx, dryRun, acceptAll, quiet, minConfidence)
 		}
 	}
 
@@ -814,7 +816,7 @@ func runExtractLLM(sessionID, provider, model string, dryRun, acceptAll, quiet, 
 		if !learn.CheckOllamaAvailable(opts.OllamaURL) {
 			// Always warn (even in quiet mode)
 			fmt.Fprintln(os.Stderr, "⚠️  Ollama not available, falling back to keyword extraction")
-			return runExtractAuto(dryRun, acceptAll, quiet, minConfidence)
+			return runExtractAuto(ctx, dryRun, acceptAll, quiet, minConfidence)
 		}
 	case learn.LLMClaude:
 		if opts.ClaudeKey == "" {
@@ -924,6 +926,9 @@ func runExtractLLM(sessionID, provider, model string, dryRun, acceptAll, quiet, 
 	var lastError string
 
 	for _, session := range sessions {
+		if err := ctx.Err(); err != nil {
+			return fmt.Errorf("timeout exceeded: %w", err)
+		}
 		// Stop if we get too many consecutive errors (likely config issue)
 		if consecutiveErrors >= 3 {
 			errMsg := fmt.Sprintf("LLM Error: %s", lastError)
@@ -1079,7 +1084,7 @@ func runExtractLLM(sessionID, provider, model string, dryRun, acceptAll, quiet, 
 	return nil
 }
 
-func runExtractSession(sessionID string, dryRun, acceptAll bool, minConfidence float64) error {
+func runExtractSession(_ context.Context, sessionID string, dryRun, acceptAll bool, minConfidence float64) error {
 	session, err := learn.LoadSession(sessionID)
 	if err != nil {
 		return fmt.Errorf("failed to load session: %w", err)
@@ -1146,7 +1151,7 @@ func runExtractSession(sessionID string, dryRun, acceptAll bool, minConfidence f
 	return nil
 }
 
-func runExtractInteractive(dryRun bool) error {
+func runExtractInteractive(ctx context.Context, dryRun bool) error {
 	sessions, err := learn.ListSessions()
 	if err != nil {
 		return fmt.Errorf("failed to list sessions: %w", err)
@@ -1195,7 +1200,7 @@ func runExtractInteractive(dryRun bool) error {
 	fmt.Println("")
 
 	// In interactive mode, don't auto-accept (user chose to interact)
-	return runExtractSession(selected.ID, dryRun, false, 0.6)
+	return runExtractSession(ctx, selected.ID, dryRun, false, 0.6)
 }
 
 func displayExtractedPattern(ep learn.ExtractedPattern) {
