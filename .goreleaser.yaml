@@ -26,9 +26,9 @@ builds:
         goarch: arm64
     ldflags:
       - -s -w
-      - -X main.version={{.Version}}
-      - -X main.commit={{.Commit}}
-      - -X main.date={{.Date}}
+      - -X github.com/mur-run/mur-core/cmd/mur/cmd.Version={{.Version}}
+      - -X github.com/mur-run/mur-core/cmd/mur/cmd.Commit={{.Commit}}
+      - -X github.com/mur-run/mur-core/cmd/mur/cmd.BuildDate={{.Date}}
 
 archives:
   - id: default

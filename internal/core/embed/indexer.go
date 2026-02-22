@@ -321,10 +321,7 @@ func buildIndexText(p pattern.Pattern) string {
 	parts = append(parts, p.Name)
 
 	// Tags
-	var tags []string
-	for _, t := range p.Tags.Confirmed {
-		tags = append(tags, t)
-	}
+	tags := append([]string{}, p.Tags.Confirmed...)
 	for _, ts := range p.Tags.Inferred {
 		if ts.Confidence >= 0.7 {
 			tags = append(tags, ts.Tag)

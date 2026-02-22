@@ -81,7 +81,7 @@ func outputExecute(cmd *cobra.Command, args []string) error {
 
 	// Build full status
 	status := OutputStatus{
-		Version:   version,
+		Version:   Version,
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
 	}
 

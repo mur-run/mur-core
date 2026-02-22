@@ -25,8 +25,8 @@ type ClaudeCodeHookMatcher struct {
 type ClaudeCodeHooks struct {
 	PreToolUse       map[string][]ClaudeCodeHookMatcher `json:"PreToolUse,omitempty"`
 	PostToolUse      map[string][]ClaudeCodeHookMatcher `json:"PostToolUse,omitempty"`
-	UserPromptSubmit []ClaudeCodeHookMatcher             `json:"UserPromptSubmit,omitempty"`
-	Stop             []ClaudeCodeHookMatcher             `json:"Stop,omitempty"`
+	UserPromptSubmit []ClaudeCodeHookMatcher            `json:"UserPromptSubmit,omitempty"`
+	Stop             []ClaudeCodeHookMatcher            `json:"Stop,omitempty"`
 }
 
 // ClaudeCodeSettings represents the Claude Code settings file.

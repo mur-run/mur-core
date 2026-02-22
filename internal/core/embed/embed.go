@@ -198,11 +198,11 @@ func (e *OpenAIEmbedder) EmbedBatch(texts []string) ([]Vector, error) {
 
 // OllamaEmbedder uses Ollama's local embedding API.
 type OllamaEmbedder struct {
-	endpoint  string
-	model     string
-	client    *http.Client
-	dimCache  int // cached dimension after first embed call
-	dimOnce   sync.Once
+	endpoint string
+	model    string
+	client   *http.Client
+	dimCache int // cached dimension after first embed call
+	dimOnce  sync.Once
 }
 
 // NewOllamaEmbedder creates an Ollama embedder.

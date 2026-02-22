@@ -4,8 +4,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var version = "1.10.0"
-
 var rootCmd = &cobra.Command{
 	Use:   "mur",
 	Short: "Continuous learning for AI assistants",
@@ -20,7 +18,7 @@ Quick start:
   mur stats             # View statistics
 
 Learn more: https://github.com/mur-run/mur-core`,
-	Version: version,
+	Version: Version,
 }
 
 // Execute runs the root command
