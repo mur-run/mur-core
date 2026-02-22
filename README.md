@@ -224,7 +224,7 @@ export OPENAI_API_KEY=sk-...
 mur index rebuild
 
 # Option 2: Local (free, needs Ollama)
-ollama pull mxbai-embed-large
+ollama pull qwen3-embedding
 mur index rebuild
 
 # Search naturally

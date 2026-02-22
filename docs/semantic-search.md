@@ -37,13 +37,13 @@ brew install ollama          # macOS
 
 # Start and pull model
 ollama serve &
-ollama pull mxbai-embed-large
+ollama pull qwen3-embedding
 
 # Build index
 mur index rebuild
 ```
 
-> **Note:** Previous versions used `nomic-embed-text`. We now recommend `mxbai-embed-large` for significantly better search quality (54.4 vs 45.6 on MTEB retrieval benchmarks).
+> **Note:** Previous versions used `nomic-embed-text` or `mxbai-embed-large`. We now recommend `qwen3-embedding` for significantly better search quality (MTEB 70.7 vs 64.7) and 100+ language support including Chinese.
 
 ### Interactive Setup
 
@@ -98,7 +98,8 @@ search:
 | **OpenAI** | `text-embedding-3-large` | $0.13/1M tokens | ⭐⭐⭐⭐⭐ | No |
 | **Google** | `text-embedding-004` | Free tier (1500 req/min) | ⭐⭐⭐⭐ | No |
 | **Voyage** | `voyage-3-large` | $0.18/1M tokens | ⭐⭐⭐⭐⭐ | No |
-| **Ollama** | `mxbai-embed-large` | Free | ⭐⭐⭐ | Local |
+| **Ollama** | `qwen3-embedding` | Free | ⭐⭐⭐⭐ | Local |
+| **Ollama** | `mxbai-embed-large` (legacy) | Free | ⭐⭐⭐ | Local |
 | **Ollama** | `nomic-embed-text` (legacy) | Free | ⭐⭐ | Local |
 
 **Recommended:** `text-embedding-3-small` for best cost/quality ratio. 200 patterns costs ~$0.001.
@@ -159,13 +160,13 @@ export VOYAGE_API_KEY=...
 ```yaml
 search:
   provider: ollama
-  model: mxbai-embed-large
+  model: qwen3-embedding
   ollama_url: http://localhost:11434
   min_score: 0.5
 ```
 
 ```bash
-ollama pull mxbai-embed-large
+ollama pull qwen3-embedding
 ```
 </details>
 
@@ -255,9 +256,9 @@ mur index status
 mur index rebuild
 ```
 
-**Switching from nomic-embed-text to mxbai-embed-large?**
+**Switching from nomic-embed-text or mxbai-embed-large to qwen3-embedding?**
 ```bash
-ollama pull mxbai-embed-large
-# Update config.yaml: model: mxbai-embed-large
-mur index rebuild   # Full rebuild needed (different dimensions)
+ollama pull qwen3-embedding
+# Update config.yaml: model: qwen3-embedding
+mur index rebuild   # Full rebuild needed (different vector space)
 ```

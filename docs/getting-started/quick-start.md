@@ -41,7 +41,7 @@ export OPENAI_API_KEY=sk-...
 **Local mode** uses Ollama (free, no API key needed):
 
 ```bash
-ollama pull mxbai-embed-large   # 669MB, for search
+ollama pull qwen3-embedding   # 639MB, for search
 ollama pull llama3.2:3b          # 2GB, for extraction
 ```
 

@@ -222,6 +222,8 @@ func (e *OllamaEmbedder) Name() string { return "ollama" }
 // knownDimension returns dimension for well-known models, or 0 if unknown.
 func (e *OllamaEmbedder) knownDimension() int {
 	switch {
+	case strings.Contains(e.model, "qwen3-embedding"):
+		return 1024
 	case strings.Contains(e.model, "mxbai-embed-large"):
 		return 1024
 	case strings.Contains(e.model, "nomic-embed"):
@@ -251,13 +253,17 @@ func (e *OllamaEmbedder) Dimension() int {
 }
 
 // QueryPrefix returns the prefix needed for retrieval queries.
-// Some models (like mxbai-embed-large) require a specific prefix for queries
-// but NOT for documents being indexed.
+// Some models (like mxbai-embed-large, qwen3-embedding) require a specific prefix
+// for queries but NOT for documents being indexed.
 func (e *OllamaEmbedder) QueryPrefix() string {
-	if strings.Contains(e.model, "mxbai-embed-large") {
+	switch {
+	case strings.Contains(e.model, "qwen3-embedding"):
+		return "Instruct: Given a search query, retrieve relevant passages that answer the query\nQuery: "
+	case strings.Contains(e.model, "mxbai-embed-large"):
 		return "Represent this sentence for searching relevant passages: "
+	default:
+		return ""
 	}
-	return ""
 }
 
 type ollamaRequest struct {
