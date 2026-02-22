@@ -890,7 +890,7 @@ func askCommunitySharing() {
 			s = strings.ReplaceAll(s, "share_enabled: false", fmt.Sprintf("share_enabled: %t", enabled))
 			s = strings.ReplaceAll(s, "auto_share_on_push: true", fmt.Sprintf("auto_share_on_push: %t", enabled))
 			s = strings.ReplaceAll(s, "auto_share_on_push: false", fmt.Sprintf("auto_share_on_push: %t", enabled))
-			os.WriteFile(configPath, []byte(s), 0644)
+			_ = os.WriteFile(configPath, []byte(s), 0644)
 		}
 	}
 
