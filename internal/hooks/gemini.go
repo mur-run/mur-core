@@ -72,12 +72,20 @@ func InstallGeminiHooks(enableSearch bool) error {
 		hooks["prompt"] = []GeminiHook{
 			{
 				Type:    "command",
-				Command: fmt.Sprintf(`%s search --inject "$PROMPT" 2>/dev/null || true`, murBin),
+				Command: fmt.Sprintf("%s search --inject \"$PROMPT\" 2>/dev/null || true", murBin),
 			},
 		}
 	}
 
-	settings["hooks"] = hooks
+	// Merge mur hooks into existing hooks (preserve user-added hooks)
+	existingHooks, _ := settings["hooks"].(map[string]interface{})
+	if existingHooks == nil {
+		existingHooks = make(map[string]interface{})
+	}
+	for event, h := range hooks {
+		existingHooks[event] = h
+	}
+	settings["hooks"] = existingHooks
 
 	// Ensure .gemini directory exists
 	if err := os.MkdirAll(filepath.Join(home, ".gemini"), 0755); err != nil {

@@ -48,14 +48,10 @@ func InstallAuggieHooks() error {
 
 	settingsPath := filepath.Join(auggieDir, "settings.json")
 
-	// Auggie uses different event names than Claude Code
-	// SessionStart: runs when Auggie starts a new session
-	// Stop: runs when the agent finishes responding
 	hooks := map[string][]AuggieHookMatcher{
 		"SessionStart": {
 			{
 				Hooks: []AuggieHook{
-					// Inject context-aware patterns at session start
 					{Type: "command", Command: fmt.Sprintf("bash %s", promptScriptPath)},
 				},
 			},
@@ -63,7 +59,6 @@ func InstallAuggieHooks() error {
 		"Stop": {
 			{
 				Hooks: []AuggieHook{
-					// Extract patterns and sync when agent stops
 					{Type: "command", Command: fmt.Sprintf("bash %s", stopScriptPath)},
 				},
 			},
@@ -88,8 +83,15 @@ func InstallAuggieHooks() error {
 		}
 	}
 
-	// Set mur hooks (overwrites any existing hooks)
-	settings["hooks"] = hooks
+	// Merge mur hooks into existing hooks (preserve user-added hooks)
+	existingHooks, _ := settings["hooks"].(map[string]interface{})
+	if existingHooks == nil {
+		existingHooks = make(map[string]interface{})
+	}
+	for event, matchers := range hooks {
+		existingHooks[event] = matchers
+	}
+	settings["hooks"] = existingHooks
 
 	// Write settings
 	data, err := json.MarshalIndent(settings, "", "  ")

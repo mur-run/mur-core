@@ -634,19 +634,28 @@ func installClaudeHooks(home, murDir string) error {
 	cfg, _ := config.Load()
 	searchEnabled := cfg != nil && cfg.Search.IsEnabled() && cfg.Search.IsAutoInject()
 
-	// Create on-prompt.sh - injects context-aware patterns
-	promptScriptPath := filepath.Join(murDir, "hooks", "on-prompt.sh")
-	promptScript := `#!/bin/bash
+	hooksDir := filepath.Join(murDir, "hooks")
+
+	// Create on-prompt.sh - injects context-aware patterns (version-managed)
+	promptScriptPath := filepath.Join(hooksDir, "on-prompt.sh")
+	if murhooks.ShouldUpgradeHook(promptScriptPath, initForce) {
+		promptScript := fmt.Sprintf(`#!/bin/bash
+# mur-managed-hook v%d
 # Inject context-aware patterns based on current project
 mur context --compact 2>/dev/null || true
-`
-	if err := os.WriteFile(promptScriptPath, []byte(promptScript), 0755); err != nil {
-		return err
+`, murhooks.CurrentHookVersion)
+		if err := os.WriteFile(promptScriptPath, []byte(promptScript), 0755); err != nil {
+			return err
+		}
+		fmt.Printf("  + Created/upgraded on-prompt.sh (v%d)\n", murhooks.CurrentHookVersion)
+	} else {
+		fmt.Printf("  ~ Kept existing on-prompt.sh (v%d)\n", murhooks.ParseHookVersion(promptScriptPath))
 	}
 
-	// Create on-prompt-reminder.md
-	reminderPath := filepath.Join(murDir, "hooks", "on-prompt-reminder.md")
-	reminderContent := `[ContinuousLearning] If during this task you discover something non-obvious (a debugging technique, a workaround, a pattern), save it:
+	// Create on-prompt-reminder.md (only if missing, no version tracking needed)
+	reminderPath := filepath.Join(hooksDir, "on-prompt-reminder.md")
+	if _, err := os.Stat(reminderPath); os.IsNotExist(err) || initForce {
+		reminderContent := `[ContinuousLearning] If during this task you discover something non-obvious (a debugging technique, a workaround, a pattern), save it:
 
   mur learn add --name "pattern-name" --content "description"
 
@@ -654,13 +663,15 @@ Or create a file in ~/.mur/patterns/
 
 Only save if: it required discovery, it helps future tasks, and it's verified.
 `
-	if err := os.WriteFile(reminderPath, []byte(reminderContent), 0644); err != nil {
-		return err
+		if err := os.WriteFile(reminderPath, []byte(reminderContent), 0644); err != nil {
+			return err
+		}
 	}
 
-	// Create on-stop.sh
-	stopScriptPath := filepath.Join(murDir, "hooks", "on-stop.sh")
-	stopScript := fmt.Sprintf(`#!/bin/bash
+	// Create on-stop.sh (version-managed)
+	stopScriptPath := filepath.Join(hooksDir, "on-stop.sh")
+	if murhooks.ShouldUpgradeHook(stopScriptPath, initForce) {
+		stopScript := fmt.Sprintf(`#!/bin/bash
 # mur-managed-hook v%d
 # Lightweight sync (blocking, fast)
 mur sync --quiet 2>/dev/null || true
@@ -671,11 +682,15 @@ mur sync --quiet 2>/dev/null || true
 # Load user customizations if they exist
 [ -f ~/.mur/hooks/on-stop.local.sh ] && source ~/.mur/hooks/on-stop.local.sh
 `, murhooks.CurrentHookVersion)
-	if err := os.WriteFile(stopScriptPath, []byte(stopScript), 0755); err != nil {
-		return err
+		if err := os.WriteFile(stopScriptPath, []byte(stopScript), 0755); err != nil {
+			return err
+		}
+		fmt.Printf("  + Created/upgraded on-stop.sh (v%d)\n", murhooks.CurrentHookVersion)
+	} else {
+		fmt.Printf("  ~ Kept existing on-stop.sh (v%d)\n", murhooks.ParseHookVersion(stopScriptPath))
 	}
 
-	// Update Claude settings
+	// Update Claude settings (merge, not overwrite)
 	claudeSettingsPath := filepath.Join(home, ".claude", "settings.json")
 
 	// Build UserPromptSubmit hooks
@@ -695,7 +710,7 @@ mur sync --quiet 2>/dev/null || true
 		fmt.Println("  + Added semantic search hook (auto-inject enabled)")
 	}
 
-	hooks := map[string]interface{}{
+	murHooks := map[string]interface{}{
 		"UserPromptSubmit": []map[string]interface{}{
 			{
 				"matcher": "",
@@ -728,8 +743,8 @@ mur sync --quiet 2>/dev/null || true
 		}
 	}
 
-	// Set mur hooks (overwrites any existing hooks to ensure correct paths)
-	settings["hooks"] = hooks
+	// Merge mur hooks into existing hooks (preserve user-added hooks)
+	settings["hooks"] = mergeHooksIntoSettings(settings["hooks"], murHooks)
 
 	data, _ := json.MarshalIndent(settings, "", "  ")
 	if err := os.WriteFile(claudeSettingsPath, data, 0644); err != nil {
@@ -787,8 +802,8 @@ func installGeminiHooks(home, promptScriptPath, stopScriptPath string) error {
 		}
 	}
 
-	// Set mur hooks (overwrites any existing hooks)
-	settings["hooks"] = hooks
+	// Merge mur hooks into existing hooks (preserve user-added hooks)
+	settings["hooks"] = mergeHooksIntoSettings(settings["hooks"], hooks)
 
 	data, _ := json.MarshalIndent(settings, "", "  ")
 	if err := os.WriteFile(geminiSettingsPath, data, 0644); err != nil {
@@ -802,7 +817,10 @@ func installGeminiHooks(home, promptScriptPath, stopScriptPath string) error {
 
 	// Install Claude Code hooks
 	if murhooks.ClaudeCodeInstalled() {
-		if err := murhooks.InstallClaudeCodeHooks(initSearchHooks); err != nil {
+		if err := murhooks.InstallClaudeCodeHooksWithOptions(murhooks.HookOptions{
+			EnableSearch: initSearchHooks,
+			Force:        initForce,
+		}); err != nil {
 			fmt.Printf("  ⚠ Claude Code hooks: %v\n", err)
 		} else {
 			if initSearchHooks {
@@ -903,4 +921,68 @@ func askCommunitySharing() {
 		fmt.Println("  Enable anytime: mur config set community.share_enabled true")
 	}
 	fmt.Println()
+}
+
+// mergeHooksIntoSettings merges mur-managed hooks into existing settings hooks,
+// preserving any user-added hooks (non-mur matchers). For each event type,
+// mur-managed matchers (identified by empty matcher or mur command references)
+// are replaced, while user matchers are preserved.
+func mergeHooksIntoSettings(existing interface{}, murHooks map[string]interface{}) map[string]interface{} {
+	existingMap, _ := existing.(map[string]interface{})
+	if existingMap == nil {
+		existingMap = make(map[string]interface{})
+	}
+
+	for event, murMatchers := range murHooks {
+		existingMatchers, _ := existingMap[event].([]interface{})
+		existingMap[event] = mergeEventMatchers(existingMatchers, murMatchers)
+	}
+
+	return existingMap
+}
+
+// mergeEventMatchers keeps non-mur matchers from existing and replaces/adds mur matchers.
+func mergeEventMatchers(existing []interface{}, murMatchers interface{}) interface{} {
+	// Keep non-mur matchers from existing hooks
+	var kept []interface{}
+	for _, m := range existing {
+		matcher, ok := m.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		matcherStr, _ := matcher["matcher"].(string)
+		if matcherStr != "" && !isMurMatcherGeneric(matcher) {
+			kept = append(kept, m)
+		}
+	}
+
+	// Add mur matchers
+	switch v := murMatchers.(type) {
+	case []map[string]interface{}:
+		for _, m := range v {
+			kept = append(kept, m)
+		}
+	case []interface{}:
+		kept = append(kept, v...)
+	}
+
+	return kept
+}
+
+// isMurMatcherGeneric checks if a matcher (as map[string]interface{}) was created by mur.
+func isMurMatcherGeneric(matcher map[string]interface{}) bool {
+	hooks, _ := matcher["hooks"].([]interface{})
+	for _, h := range hooks {
+		hook, _ := h.(map[string]interface{})
+		if hook == nil {
+			continue
+		}
+		cmd, _ := hook["command"].(string)
+		if strings.Contains(cmd, ".mur/") ||
+			strings.Contains(cmd, "mur ") ||
+			strings.HasPrefix(cmd, "mur\t") {
+			return true
+		}
+	}
+	return false
 }
