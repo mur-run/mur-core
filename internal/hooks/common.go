@@ -39,10 +39,25 @@ func parseHookVersion(path string) int {
 // shouldUpgradeHook returns true if the hook file doesn't exist or has
 // a version older than CurrentHookVersion.
 func shouldUpgradeHook(path string) bool {
+	return ShouldUpgradeHook(path, false)
+}
+
+// ShouldUpgradeHook returns true if the hook file should be overwritten.
+// If force is true, always returns true (for --force flag).
+// Otherwise returns true only if the file doesn't exist or has an older version.
+func ShouldUpgradeHook(path string, force bool) bool {
+	if force {
+		return true
+	}
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return true
 	}
 	return parseHookVersion(path) < CurrentHookVersion
+}
+
+// ParseHookVersion reads the version tag from a hook file (exported for use by init).
+func ParseHookVersion(path string) int {
+	return parseHookVersion(path)
 }
 
 // findMurBinary finds the mur binary path.
@@ -77,6 +92,7 @@ func findMurBinary() (string, error) {
 // HookOptions configures hook installation.
 type HookOptions struct {
 	EnableSearch bool // Enable search hook on prompt submit
+	Force        bool // Force overwrite even if hooks are up-to-date
 }
 
 // InstallAllHooks installs hooks for all supported AI tools.
@@ -90,7 +106,7 @@ func InstallAllHooksWithOptions(opts HookOptions) map[string]error {
 
 	// Claude Code
 	if ClaudeCodeInstalled() {
-		if err := InstallClaudeCodeHooks(opts.EnableSearch); err != nil {
+		if err := InstallClaudeCodeHooksWithOptions(opts); err != nil {
 			results["Claude Code"] = err
 		} else {
 			results["Claude Code"] = nil

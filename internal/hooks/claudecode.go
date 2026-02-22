@@ -54,6 +54,11 @@ func ClaudeCodeInstalled() bool {
 // they are preserved (user customizations are kept). Settings.json hooks are
 // merged — existing non-mur hooks are not removed.
 func InstallClaudeCodeHooks(enableSearch bool) error {
+	return InstallClaudeCodeHooksWithOptions(HookOptions{EnableSearch: enableSearch})
+}
+
+// InstallClaudeCodeHooksWithOptions installs mur hooks for Claude Code with full options.
+func InstallClaudeCodeHooksWithOptions(opts HookOptions) error {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return fmt.Errorf("cannot determine home directory: %w", err)
@@ -72,20 +77,10 @@ func InstallClaudeCodeHooks(enableSearch bool) error {
 		return fmt.Errorf("cannot create hooks directory: %w", err)
 	}
 
-	// Create default hook scripts (only if they don't exist)
+	// Create default hook scripts (only if outdated or forced)
 	stopScript := filepath.Join(hooksDir, "on-stop.sh")
-	if shouldUpgradeHook(stopScript) {
-		content := fmt.Sprintf(`#!/bin/bash
-# mur-managed-hook v%d
-# Lightweight sync (blocking, fast)
-%s sync --quiet 2>/dev/null || true
-
-# LLM extract in background (non-blocking)
-(%s learn extract --llm --auto --accept-all --quiet 2>/dev/null &) || true
-
-# Load user customizations if they exist
-[ -f ~/.mur/hooks/on-stop.local.sh ] && source ~/.mur/hooks/on-stop.local.sh
-`, CurrentHookVersion, murBin, murBin)
+	if ShouldUpgradeHook(stopScript, opts.Force) {
+		content := fmt.Sprintf("#!/bin/bash\n# mur-managed-hook v%d\n# Lightweight sync (blocking, fast)\n%s sync --quiet 2>/dev/null || true\n\n# LLM extract in background (non-blocking)\n(%s learn extract --llm --auto --accept-all --quiet 2>/dev/null &) || true\n\n# Load user customizations if they exist\n[ -f ~/.mur/hooks/on-stop.local.sh ] && source ~/.mur/hooks/on-stop.local.sh\n", CurrentHookVersion, murBin, murBin)
 		if err := os.WriteFile(stopScript, []byte(content), 0755); err != nil {
 			return fmt.Errorf("cannot write on-stop.sh: %w", err)
 		}
@@ -95,12 +90,8 @@ func InstallClaudeCodeHooks(enableSearch bool) error {
 	}
 
 	promptScript := filepath.Join(hooksDir, "on-prompt.sh")
-	if shouldUpgradeHook(promptScript) {
-		content := fmt.Sprintf(`#!/bin/bash
-# mur-managed-hook v%d
-# Inject context-aware patterns based on current project
-%s context --compact 2>/dev/null || true
-`, CurrentHookVersion, murBin)
+	if ShouldUpgradeHook(promptScript, opts.Force) {
+		content := fmt.Sprintf("#!/bin/bash\n# mur-managed-hook v%d\n# Inject context-aware patterns based on current project\n%s context --compact 2>/dev/null || true\n", CurrentHookVersion, murBin)
 		if err := os.WriteFile(promptScript, []byte(content), 0755); err != nil {
 			return fmt.Errorf("cannot write on-prompt.sh: %w", err)
 		}
@@ -111,14 +102,7 @@ func InstallClaudeCodeHooks(enableSearch bool) error {
 
 	reminderFile := filepath.Join(hooksDir, "on-prompt-reminder.md")
 	if _, err := os.Stat(reminderFile); os.IsNotExist(err) {
-		content := fmt.Sprintf(`[ContinuousLearning] If during this task you discover something non-obvious (a debugging technique, a workaround, a pattern), save it:
-
-  %s learn add --name "pattern-name" --content "description"
-
-Or create a file in ~/.mur/patterns/
-
-Only save if: it required discovery, it helps future tasks, and it's verified.
-`, murBin)
+		content := fmt.Sprintf("[ContinuousLearning] If during this task you discover something non-obvious (a debugging technique, a workaround, a pattern), save it:\n\n  %s learn add --name \"pattern-name\" --content \"description\"\n\nOr create a file in ~/.mur/patterns/\n\nOnly save if: it required discovery, it helps future tasks, and it's verified.\n", murBin)
 		if err := os.WriteFile(reminderFile, []byte(content), 0644); err != nil {
 			return fmt.Errorf("cannot write on-prompt-reminder.md: %w", err)
 		}
@@ -153,10 +137,10 @@ Only save if: it required discovery, it helps future tasks, and it's verified.
 	promptHooks := []ClaudeCodeHook{
 		{Type: "command", Command: fmt.Sprintf("cat %s >&2", reminderFile)},
 	}
-	if enableSearch {
+	if opts.EnableSearch {
 		promptHooks = append(promptHooks, ClaudeCodeHook{
 			Type:    "command",
-			Command: fmt.Sprintf(`%s search --inject "$PROMPT" 2>/dev/null || true`, murBin),
+			Command: fmt.Sprintf("%s search --inject \"$PROMPT\" 2>/dev/null || true", murBin),
 		})
 	}
 	promptMatcher := ClaudeCodeHookMatcher{
@@ -188,7 +172,7 @@ Only save if: it required discovery, it helps future tasks, and it's verified.
 	fmt.Printf("✓ Installed Claude Code hooks at %s\n", settingsPath)
 	fmt.Println("  + Stop hook → on-stop.sh (learn + sync)")
 	fmt.Println("  + Prompt hook → on-prompt-reminder.md")
-	if enableSearch {
+	if opts.EnableSearch {
 		fmt.Println("  + Search hook (suggests patterns on prompt)")
 	}
 

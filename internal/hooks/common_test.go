@@ -55,3 +55,33 @@ func TestShouldUpgradeHook(t *testing.T) {
 		t.Error("should NOT upgrade current version")
 	}
 }
+
+func TestShouldUpgradeHookForce(t *testing.T) {
+	dir := t.TempDir()
+
+	// Current version, no force — should not upgrade
+	cur := filepath.Join(dir, "current.sh")
+	os.WriteFile(cur, []byte("#!/bin/bash\n# mur-managed-hook v1\n"), 0644)
+	if ShouldUpgradeHook(cur, false) {
+		t.Error("should NOT upgrade current version without force")
+	}
+
+	// Current version, with force — should upgrade
+	if !ShouldUpgradeHook(cur, true) {
+		t.Error("should upgrade current version with force")
+	}
+
+	// Non-existent file, no force — should upgrade
+	if !ShouldUpgradeHook(filepath.Join(dir, "nope.sh"), false) {
+		t.Error("should upgrade non-existent file")
+	}
+}
+
+func TestParseHookVersionExported(t *testing.T) {
+	dir := t.TempDir()
+	p := filepath.Join(dir, "test.sh")
+	os.WriteFile(p, []byte("#!/bin/bash\n# mur-managed-hook v3\n"), 0644)
+	if got := ParseHookVersion(p); got != 3 {
+		t.Errorf("ParseHookVersion() = %d, want 3", got)
+	}
+}
