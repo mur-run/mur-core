@@ -14,11 +14,11 @@ func TestParseHookVersion(t *testing.T) {
 		content string
 		want    int
 	}{
-		{"v2", "#!/bin/bash\n# mur-managed-hook v2\nmur sync\n", 2},
+		{"v3", "#!/bin/bash\n# mur-managed-hook v3\nmur sync\n", 3},
 		{"v3", "#!/bin/bash\n# mur-managed-hook v3\n", 3},
 		{"no version", "#!/bin/bash\nmur sync\n", 0},
-		{"version on line 5", "#!/bin/bash\n#\n#\n#\n# mur-managed-hook v2\n", 2},
-		{"version too deep", "#!/bin/bash\n#\n#\n#\n#\n# mur-managed-hook v2\n", 0},
+		{"version on line 5", "#!/bin/bash\n#\n#\n#\n# mur-managed-hook v3\n", 3},
+		{"version too deep", "#!/bin/bash\n#\n#\n#\n#\n# mur-managed-hook v3\n", 0},
 	}
 
 	for _, tt := range tests {
@@ -50,7 +50,7 @@ func TestShouldUpgradeHook(t *testing.T) {
 
 	// Current version
 	cur := filepath.Join(dir, "current.sh")
-	os.WriteFile(cur, []byte("#!/bin/bash\n# mur-managed-hook v2\n"), 0644)
+	os.WriteFile(cur, []byte("#!/bin/bash\n# mur-managed-hook v3\n"), 0644)
 	if shouldUpgradeHook(cur) {
 		t.Error("should NOT upgrade current version")
 	}
@@ -61,7 +61,7 @@ func TestShouldUpgradeHookForce(t *testing.T) {
 
 	// Current version, no force — should not upgrade
 	cur := filepath.Join(dir, "current.sh")
-	os.WriteFile(cur, []byte("#!/bin/bash\n# mur-managed-hook v2\n"), 0644)
+	os.WriteFile(cur, []byte("#!/bin/bash\n# mur-managed-hook v3\n"), 0644)
 	if ShouldUpgradeHook(cur, false) {
 		t.Error("should NOT upgrade current version without force")
 	}

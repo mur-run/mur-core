@@ -13,7 +13,7 @@ import (
 
 // CurrentHookVersion is the version of mur-managed hook scripts.
 // Bump this when the hook template changes to trigger auto-upgrade.
-const CurrentHookVersion = 2
+const CurrentHookVersion = 3
 
 var hookVersionRe = regexp.MustCompile(`#\s*mur-managed-hook\s+v(\d+)`)
 

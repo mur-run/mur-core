@@ -77,27 +77,61 @@ func InstallClaudeCodeHooksWithOptions(opts HookOptions) error {
 		return fmt.Errorf("cannot create hooks directory: %w", err)
 	}
 
-	// Create session hook scripts
-	sessionInScript := filepath.Join(hooksDir, "mur-session-in.sh")
-	if ShouldUpgradeHook(sessionInScript, opts.Force) {
-		content := fmt.Sprintf("#!/bin/bash\n# mur-managed-hook v%d\n# Triggered by UserPromptSubmit when user types /mur:in\n%s session start --source claude-code\n", CurrentHookVersion, murBin)
-		if err := os.WriteFile(sessionInScript, []byte(content), 0755); err != nil {
-			return fmt.Errorf("cannot write mur-session-in.sh: %w", err)
-		}
-		fmt.Printf("  + Created/upgraded %s (v%d)\n", sessionInScript, CurrentHookVersion)
-	} else {
-		fmt.Printf("  ~ Kept existing %s (v%d)\n", sessionInScript, parseHookVersion(sessionInScript))
+	// Install /mur:in and /mur:out as Claude Code slash commands
+	commandsDir := filepath.Join(home, ".claude", "commands")
+	if err := os.MkdirAll(commandsDir, 0755); err != nil {
+		return fmt.Errorf("cannot create commands directory: %w", err)
 	}
 
-	sessionOutScript := filepath.Join(hooksDir, "mur-session-out.sh")
-	if ShouldUpgradeHook(sessionOutScript, opts.Force) {
-		content := fmt.Sprintf("#!/bin/bash\n# mur-managed-hook v%d\n# Triggered by UserPromptSubmit when user types /mur:out\n%s session stop --analyze\n", CurrentHookVersion, murBin)
-		if err := os.WriteFile(sessionOutScript, []byte(content), 0755); err != nil {
-			return fmt.Errorf("cannot write mur-session-out.sh: %w", err)
+	murInCmd := filepath.Join(commandsDir, "mur:in.md")
+	murInContent := `---
+description: "Start recording this conversation for workflow extraction. Events (prompts, tool calls, stops) will be captured until you run /mur:out."
+allowed-tools: Bash(mur:*)
+---
+
+Start a mur session recording by running:
+
+` + "```bash\nmur session start --source claude-code\n```" + `
+
+After starting, confirm to the user:
+- The session ID
+- That recording is active
+- Remind them to use ` + "`/mur:out`" + ` when done
+`
+	if err := os.WriteFile(murInCmd, []byte(murInContent), 0644); err != nil {
+		return fmt.Errorf("cannot write mur:in.md command: %w", err)
+	}
+	fmt.Printf("  + Installed /mur:in command at %s\n", murInCmd)
+
+	murOutCmd := filepath.Join(commandsDir, "mur:out.md")
+	murOutContent := `---
+description: "Stop recording and analyze the captured conversation to extract a reusable workflow."
+allowed-tools: Bash(mur:*)
+---
+
+Stop the active mur session recording by running:
+
+` + "```bash\nmur session stop\n```" + `
+
+After stopping, show the user:
+- Session duration and number of events captured
+- Ask if they want to analyze: ` + "`mur session stop --analyze`" + `
+- Or export: ` + "`mur session export <session-id> --format skill`" + `
+
+If --analyze fails due to missing API key, tell the user to set ANTHROPIC_API_KEY or OPENAI_API_KEY.
+`
+	if err := os.WriteFile(murOutCmd, []byte(murOutContent), 0644); err != nil {
+		return fmt.Errorf("cannot write mur:out.md command: %w", err)
+	}
+	fmt.Printf("  + Installed /mur:out command at %s\n", murOutCmd)
+
+	// Clean up old session hook scripts (replaced by slash commands)
+	for _, old := range []string{"mur-session-in.sh", "mur-session-out.sh"} {
+		oldPath := filepath.Join(hooksDir, old)
+		if _, err := os.Stat(oldPath); err == nil {
+			os.Remove(oldPath)
+			fmt.Printf("  - Removed old %s (replaced by slash command)\n", old)
 		}
-		fmt.Printf("  + Created/upgraded %s (v%d)\n", sessionOutScript, CurrentHookVersion)
-	} else {
-		fmt.Printf("  ~ Kept existing %s (v%d)\n", sessionOutScript, parseHookVersion(sessionOutScript))
 	}
 
 	// Create default hook scripts (only if outdated or forced)
@@ -228,20 +262,6 @@ fi
 		Hooks:   promptHooks,
 	}
 
-	// Session recording matchers
-	sessionInMatcher := ClaudeCodeHookMatcher{
-		Matcher: "/mur:in",
-		Hooks: []ClaudeCodeHook{
-			{Type: "command", Command: fmt.Sprintf("bash %s", sessionInScript)},
-		},
-	}
-	sessionOutMatcher := ClaudeCodeHookMatcher{
-		Matcher: "/mur:out",
-		Hooks: []ClaudeCodeHook{
-			{Type: "command", Command: fmt.Sprintf("bash %s", sessionOutScript)},
-		},
-	}
-
 	// PostToolUse matcher for session recording
 	postToolMatcher := ClaudeCodeHookMatcher{
 		Matcher: "",
@@ -252,7 +272,7 @@ fi
 
 	// Merge: replace mur-managed matchers, keep user-added non-mur matchers
 	existingHooks["Stop"] = mustMarshal(mergeMurMatcherSet(existingHooks["Stop"], stopMatcher))
-	existingHooks["UserPromptSubmit"] = mustMarshal(mergeMurMatcherSet(existingHooks["UserPromptSubmit"], promptMatcher, sessionInMatcher, sessionOutMatcher))
+	existingHooks["UserPromptSubmit"] = mustMarshal(mergeMurMatcherSet(existingHooks["UserPromptSubmit"], promptMatcher))
 	existingHooks["PostToolUse"] = mustMarshal(mergeMurMatcherSet(existingHooks["PostToolUse"], postToolMatcher))
 
 	// Write back
@@ -275,9 +295,8 @@ fi
 	fmt.Printf("✓ Installed Claude Code hooks at %s\n", settingsPath)
 	fmt.Println("  + Stop hook → on-stop.sh (learn + sync)")
 	fmt.Println("  + Prompt hook → on-prompt-reminder.md")
-	fmt.Println("  + Session hook → /mur:in (start recording)")
-	fmt.Println("  + Session hook → /mur:out (stop recording)")
 	fmt.Println("  + PostToolUse hook → on-tool.sh (record tool calls)")
+	fmt.Println("  + Slash commands → /mur:in, /mur:out (session recording)")
 	if opts.EnableSearch {
 		fmt.Println("  + Search hook (suggests patterns on prompt)")
 	}
