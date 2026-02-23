@@ -4,10 +4,12 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
@@ -363,6 +365,13 @@ func askModelSetup() (modelSetup, error) {
 	fmt.Println("  mur uses AI models for pattern search and extraction.")
 	fmt.Println()
 
+	// Detect system RAM for recommendations
+	ramGB := detectSystemRAM()
+	if ramGB > 0 {
+		fmt.Printf("  System RAM: %dGB\n", ramGB)
+		fmt.Println()
+	}
+
 	var mode string
 	modePrompt := &survey.Select{
 		Message: "Choose setup mode:",
@@ -378,10 +387,7 @@ func askModelSetup() (modelSetup, error) {
 	}
 
 	if strings.HasPrefix(mode, "🏠") {
-		fmt.Println()
-		fmt.Println("  Models needed: qwen3-embedding (639MB) + llama3.2:3b (2GB)")
-		fmt.Println("  Install with: ollama pull qwen3-embedding && ollama pull llama3.2:3b")
-		return defaultLocalSetup(), nil
+		return askLocalSetupWithRAM(ramGB)
 	}
 
 	if strings.HasPrefix(mode, "☁️") {
@@ -389,6 +395,83 @@ func askModelSetup() (modelSetup, error) {
 	}
 
 	return askCustomSetup()
+}
+
+// askLocalSetupWithRAM selects the best Ollama model based on system RAM.
+func askLocalSetupWithRAM(ramGB int) (modelSetup, error) {
+	m := defaultLocalSetup()
+
+	fmt.Println()
+
+	// Recommend model based on RAM
+	recommendedModel := "llama3.2:3b"
+	switch {
+	case ramGB >= 32:
+		recommendedModel = "qwen3:14b"
+		fmt.Println("  Your system has plenty of RAM for high-quality local models.")
+	case ramGB >= 16:
+		recommendedModel = "qwen3:8b"
+		fmt.Println("  Your system can run good quality local models.")
+	default:
+		fmt.Println("  Your system works best with smaller local models.")
+	}
+
+	// Build options based on RAM
+	var options []string
+	if ramGB >= 32 {
+		options = append(options, fmt.Sprintf("qwen3:14b - Near paid quality, ~9GB VRAM (Recommended)"))
+	}
+	if ramGB >= 16 {
+		options = append(options, fmt.Sprintf("qwen3:8b - Best free default, ~5GB VRAM"))
+	}
+	options = append(options, "llama3.2:3b - Fast, small, ~2GB VRAM")
+	if ramGB >= 32 {
+		options = append(options, "qwen3:32b - Best free model, ~20GB VRAM (slow)")
+	}
+
+	var modelChoice string
+	modelPrompt := &survey.Select{
+		Message: "Choose Ollama model for pattern extraction:",
+		Options: options,
+		Default: options[0],
+	}
+	if err := survey.AskOne(modelPrompt, &modelChoice); err != nil {
+		return modelSetup{}, fmt.Errorf("setup cancelled")
+	}
+
+	// Parse model name from choice
+	parts := strings.SplitN(modelChoice, " ", 2)
+	if len(parts) > 0 {
+		m.LLMModel = parts[0]
+	} else {
+		m.LLMModel = recommendedModel
+	}
+
+	// Check if Ollama is running
+	fmt.Println()
+	if checkOllamaRunning() {
+		fmt.Println("  ✅ Ollama is running")
+	} else {
+		fmt.Println("  ⚠️  Ollama is not running.")
+		fmt.Println("  Install and start Ollama:")
+		fmt.Println("    brew install ollama")
+		fmt.Println("    ollama serve")
+	}
+
+	fmt.Printf("  Install models: ollama pull qwen3-embedding && ollama pull %s\n", m.LLMModel)
+
+	return m, nil
+}
+
+// checkOllamaRunning checks if Ollama is running locally.
+func checkOllamaRunning() bool {
+	client := &http.Client{Timeout: 2 * time.Second}
+	resp, err := client.Get("http://localhost:11434/api/tags")
+	if err != nil {
+		return false
+	}
+	resp.Body.Close()
+	return resp.StatusCode == 200
 }
 
 func askCloudSetup() (modelSetup, error) {
@@ -498,7 +581,33 @@ func askCustomSetup() (modelSetup, error) {
 		m.LLMModel = "llama3.2:3b"
 	}
 
+	// Remind about API keys or check Ollama
+	fmt.Println()
+	printProviderSetupHints(m.LLMProvider, m.LLMAPIKeyEnv)
+
 	return m, nil
+}
+
+// printProviderSetupHints prints setup reminders for the chosen provider.
+func printProviderSetupHints(provider, apiKeyEnv string) {
+	switch provider {
+	case "ollama":
+		if checkOllamaRunning() {
+			fmt.Println("  ✅ Ollama is running")
+		} else {
+			fmt.Println("  ⚠️  Ollama is not running.")
+			fmt.Println("  Start it with: ollama serve")
+		}
+	default:
+		if apiKeyEnv != "" {
+			if os.Getenv(apiKeyEnv) != "" {
+				fmt.Printf("  ✅ %s detected in environment\n", apiKeyEnv)
+			} else {
+				fmt.Printf("  ⚠️  Set %s in your shell profile:\n", apiKeyEnv)
+				fmt.Printf("     export %s=...\n", apiKeyEnv)
+			}
+		}
+	}
 }
 
 func (m modelSetup) llmYaml() string {

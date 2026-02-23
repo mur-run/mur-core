@@ -18,6 +18,69 @@ type LLMProvider interface {
 	Complete(prompt string) (string, error)
 }
 
+// fallbackProvider wraps a primary and fallback LLMProvider. If the primary
+// fails, it automatically retries with the fallback provider.
+type fallbackProvider struct {
+	primary     LLMProvider
+	fallback    LLMProvider
+	primaryName string
+}
+
+func (f *fallbackProvider) Complete(prompt string) (string, error) {
+	result, err := f.primary.Complete(prompt)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  ⚠ %s failed (%v), falling back...\n", f.primaryName, err)
+		return f.fallback.Complete(prompt)
+	}
+	return result, nil
+}
+
+// NewLLMProvider creates an LLMProvider from simple parameters (no config needed).
+// For ollama: apiKey is ignored, baseURL is the Ollama URL.
+// For openai: baseURL is the OpenAI-compatible API URL (empty = default).
+// For anthropic/gemini: baseURL is ignored.
+func NewLLMProvider(provider, model, apiKey, baseURL string) (LLMProvider, error) {
+	switch provider {
+	case "claude", "anthropic":
+		if apiKey == "" {
+			return nil, fmt.Errorf("no Anthropic API key provided")
+		}
+		if model == "" {
+			model = "claude-sonnet-4-20250514"
+		}
+		return &anthropicProvider{apiKey: apiKey, model: model}, nil
+	case "openai":
+		if apiKey == "" {
+			return nil, fmt.Errorf("no OpenAI API key provided")
+		}
+		if model == "" {
+			model = "gpt-4o"
+		}
+		if baseURL == "" {
+			baseURL = "https://api.openai.com/v1"
+		}
+		return &openaiProvider{apiKey: apiKey, model: model, baseURL: baseURL}, nil
+	case "ollama":
+		if model == "" {
+			model = "llama3.2:3b"
+		}
+		if baseURL == "" {
+			baseURL = "http://localhost:11434"
+		}
+		return &ollamaProvider{model: model, baseURL: baseURL}, nil
+	case "gemini":
+		if apiKey == "" {
+			return nil, fmt.Errorf("no Gemini API key provided")
+		}
+		if model == "" {
+			model = "gemini-2.0-flash"
+		}
+		return &geminiProvider{apiKey: apiKey, model: model}, nil
+	default:
+		return nil, fmt.Errorf("unsupported LLM provider: %s (use: anthropic, openai, ollama, gemini)", provider)
+	}
+}
+
 // NewLLMProviderFromEnv creates an LLMProvider based on environment variables:
 //   - MUR_LLM_PROVIDER: "anthropic" (default) or "openai"
 //   - MUR_API_KEY: API key for the chosen provider
@@ -69,6 +132,7 @@ func NewLLMProviderFromConfig(cfg *config.Config) (LLMProvider, error) {
 
 // NewLLMProviderWithOverrides creates an LLMProvider from config with CLI flag overrides.
 // Empty override values are ignored and config/defaults are used instead.
+// If a premium provider is configured, wraps with fallback support.
 func NewLLMProviderWithOverrides(cfg *config.Config, provider, model, ollamaURL string) (LLMProvider, error) {
 	llmCfg := cfg.Learning.LLM
 
@@ -88,7 +152,37 @@ func NewLLMProviderWithOverrides(cfg *config.Config, provider, model, ollamaURL 
 		return NewLLMProviderFromEnv()
 	}
 
-	// Normalize provider aliases
+	primary, err := newProviderFromLLMConfig(llmCfg)
+	if err != nil {
+		return nil, err
+	}
+
+	// If premium provider is configured and no CLI overrides were given,
+	// wrap with fallback so primary failures automatically retry with premium.
+	if cfg.Learning.LLM.Premium != nil && provider == "" {
+		premiumCfg := config.LLMConfig{
+			Provider:  cfg.Learning.LLM.Premium.Provider,
+			Model:     cfg.Learning.LLM.Premium.Model,
+			OllamaURL: cfg.Learning.LLM.Premium.OllamaURL,
+			OpenAIURL: cfg.Learning.LLM.Premium.OpenAIURL,
+			APIKeyEnv: cfg.Learning.LLM.Premium.APIKeyEnv,
+		}
+		fb, fbErr := newProviderFromLLMConfig(premiumCfg)
+		if fbErr == nil {
+			return &fallbackProvider{
+				primary:     primary,
+				fallback:    fb,
+				primaryName: llmCfg.Provider,
+			}, nil
+		}
+		// If premium setup fails, just use primary without fallback
+	}
+
+	return primary, nil
+}
+
+// newProviderFromLLMConfig creates an LLMProvider from an LLMConfig.
+func newProviderFromLLMConfig(llmCfg config.LLMConfig) (LLMProvider, error) {
 	switch llmCfg.Provider {
 	case "claude", "anthropic":
 		return newAnthropicFromConfig(llmCfg)

@@ -1,14 +1,14 @@
 package learn
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/mur-run/mur-core/internal/session"
 )
 
 // LLMProvider represents an LLM backend for extraction.
@@ -145,23 +145,16 @@ func ExtractWithLLM(session *Session, opts LLMExtractOptions) ([]ExtractedPatter
 		text = text[len(text)-20000:]
 	}
 
-	// Call LLM
-	var response string
-	var err error
-
-	switch opts.Provider {
-	case LLMOllama:
-		response, err = callOllama(text, opts)
-	case LLMClaude:
-		response, err = callClaude(text, opts)
-	case LLMOpenAI:
-		response, err = callOpenAI(text, opts)
-	case LLMGemini:
-		response, err = callGemini(text, opts)
-	default:
-		return nil, fmt.Errorf("unknown LLM provider: %s", opts.Provider)
+	// Create unified LLM provider
+	provider, err := llmProviderFromOptions(opts)
+	if err != nil {
+		return nil, fmt.Errorf("LLM setup failed: %w", err)
 	}
 
+	// Compose full prompt with extraction instructions + transcript
+	fullPrompt := extractionPrompt + "\n\n---\n\nExtract patterns from this coding session:\n\n" + text
+
+	response, err := provider.Complete(fullPrompt)
 	if err != nil {
 		return nil, fmt.Errorf("LLM call failed: %w", err)
 	}
@@ -269,115 +262,36 @@ func parseJSONArray(text string, sourceID string) []ExtractedPattern {
 	return extracted
 }
 
-// callOllama calls the Ollama API.
-func callOllama(transcript string, opts LLMExtractOptions) (string, error) {
-	url := opts.OllamaURL + "/api/generate"
-
-	prompt := extractionPrompt + "\n\n---\n\nTranscript:\n" + transcript
-
-	payload := map[string]interface{}{
-		"model":  opts.Model,
-		"prompt": prompt,
-		"stream": false,
-		"options": map[string]interface{}{
-			"temperature": 0.3,
-		},
+// llmProviderFromOptions converts LLMExtractOptions to a session.LLMProvider.
+func llmProviderFromOptions(opts LLMExtractOptions) (session.LLMProvider, error) {
+	switch opts.Provider {
+	case LLMOllama:
+		baseURL := opts.OllamaURL
+		if baseURL == "" {
+			baseURL = "http://localhost:11434"
+		}
+		return session.NewLLMProvider("ollama", opts.Model, "", baseURL)
+	case LLMClaude:
+		model := opts.Model
+		if model == "" || model == "llama3.2" {
+			model = "claude-sonnet-4-20250514"
+		}
+		return session.NewLLMProvider("anthropic", model, opts.ClaudeKey, "")
+	case LLMOpenAI:
+		model := opts.Model
+		if model == "" || model == "llama3.2" {
+			model = "gpt-4o"
+		}
+		return session.NewLLMProvider("openai", model, opts.OpenAIKey, opts.OpenAIURL)
+	case LLMGemini:
+		model := opts.Model
+		if model == "" || model == "llama3.2" {
+			model = "gemini-2.0-flash"
+		}
+		return session.NewLLMProvider("gemini", model, opts.GeminiKey, "")
+	default:
+		return nil, fmt.Errorf("unknown LLM provider: %s", opts.Provider)
 	}
-
-	body, err := json.Marshal(payload)
-	if err != nil {
-		return "", err
-	}
-
-	req, err := http.NewRequest("POST", url, bytes.NewReader(body))
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{Timeout: 120 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("ollama request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("ollama error %d: %s", resp.StatusCode, string(respBody))
-	}
-
-	var result struct {
-		Response string `json:"response"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", fmt.Errorf("failed to parse ollama response: %w", err)
-	}
-
-	return result.Response, nil
-}
-
-// callClaude calls the Anthropic Claude API.
-func callClaude(transcript string, opts LLMExtractOptions) (string, error) {
-	if opts.ClaudeKey == "" {
-		return "", fmt.Errorf("ANTHROPIC_API_KEY not set")
-	}
-
-	url := "https://api.anthropic.com/v1/messages"
-
-	model := opts.Model
-	if model == "" || model == "llama3.2" {
-		model = "claude-sonnet-4-20250514"
-	}
-
-	payload := map[string]interface{}{
-		"model":      model,
-		"max_tokens": 4096,
-		"system":     extractionPrompt,
-		"messages": []map[string]string{
-			{"role": "user", "content": "Extract patterns from this coding session:\n\n" + transcript},
-		},
-	}
-
-	body, err := json.Marshal(payload)
-	if err != nil {
-		return "", err
-	}
-
-	req, err := http.NewRequest("POST", url, bytes.NewReader(body))
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("x-api-key", opts.ClaudeKey)
-	req.Header.Set("anthropic-version", "2023-06-01")
-
-	client := &http.Client{Timeout: 120 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("claude request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("claude error %d: %s", resp.StatusCode, string(respBody))
-	}
-
-	var result struct {
-		Content []struct {
-			Text string `json:"text"`
-		} `json:"content"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", fmt.Errorf("failed to parse claude response: %w", err)
-	}
-
-	if len(result.Content) == 0 {
-		return "", fmt.Errorf("empty response from claude")
-	}
-
-	return result.Content[0].Text, nil
 }
 
 // CheckOllamaAvailable checks if Ollama is running.
@@ -392,148 +306,4 @@ func CheckOllamaAvailable(url string) bool {
 	}
 	defer resp.Body.Close()
 	return resp.StatusCode == http.StatusOK
-}
-
-// callOpenAI calls any OpenAI-compatible API (OpenAI, Groq, Together, etc.).
-func callOpenAI(transcript string, opts LLMExtractOptions) (string, error) {
-	if opts.OpenAIKey == "" {
-		return "", fmt.Errorf("OPENAI_API_KEY not set")
-	}
-
-	url := opts.OpenAIURL
-	if url == "" {
-		url = "https://api.openai.com/v1"
-	}
-	url = strings.TrimSuffix(url, "/") + "/chat/completions"
-
-	model := opts.Model
-	if model == "" || model == "llama3.2" {
-		model = "gpt-4o"
-	}
-
-	payload := map[string]interface{}{
-		"model": model,
-		"messages": []map[string]string{
-			{"role": "system", "content": extractionPrompt},
-			{"role": "user", "content": "Extract patterns from this coding session:\n\n" + transcript},
-		},
-		"temperature": 0.3,
-		"max_tokens":  4096,
-	}
-
-	body, err := json.Marshal(payload)
-	if err != nil {
-		return "", err
-	}
-
-	req, err := http.NewRequest("POST", url, bytes.NewReader(body))
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+opts.OpenAIKey)
-
-	client := &http.Client{Timeout: 120 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("openai request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("openai error %d: %s", resp.StatusCode, string(respBody))
-	}
-
-	var result struct {
-		Choices []struct {
-			Message struct {
-				Content string `json:"content"`
-			} `json:"message"`
-		} `json:"choices"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", fmt.Errorf("failed to parse openai response: %w", err)
-	}
-
-	if len(result.Choices) == 0 {
-		return "", fmt.Errorf("empty response from openai")
-	}
-
-	return result.Choices[0].Message.Content, nil
-}
-
-// callGemini calls the Google Gemini API.
-func callGemini(transcript string, opts LLMExtractOptions) (string, error) {
-	if opts.GeminiKey == "" {
-		return "", fmt.Errorf("GEMINI_API_KEY not set")
-	}
-
-	model := opts.Model
-	if model == "" || model == "llama3.2" {
-		model = "gemini-2.0-flash"
-	}
-
-	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", model, opts.GeminiKey)
-
-	payload := map[string]interface{}{
-		"systemInstruction": map[string]interface{}{
-			"parts": []map[string]string{
-				{"text": extractionPrompt},
-			},
-		},
-		"contents": []map[string]interface{}{
-			{
-				"parts": []map[string]string{
-					{"text": "Extract patterns from this coding session:\n\n" + transcript},
-				},
-			},
-		},
-		"generationConfig": map[string]interface{}{
-			"temperature":     0.3,
-			"maxOutputTokens": 4096,
-		},
-	}
-
-	body, err := json.Marshal(payload)
-	if err != nil {
-		return "", err
-	}
-
-	req, err := http.NewRequest("POST", url, bytes.NewReader(body))
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{Timeout: 120 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("gemini request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("gemini error %d: %s", resp.StatusCode, string(respBody))
-	}
-
-	var result struct {
-		Candidates []struct {
-			Content struct {
-				Parts []struct {
-					Text string `json:"text"`
-				} `json:"parts"`
-			} `json:"content"`
-		} `json:"candidates"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", fmt.Errorf("failed to parse gemini response: %w", err)
-	}
-
-	if len(result.Candidates) == 0 || len(result.Candidates[0].Content.Parts) == 0 {
-		return "", fmt.Errorf("empty response from gemini")
-	}
-
-	return result.Candidates[0].Content.Parts[0].Text, nil
 }

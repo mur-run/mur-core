@@ -204,7 +204,19 @@ var sessionListCmd = &cobra.Command{
 var sessionAnalyzeCmd = &cobra.Command{
 	Use:   "analyze <session-id>",
 	Short: "Analyze a recorded session and extract a workflow",
-	Args:  cobra.ExactArgs(1),
+	Long: `Analyze a recorded session and extract a workflow.
+
+Uses the LLM configured in ~/.mur/config.yaml (learning.llm section).
+Supported providers: anthropic, openai, ollama, gemini.
+
+Examples:
+  mur session analyze abc123                          # Use config default
+  mur session analyze abc123 --provider claude        # Use Claude
+  mur session analyze abc123 --provider ollama --model qwen3:8b
+  mur session analyze abc123 --provider openai --model gpt-4o
+
+See 'mur config providers' for model recommendations.`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		llmProvider, _ := cmd.Flags().GetString("provider")
 		llmModel, _ := cmd.Flags().GetString("model")
