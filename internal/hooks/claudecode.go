@@ -77,6 +77,29 @@ func InstallClaudeCodeHooksWithOptions(opts HookOptions) error {
 		return fmt.Errorf("cannot create hooks directory: %w", err)
 	}
 
+	// Create session hook scripts
+	sessionInScript := filepath.Join(hooksDir, "mur-session-in.sh")
+	if ShouldUpgradeHook(sessionInScript, opts.Force) {
+		content := fmt.Sprintf("#!/bin/bash\n# mur-managed-hook v%d\n# Triggered by UserPromptSubmit when user types /mur:in\n%s session start --source claude-code\n", CurrentHookVersion, murBin)
+		if err := os.WriteFile(sessionInScript, []byte(content), 0755); err != nil {
+			return fmt.Errorf("cannot write mur-session-in.sh: %w", err)
+		}
+		fmt.Printf("  + Created/upgraded %s (v%d)\n", sessionInScript, CurrentHookVersion)
+	} else {
+		fmt.Printf("  ~ Kept existing %s (v%d)\n", sessionInScript, parseHookVersion(sessionInScript))
+	}
+
+	sessionOutScript := filepath.Join(hooksDir, "mur-session-out.sh")
+	if ShouldUpgradeHook(sessionOutScript, opts.Force) {
+		content := fmt.Sprintf("#!/bin/bash\n# mur-managed-hook v%d\n# Triggered by UserPromptSubmit when user types /mur:out\n%s session stop --analyze\n", CurrentHookVersion, murBin)
+		if err := os.WriteFile(sessionOutScript, []byte(content), 0755); err != nil {
+			return fmt.Errorf("cannot write mur-session-out.sh: %w", err)
+		}
+		fmt.Printf("  + Created/upgraded %s (v%d)\n", sessionOutScript, CurrentHookVersion)
+	} else {
+		fmt.Printf("  ~ Kept existing %s (v%d)\n", sessionOutScript, parseHookVersion(sessionOutScript))
+	}
+
 	// Create default hook scripts (only if outdated or forced)
 	stopScript := filepath.Join(hooksDir, "on-stop.sh")
 	if ShouldUpgradeHook(stopScript, opts.Force) {
@@ -148,9 +171,23 @@ func InstallClaudeCodeHooksWithOptions(opts HookOptions) error {
 		Hooks:   promptHooks,
 	}
 
+	// Session recording matchers
+	sessionInMatcher := ClaudeCodeHookMatcher{
+		Matcher: "/mur:in",
+		Hooks: []ClaudeCodeHook{
+			{Type: "command", Command: fmt.Sprintf("bash %s", sessionInScript)},
+		},
+	}
+	sessionOutMatcher := ClaudeCodeHookMatcher{
+		Matcher: "/mur:out",
+		Hooks: []ClaudeCodeHook{
+			{Type: "command", Command: fmt.Sprintf("bash %s", sessionOutScript)},
+		},
+	}
+
 	// Merge: replace mur-managed matchers, keep user-added non-mur matchers
-	existingHooks["Stop"] = mustMarshal(mergeMurMatchers(existingHooks["Stop"], stopMatcher))
-	existingHooks["UserPromptSubmit"] = mustMarshal(mergeMurMatchers(existingHooks["UserPromptSubmit"], promptMatcher))
+	existingHooks["Stop"] = mustMarshal(mergeMurMatcherSet(existingHooks["Stop"], stopMatcher))
+	existingHooks["UserPromptSubmit"] = mustMarshal(mergeMurMatcherSet(existingHooks["UserPromptSubmit"], promptMatcher, sessionInMatcher, sessionOutMatcher))
 
 	// Write back
 	rawSettings["hooks"] = mustMarshal(existingHooks)
@@ -172,6 +209,8 @@ func InstallClaudeCodeHooksWithOptions(opts HookOptions) error {
 	fmt.Printf("✓ Installed Claude Code hooks at %s\n", settingsPath)
 	fmt.Println("  + Stop hook → on-stop.sh (learn + sync)")
 	fmt.Println("  + Prompt hook → on-prompt-reminder.md")
+	fmt.Println("  + Session hook → /mur:in (start recording)")
+	fmt.Println("  + Session hook → /mur:out (stop recording)")
 	if opts.EnableSearch {
 		fmt.Println("  + Search hook (suggests patterns on prompt)")
 	}
@@ -179,9 +218,9 @@ func InstallClaudeCodeHooksWithOptions(opts HookOptions) error {
 	return nil
 }
 
-// mergeMurMatchers replaces the mur-managed matcher (matcher="") in an existing
-// hook array, preserving any non-mur matchers (matcher != "").
-func mergeMurMatchers(existing json.RawMessage, murMatcher ClaudeCodeHookMatcher) []ClaudeCodeHookMatcher {
+// mergeMurMatcherSet replaces all mur-managed matchers in an existing hook array
+// with the given set, preserving any non-mur matchers.
+func mergeMurMatcherSet(existing json.RawMessage, murMatchers ...ClaudeCodeHookMatcher) []ClaudeCodeHookMatcher {
 	var matchers []ClaudeCodeHookMatcher
 	if existing != nil {
 		_ = json.Unmarshal(existing, &matchers)
@@ -195,8 +234,8 @@ func mergeMurMatchers(existing json.RawMessage, murMatcher ClaudeCodeHookMatcher
 		}
 	}
 
-	// Add mur matcher
-	return append(kept, murMatcher)
+	// Add all mur matchers
+	return append(kept, murMatchers...)
 }
 
 // isMurMatcher checks if a matcher was created by mur.
