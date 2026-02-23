@@ -103,7 +103,26 @@ func InstallClaudeCodeHooksWithOptions(opts HookOptions) error {
 	// Create default hook scripts (only if outdated or forced)
 	stopScript := filepath.Join(hooksDir, "on-stop.sh")
 	if ShouldUpgradeHook(stopScript, opts.Force) {
-		content := fmt.Sprintf("#!/bin/bash\n# mur-managed-hook v%d\n# Lightweight sync (blocking, fast)\n%s sync --quiet 2>/dev/null || true\n\n# LLM extract in background (non-blocking)\n(%s learn extract --llm --auto --accept-all --quiet 2>/dev/null &) || true\n\n# Load user customizations if they exist\n[ -f ~/.mur/hooks/on-stop.local.sh ] && source ~/.mur/hooks/on-stop.local.sh\n", CurrentHookVersion, murBin, murBin)
+		content := fmt.Sprintf(`#!/bin/bash
+# mur-managed-hook v%d
+# Read hook input from stdin (Claude Code passes JSON)
+INPUT=$(cat /dev/stdin 2>/dev/null || echo '{}')
+
+# Record stop event to active session (if recording)
+if [ -f ~/.mur/session/active.json ]; then
+  STOP_REASON=$(echo "$INPUT" | jq -r '.stop_reason // "turn_end"' 2>/dev/null)
+  %s session record --type assistant --content "[stop: $STOP_REASON]" 2>/dev/null || true
+fi
+
+# Lightweight sync (blocking, fast)
+%s sync --quiet 2>/dev/null || true
+
+# LLM extract in background (non-blocking)
+(%s learn extract --llm --auto --accept-all --quiet 2>/dev/null &) || true
+
+# Load user customizations if they exist
+[ -f ~/.mur/hooks/on-stop.local.sh ] && source ~/.mur/hooks/on-stop.local.sh
+`, CurrentHookVersion, murBin, murBin, murBin)
 		if err := os.WriteFile(stopScript, []byte(content), 0755); err != nil {
 			return fmt.Errorf("cannot write on-stop.sh: %w", err)
 		}
@@ -114,13 +133,51 @@ func InstallClaudeCodeHooksWithOptions(opts HookOptions) error {
 
 	promptScript := filepath.Join(hooksDir, "on-prompt.sh")
 	if ShouldUpgradeHook(promptScript, opts.Force) {
-		content := fmt.Sprintf("#!/bin/bash\n# mur-managed-hook v%d\n# Inject context-aware patterns based on current project\n%s context --compact 2>/dev/null || true\n", CurrentHookVersion, murBin)
+		content := fmt.Sprintf(`#!/bin/bash
+# mur-managed-hook v%d
+# Read hook input from stdin (Claude Code passes JSON)
+INPUT=$(cat /dev/stdin 2>/dev/null || echo '{}')
+
+# Inject context-aware patterns based on current project
+%s context --compact 2>/dev/null || true
+
+# Record user prompt to active session (if recording)
+if [ -f ~/.mur/session/active.json ]; then
+  PROMPT=$(echo "$INPUT" | jq -r '.prompt // empty' 2>/dev/null)
+  if [ -n "$PROMPT" ]; then
+    %s session record --type user --content "$PROMPT" 2>/dev/null || true
+  fi
+fi
+`, CurrentHookVersion, murBin, murBin)
 		if err := os.WriteFile(promptScript, []byte(content), 0755); err != nil {
 			return fmt.Errorf("cannot write on-prompt.sh: %w", err)
 		}
 		fmt.Printf("  + Created/upgraded %s (v%d)\n", promptScript, CurrentHookVersion)
 	} else {
 		fmt.Printf("  ~ Kept existing %s (v%d)\n", promptScript, parseHookVersion(promptScript))
+	}
+
+	// Create PostToolUse hook script for session recording
+	onToolScript := filepath.Join(hooksDir, "on-tool.sh")
+	if ShouldUpgradeHook(onToolScript, opts.Force) {
+		content := fmt.Sprintf(`#!/bin/bash
+# mur-managed-hook v%d
+# Record tool usage to active session (if recording)
+if [ -f ~/.mur/session/active.json ]; then
+  INPUT=$(cat /dev/stdin 2>/dev/null || echo '{}')
+  TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null)
+  TOOL_INPUT=$(echo "$INPUT" | jq -c '.tool_input // {}' 2>/dev/null)
+  if [ -n "$TOOL" ]; then
+    %s session record --type tool_call --tool "$TOOL" --content "$TOOL_INPUT" 2>/dev/null || true
+  fi
+fi
+`, CurrentHookVersion, murBin)
+		if err := os.WriteFile(onToolScript, []byte(content), 0755); err != nil {
+			return fmt.Errorf("cannot write on-tool.sh: %w", err)
+		}
+		fmt.Printf("  + Created/upgraded %s (v%d)\n", onToolScript, CurrentHookVersion)
+	} else {
+		fmt.Printf("  ~ Kept existing %s (v%d)\n", onToolScript, parseHookVersion(onToolScript))
 	}
 
 	reminderFile := filepath.Join(hooksDir, "on-prompt-reminder.md")
@@ -185,9 +242,18 @@ func InstallClaudeCodeHooksWithOptions(opts HookOptions) error {
 		},
 	}
 
+	// PostToolUse matcher for session recording
+	postToolMatcher := ClaudeCodeHookMatcher{
+		Matcher: "",
+		Hooks: []ClaudeCodeHook{
+			{Type: "command", Command: fmt.Sprintf("bash %s", onToolScript)},
+		},
+	}
+
 	// Merge: replace mur-managed matchers, keep user-added non-mur matchers
 	existingHooks["Stop"] = mustMarshal(mergeMurMatcherSet(existingHooks["Stop"], stopMatcher))
 	existingHooks["UserPromptSubmit"] = mustMarshal(mergeMurMatcherSet(existingHooks["UserPromptSubmit"], promptMatcher, sessionInMatcher, sessionOutMatcher))
+	existingHooks["PostToolUse"] = mustMarshal(mergeMurMatcherSet(existingHooks["PostToolUse"], postToolMatcher))
 
 	// Write back
 	rawSettings["hooks"] = mustMarshal(existingHooks)
@@ -211,6 +277,7 @@ func InstallClaudeCodeHooksWithOptions(opts HookOptions) error {
 	fmt.Println("  + Prompt hook → on-prompt-reminder.md")
 	fmt.Println("  + Session hook → /mur:in (start recording)")
 	fmt.Println("  + Session hook → /mur:out (stop recording)")
+	fmt.Println("  + PostToolUse hook → on-tool.sh (record tool calls)")
 	if opts.EnableSearch {
 		fmt.Println("  + Search hook (suggests patterns on prompt)")
 	}
