@@ -16,8 +16,8 @@ type RecordingState struct {
 	Active    bool   `json:"active"`
 	SessionID string `json:"session_id"`
 	StartedAt int64  `json:"started_at"`
-	Source    string `json:"source"`  // "claude-code", "codex", etc.
-	Marker   string `json:"marker"`  // original /mur:in message context
+	Source    string `json:"source"` // "claude-code", "codex", etc.
+	Marker    string `json:"marker"` // original /mur:in message context
 }
 
 // sessionDir returns the path to ~/.mur/session/.
@@ -71,7 +71,7 @@ func StartRecording(source, marker string) (*RecordingState, error) {
 		SessionID: uuid.New().String(),
 		StartedAt: time.Now().Unix(),
 		Source:    source,
-		Marker:   marker,
+		Marker:    marker,
 	}
 
 	// Create the JSONL file (empty, ready for appends)
