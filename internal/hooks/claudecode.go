@@ -157,14 +157,14 @@ if [ -f ~/.mur/session/active.json ]; then
   %s session record --type assistant --content "[stop: $STOP_REASON]" 2>/dev/null || true
 fi
 
-# Lightweight sync (blocking, fast)
-%s sync --quiet 2>/dev/null || true
-
-# LLM extract in background (non-blocking)
-(%s learn extract --llm --auto --accept-all --quiet 2>/dev/null &) || true
+# All background — don't block Claude Code
+(%s sync --quiet 2>/dev/null &)
+(%s learn extract --llm --auto --accept-all --quiet 2>/dev/null &)
 
 # Load user customizations if they exist
 [ -f ~/.mur/hooks/on-stop.local.sh ] && source ~/.mur/hooks/on-stop.local.sh
+
+exit 0
 `, CurrentHookVersion, murBin, murBin, murBin)
 		if err := os.WriteFile(stopScript, []byte(content), 0755); err != nil {
 			return fmt.Errorf("cannot write on-stop.sh: %w", err)
