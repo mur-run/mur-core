@@ -3,7 +3,6 @@ package learn
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -292,18 +291,4 @@ func llmProviderFromOptions(opts LLMExtractOptions) (session.LLMProvider, error)
 	default:
 		return nil, fmt.Errorf("unknown LLM provider: %s", opts.Provider)
 	}
-}
-
-// CheckOllamaAvailable checks if Ollama is running.
-func CheckOllamaAvailable(url string) bool {
-	if url == "" {
-		url = "http://localhost:11434"
-	}
-	client := &http.Client{Timeout: 2 * time.Second}
-	resp, err := client.Get(url + "/api/tags")
-	if err != nil {
-		return false
-	}
-	defer resp.Body.Close()
-	return resp.StatusCode == http.StatusOK
 }

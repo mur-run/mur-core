@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 
@@ -14,6 +13,7 @@ import (
 
 	"github.com/mur-run/mur-core/internal/config"
 	murhooks "github.com/mur-run/mur-core/internal/hooks"
+	"github.com/mur-run/mur-core/internal/sysinfo"
 )
 
 var doctorCmd = &cobra.Command{
@@ -342,7 +342,7 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 
 	// Check 9: Model recommendation based on system RAM
 	if cfg != nil && cfg.Learning.LLM.Provider == "ollama" {
-		totalGB := getSystemRAMGB()
+		totalGB := sysinfo.SystemRAMGB()
 		if totalGB > 0 {
 			var recommendation string
 			switch {
@@ -499,32 +499,4 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 
 	return nil
-}
-
-// getSystemRAMGB returns total system RAM in GB, or 0 if detection fails.
-func getSystemRAMGB() int {
-	switch runtime.GOOS {
-	case "darwin":
-		out, err := exec.Command("sysctl", "-n", "hw.memsize").Output()
-		if err != nil {
-			return 0
-		}
-		var bytes uint64
-		if _, err := fmt.Sscanf(strings.TrimSpace(string(out)), "%d", &bytes); err != nil {
-			return 0
-		}
-		return int(bytes / (1024 * 1024 * 1024))
-	case "linux":
-		out, err := exec.Command("grep", "MemTotal", "/proc/meminfo").Output()
-		if err != nil {
-			return 0
-		}
-		var kb uint64
-		if _, err := fmt.Sscanf(strings.TrimSpace(string(out)), "MemTotal: %d kB", &kb); err != nil {
-			return 0
-		}
-		return int(kb / (1024 * 1024))
-	default:
-		return 0
-	}
 }

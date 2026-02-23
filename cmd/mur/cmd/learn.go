@@ -16,6 +16,7 @@ import (
 	"github.com/mur-run/mur-core/internal/learn"
 	"github.com/mur-run/mur-core/internal/learning"
 	"github.com/mur-run/mur-core/internal/notify"
+	"github.com/mur-run/mur-core/internal/sysinfo"
 )
 
 var learnCmd = &cobra.Command{
@@ -794,7 +795,7 @@ func runExtractLLM(ctx context.Context, sessionID, provider, model string, dryRu
 
 	// Auto-detect: if no provider configured, try Ollama
 	if !configuredProvider {
-		if learn.CheckOllamaAvailable(opts.OllamaURL) {
+		if sysinfo.OllamaRunning(opts.OllamaURL) {
 			opts.Provider = learn.LLMOllama
 			if !quiet {
 				fmt.Println("💡 No LLM configured, using local Ollama")
@@ -813,7 +814,7 @@ func runExtractLLM(ctx context.Context, sessionID, provider, model string, dryRu
 	// Validate provider setup
 	switch opts.Provider {
 	case learn.LLMOllama:
-		if !learn.CheckOllamaAvailable(opts.OllamaURL) {
+		if !sysinfo.OllamaRunning(opts.OllamaURL) {
 			// Always warn (even in quiet mode)
 			fmt.Fprintln(os.Stderr, "⚠️  Ollama not available, falling back to keyword extraction")
 			return runExtractAuto(ctx, dryRun, acceptAll, quiet, minConfidence)

@@ -2,12 +2,10 @@ package cmd
 
 import (
 	"fmt"
-	"os/exec"
-	"runtime"
-	"strconv"
-	"strings"
 
 	"github.com/spf13/cobra"
+
+	"github.com/mur-run/mur-core/internal/sysinfo"
 )
 
 var configProvidersCmd = &cobra.Command{
@@ -26,7 +24,7 @@ func init() {
 }
 
 func runConfigProviders(cmd *cobra.Command, args []string) error {
-	ramGB := detectSystemRAM()
+	ramGB := sysinfo.SystemRAMGB()
 
 	fmt.Println("LLM Providers for mur session analyze & learn extract")
 	fmt.Println()
@@ -103,37 +101,4 @@ func runConfigProviders(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 
 	return nil
-}
-
-// detectSystemRAM returns total system RAM in GB, or 0 if detection fails.
-func detectSystemRAM() int {
-	switch runtime.GOOS {
-	case "darwin":
-		out, err := exec.Command("sysctl", "-n", "hw.memsize").Output()
-		if err != nil {
-			return 0
-		}
-		bytes, err := strconv.ParseUint(strings.TrimSpace(string(out)), 10, 64)
-		if err != nil {
-			return 0
-		}
-		return int(bytes / (1024 * 1024 * 1024))
-	case "linux":
-		out, err := exec.Command("grep", "MemTotal", "/proc/meminfo").Output()
-		if err != nil {
-			return 0
-		}
-		// Format: "MemTotal:       16384000 kB"
-		fields := strings.Fields(string(out))
-		if len(fields) >= 2 {
-			kb, err := strconv.ParseUint(fields[1], 10, 64)
-			if err != nil {
-				return 0
-			}
-			return int(kb / (1024 * 1024))
-		}
-		return 0
-	default:
-		return 0
-	}
 }

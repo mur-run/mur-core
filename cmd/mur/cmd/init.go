@@ -4,15 +4,15 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
+
+	"github.com/mur-run/mur-core/internal/sysinfo"
 
 	"github.com/mur-run/mur-core/internal/config"
 	murhooks "github.com/mur-run/mur-core/internal/hooks"
@@ -366,7 +366,7 @@ func askModelSetup() (modelSetup, error) {
 	fmt.Println()
 
 	// Detect system RAM for recommendations
-	ramGB := detectSystemRAM()
+	ramGB := sysinfo.SystemRAMGB()
 	if ramGB > 0 {
 		fmt.Printf("  System RAM: %dGB\n", ramGB)
 		fmt.Println()
@@ -449,7 +449,7 @@ func askLocalSetupWithRAM(ramGB int) (modelSetup, error) {
 
 	// Check if Ollama is running
 	fmt.Println()
-	if checkOllamaRunning() {
+	if sysinfo.OllamaRunning("") {
 		fmt.Println("  ✅ Ollama is running")
 	} else {
 		fmt.Println("  ⚠️  Ollama is not running.")
@@ -463,16 +463,6 @@ func askLocalSetupWithRAM(ramGB int) (modelSetup, error) {
 	return m, nil
 }
 
-// checkOllamaRunning checks if Ollama is running locally.
-func checkOllamaRunning() bool {
-	client := &http.Client{Timeout: 2 * time.Second}
-	resp, err := client.Get("http://localhost:11434/api/tags")
-	if err != nil {
-		return false
-	}
-	resp.Body.Close()
-	return resp.StatusCode == 200
-}
 
 func askCloudSetup() (modelSetup, error) {
 	m := defaultCloudSetup()
@@ -592,7 +582,7 @@ func askCustomSetup() (modelSetup, error) {
 func printProviderSetupHints(provider, apiKeyEnv string) {
 	switch provider {
 	case "ollama":
-		if checkOllamaRunning() {
+		if sysinfo.OllamaRunning("") {
 			fmt.Println("  ✅ Ollama is running")
 		} else {
 			fmt.Println("  ⚠️  Ollama is not running.")
