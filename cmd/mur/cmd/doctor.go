@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -339,7 +340,51 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 		})
 	}
 
-	// Check 9: Premium LLM configuration
+	// Check 9: Model recommendation based on system RAM
+	if cfg != nil && cfg.Learning.LLM.Provider == "ollama" {
+		totalGB := getSystemRAMGB()
+		if totalGB > 0 {
+			var recommendation string
+			switch {
+			case totalGB >= 64:
+				recommendation = fmt.Sprintf("%dGB RAM → qwen3:72b, deepseek-r1:32b", totalGB)
+			case totalGB >= 32:
+				recommendation = fmt.Sprintf("%dGB RAM → qwen3:32b, deepseek-r1:32b", totalGB)
+			case totalGB >= 16:
+				recommendation = fmt.Sprintf("%dGB RAM → qwen3:8b, gemma3:12b", totalGB)
+			default:
+				recommendation = fmt.Sprintf("%dGB RAM → llama3.2:3b or use a paid API", totalGB)
+			}
+			checks = append(checks, checkResult{
+				name:    "Model recommendation",
+				status:  "info",
+				message: recommendation,
+			})
+		}
+
+		// Check if Ollama is actually reachable at configured URL
+		ollamaCheckURL := cfg.Learning.LLM.OllamaURL
+		if ollamaCheckURL == "" {
+			ollamaCheckURL = "http://localhost:11434"
+		}
+		client := &http.Client{Timeout: 2 * time.Second}
+		if resp, err := client.Get(ollamaCheckURL + "/api/tags"); err != nil {
+			checks = append(checks, checkResult{
+				name:    "Ollama reachable",
+				status:  "warn",
+				message: fmt.Sprintf("Cannot reach %s (start with: ollama serve)", ollamaCheckURL),
+			})
+		} else {
+			resp.Body.Close()
+			checks = append(checks, checkResult{
+				name:    "Ollama reachable",
+				status:  "ok",
+				message: ollamaCheckURL,
+			})
+		}
+	}
+
+	// Check 10: Premium LLM configuration
 	if cfg != nil && cfg.Learning.LLM.Premium != nil {
 		p := cfg.Learning.LLM.Premium
 		msg := string(p.Provider)
@@ -454,4 +499,32 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 
 	return nil
+}
+
+// getSystemRAMGB returns total system RAM in GB, or 0 if detection fails.
+func getSystemRAMGB() int {
+	switch runtime.GOOS {
+	case "darwin":
+		out, err := exec.Command("sysctl", "-n", "hw.memsize").Output()
+		if err != nil {
+			return 0
+		}
+		var bytes uint64
+		if _, err := fmt.Sscanf(strings.TrimSpace(string(out)), "%d", &bytes); err != nil {
+			return 0
+		}
+		return int(bytes / (1024 * 1024 * 1024))
+	case "linux":
+		out, err := exec.Command("grep", "MemTotal", "/proc/meminfo").Output()
+		if err != nil {
+			return 0
+		}
+		var kb uint64
+		if _, err := fmt.Sscanf(strings.TrimSpace(string(out)), "MemTotal: %d kB", &kb); err != nil {
+			return 0
+		}
+		return int(kb / (1024 * 1024))
+	default:
+		return 0
+	}
 }

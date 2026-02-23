@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/mur-run/mur-core/internal/config"
 	"github.com/mur-run/mur-core/internal/session"
 	"github.com/mur-run/mur-core/internal/session/ui"
 )
@@ -92,7 +93,11 @@ editor to refine the workflow before saving.`,
 		fmt.Fprintf(os.Stderr, "  Events:   %d\n", len(events))
 
 		if analyze {
-			result, err := runAnalysis(state.SessionID)
+			llmProvider, _ := cmd.Flags().GetString("provider")
+			llmModel, _ := cmd.Flags().GetString("model")
+			llmOllamaURL, _ := cmd.Flags().GetString("ollama-url")
+
+			result, err := runAnalysis(state.SessionID, llmProvider, llmModel, llmOllamaURL)
 			if err != nil {
 				return err
 			}
@@ -201,7 +206,11 @@ var sessionAnalyzeCmd = &cobra.Command{
 	Short: "Analyze a recorded session and extract a workflow",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		_, err := runAnalysis(args[0])
+		llmProvider, _ := cmd.Flags().GetString("provider")
+		llmModel, _ := cmd.Flags().GetString("model")
+		llmOllamaURL, _ := cmd.Flags().GetString("ollama-url")
+
+		_, err := runAnalysis(args[0], llmProvider, llmModel, llmOllamaURL)
 		return err
 	},
 }
@@ -219,7 +228,7 @@ var sessionUICmd = &cobra.Command{
 		result, err := session.LoadAnalysis(sessionID)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "No saved analysis found. Analyzing session...\n")
-			result, err = runAnalysis(sessionID)
+			result, err = runAnalysis(sessionID, "", "", "")
 			if err != nil {
 				return err
 			}
@@ -333,14 +342,19 @@ Examples:
 }
 
 // runAnalysis creates an LLM provider and runs QA-CoT analysis on a session.
-func runAnalysis(sessionID string) (*session.AnalysisResult, error) {
+func runAnalysis(sessionID, llmProvider, llmModel, llmOllamaURL string) (*session.AnalysisResult, error) {
 	shortID := sessionID
 	if len(shortID) > 8 {
 		shortID = shortID[:8]
 	}
 	fmt.Fprintf(os.Stderr, "\nAnalyzing session %s...\n", shortID)
 
-	provider, err := session.NewLLMProviderFromEnv()
+	cfg, err := config.Load()
+	if err != nil {
+		return nil, fmt.Errorf("load config: %w", err)
+	}
+
+	provider, err := session.NewLLMProviderWithOverrides(cfg, llmProvider, llmModel, llmOllamaURL)
 	if err != nil {
 		return nil, fmt.Errorf("LLM setup: %w", err)
 	}
@@ -389,8 +403,15 @@ func init() {
 
 	sessionStopCmd.Flags().Bool("analyze", false, "Analyze the recording after stopping")
 	sessionStopCmd.Flags().Bool("open", false, "Open web UI after analysis")
+	sessionStopCmd.Flags().String("provider", "", "LLM provider override (anthropic, openai, ollama, gemini)")
+	sessionStopCmd.Flags().String("model", "", "LLM model name override")
+	sessionStopCmd.Flags().String("ollama-url", "", "Ollama API URL override")
 
 	sessionStatusCmd.Flags().BoolP("quiet", "q", false, "Exit 0 if recording, 1 if not (for scripts)")
+
+	sessionAnalyzeCmd.Flags().String("provider", "", "LLM provider override (anthropic, openai, ollama, gemini)")
+	sessionAnalyzeCmd.Flags().String("model", "", "LLM model name override")
+	sessionAnalyzeCmd.Flags().String("ollama-url", "", "Ollama API URL override")
 
 	sessionRecordCmd.Flags().String("type", "", "Event type: user, assistant, tool_call, tool_result")
 	sessionRecordCmd.Flags().String("content", "", "Event content")
