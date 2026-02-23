@@ -78,12 +78,21 @@ func InstallClaudeCodeHooksWithOptions(opts HookOptions) error {
 	}
 
 	// Install /mur:in and /mur:out as Claude Code slash commands
-	commandsDir := filepath.Join(home, ".claude", "commands")
+	commandsDir := filepath.Join(home, ".claude", "commands", "mur")
 	if err := os.MkdirAll(commandsDir, 0755); err != nil {
 		return fmt.Errorf("cannot create commands directory: %w", err)
 	}
 
-	murInCmd := filepath.Join(commandsDir, "mur:in.md")
+	// Clean up old flat files (mur:in.md, mur:out.md) from v1.14.0
+	oldCommandsDir := filepath.Join(home, ".claude", "commands")
+	for _, old := range []string{"mur:in.md", "mur:out.md"} {
+		oldPath := filepath.Join(oldCommandsDir, old)
+		if _, err := os.Stat(oldPath); err == nil {
+			os.Remove(oldPath)
+		}
+	}
+
+	murInCmd := filepath.Join(commandsDir, "in.md")
 	murInContent := `---
 description: "Start recording this conversation for workflow extraction. Events (prompts, tool calls, stops) will be captured until you run /mur:out."
 allowed-tools: Bash(mur:*)
@@ -103,7 +112,7 @@ After starting, confirm to the user:
 	}
 	fmt.Printf("  + Installed /mur:in command at %s\n", murInCmd)
 
-	murOutCmd := filepath.Join(commandsDir, "mur:out.md")
+	murOutCmd := filepath.Join(commandsDir, "out.md")
 	murOutContent := `---
 description: "Stop recording and analyze the captured conversation to extract a reusable workflow."
 allowed-tools: Bash(mur:*)
