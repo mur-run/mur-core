@@ -9,7 +9,8 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
+
+	"github.com/mur-run/mur-core/internal/config"
 )
 
 var repoCmd = &cobra.Command{
@@ -117,7 +118,7 @@ func runRepoSet(cmd *cobra.Command, args []string) error {
 	}
 
 	// Save repo URL to config
-	if err := saveRepoConfig(home, repoURL); err != nil {
+	if err := saveRepoConfig(repoURL); err != nil {
 		fmt.Printf("⚠ Warning: couldn't save config: %v\n", err)
 	}
 
@@ -218,47 +219,24 @@ func runRepoRemove(cmd *cobra.Command, args []string) error {
 	}
 
 	// Remove from config
-	_ = saveRepoConfig(home, "")
+	_ = saveRepoConfig("")
 
 	fmt.Println("✅ Learning repo removed. Patterns are still available locally.")
 
 	return nil
 }
 
-func saveRepoConfig(home, repoURL string) error {
-	configPath := filepath.Join(home, ".mur", "config.yaml")
-
-	// Read existing config
-	data, err := os.ReadFile(configPath)
+func saveRepoConfig(repoURL string) error {
+	cfg, err := config.Load()
 	if err != nil {
 		return err
 	}
-
-	var config map[string]interface{}
-	if err := yaml.Unmarshal(data, &config); err != nil {
-		return err
-	}
-
-	// Update learning section
-	learning, ok := config["learning"].(map[string]interface{})
-	if !ok {
-		learning = make(map[string]interface{})
-	}
-
 	if repoURL != "" {
-		learning["repo"] = repoURL
+		cfg.Learning.Repo = repoURL
 	} else {
-		delete(learning, "repo")
+		cfg.Learning.Repo = ""
 	}
-	config["learning"] = learning
-
-	// Write back
-	newData, err := yaml.Marshal(config)
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(configPath, newData, 0644)
+	return cfg.Save()
 }
 
 // SetupLearningRepo is called from init to optionally set up a learning repo
@@ -302,7 +280,7 @@ func SetupLearningRepo(home string) error {
 	}
 
 	// Save to config
-	_ = saveRepoConfig(home, repoURL)
+	_ = saveRepoConfig(repoURL)
 
 	fmt.Println("  ✓ Learning repo configured")
 	return nil

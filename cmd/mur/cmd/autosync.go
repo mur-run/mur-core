@@ -91,6 +91,7 @@ func runAutoSyncEnable(cmd *cobra.Command, args []string) error {
 	// Save to config
 	cfg, err := config.Load()
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "  ⚠ Could not load config (%v), using defaults\n", err)
 		cfg = config.Default()
 	}
 	cfg.Sync.Auto = true
@@ -117,6 +118,7 @@ func runAutoSyncDisable(cmd *cobra.Command, args []string) error {
 	// Update config
 	cfg, err := config.Load()
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "  ⚠ Could not load config (%v), using defaults\n", err)
 		cfg = config.Default()
 	}
 	cfg.Sync.Auto = false

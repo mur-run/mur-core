@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"os/exec"
 	"os/user"
 	"path/filepath"
 	"runtime"
@@ -68,12 +69,20 @@ func generateDeviceID() string {
 
 // getDeviceName returns a human-readable device name
 func getDeviceName() string {
+	// On macOS, try scutil --get ComputerName first
+	if runtime.GOOS == "darwin" {
+		if out, err := exec.Command("scutil", "--get", "ComputerName").Output(); err == nil {
+			name := strings.TrimSpace(string(out))
+			if name != "" {
+				return name
+			}
+		}
+	}
+
 	hostname, err := os.Hostname()
 	if err != nil {
 		return "Unknown Device"
 	}
-
-	// TODO: Try to get a nicer name on macOS via scutil --get ComputerName
 
 	return hostname
 }

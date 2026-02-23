@@ -1012,21 +1012,12 @@ func askCommunitySharing() {
 
 	enabled := input == "" || input == "y" || input == "yes"
 
-	// Update config file without destroying template comments
-	// Use sed-style replacement on the YAML key
-	configPath, err := config.ConfigPath()
+	// Update config using typed config to avoid matching YAML comments
+	cfg, err := config.Load()
 	if err == nil {
-		content, readErr := os.ReadFile(configPath)
-		if readErr == nil {
-			s := string(content)
-			// The template already has a community section placeholder
-			// Just update the values in-place
-			s = strings.ReplaceAll(s, "share_enabled: true", fmt.Sprintf("share_enabled: %t", enabled))
-			s = strings.ReplaceAll(s, "share_enabled: false", fmt.Sprintf("share_enabled: %t", enabled))
-			s = strings.ReplaceAll(s, "auto_share_on_push: true", fmt.Sprintf("auto_share_on_push: %t", enabled))
-			s = strings.ReplaceAll(s, "auto_share_on_push: false", fmt.Sprintf("auto_share_on_push: %t", enabled))
-			_ = os.WriteFile(configPath, []byte(s), 0644)
-		}
+		cfg.Community.ShareEnabled = enabled
+		cfg.Community.AutoShareOnPush = enabled
+		_ = cfg.Save()
 	}
 
 	fmt.Println()
