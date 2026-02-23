@@ -1,109 +1,137 @@
-# Murmur AI Skill
+---
+name: mur-skill
+description: "OpenClaw skill for mur-core — continuous learning for AI assistants. Sync patterns, search knowledge, record sessions, and manage your learning across all AI CLI tools."
+---
 
-Unified management layer for AI CLI tools. Sync configurations, extract learned patterns, and view usage statistics across Claude Code, Gemini CLI, and Auggie.
+# mur-core OpenClaw Skill
+
+Continuous learning for AI assistants. Learn once, remember forever.
+
+Wraps the [mur CLI](https://github.com/mur-run/mur-core) v1.12+.
 
 ## Requirements
 
-- `mur` CLI installed and in PATH
-- murmur-ai configured (`~/.mur/config.yaml`)
+```bash
+go install github.com/mur-run/mur-core/cmd/mur@latest
+mur init   # Interactive setup
+```
 
 ## Commands
 
-### /murmur:sync
+### /mur:status
 
-Synchronize all configurations to AI CLI tools.
+Show mur status overview — config, patterns count, hooks, cloud connection.
 
-**What it syncs:**
-- MCP server configurations
-- Hook configurations  
-- Learned patterns
-- Skills
-
-**Usage:**
-```
-/murmur:sync
+```bash
+mur status
 ```
 
-**Example output:**
-```json
-{
-  "success": true,
-  "results": {
-    "mcp": [
-      {"target": "claude", "success": true, "message": "2 servers synced"}
-    ],
-    "patterns": [
-      {"target": "claude", "success": true, "message": "synced 5 patterns"}
-    ]
-  }
-}
+### /mur:sync
+
+Smart sync based on your plan. Cloud sync for Pro+, git sync for Free, then pushes to local AI CLIs.
+
+```bash
+mur sync
 ```
 
-### /murmur:learn
+Options:
+- `mur sync --cloud` — force cloud sync
+- `mur sync --git` — force git sync
+- `mur sync --cli` — only sync to local CLIs (no remote)
 
-Extract patterns from recent coding sessions.
+### /mur:search <query>
 
-**What it does:**
-- Scans Claude Code session transcripts from the last 7 days
-- Identifies reusable patterns (code snippets, workflows, preferences)
-- Reports found patterns without auto-saving (dry-run mode)
+Semantic search across local and community patterns.
 
-**Usage:**
-```
-/murmur:learn
-```
-
-**Example output:**
-```json
-{
-  "sessions_scanned": 12,
-  "patterns_found": [
-    {
-      "name": "swift-error-handling",
-      "category": "code",
-      "confidence": 0.85,
-      "preview": "Use Result<T, Error> for..."
-    }
-  ]
-}
+```bash
+mur search "Swift async testing"
+mur search --community "API retry patterns"
+mur search --json "error handling"
 ```
 
-### /murmur:stats
+### /mur:learn
 
-Display usage statistics for AI CLI tools.
+List and manage learned patterns.
 
-**What it shows:**
-- Tool usage counts (Claude, Gemini, Auggie)
-- Estimated costs
-- Routing decisions
-- Usage trends
-
-**Usage:**
-```
-/murmur:stats
+```bash
+mur learn list                    # List all patterns
+mur learn extract                 # Extract from recent sessions (dry-run)
+mur learn extract --auto --save   # Auto-extract and save
+mur learn add <name>              # Add a new pattern
+mur learn get <name>              # Show a pattern
+mur learn delete <name>           # Delete a pattern
 ```
 
-**Example output:**
-```json
-{
-  "total_calls": 142,
-  "by_tool": {
-    "claude": {"calls": 89, "cost_usd": 2.45},
-    "gemini": {"calls": 45, "cost_usd": 0.12},
-    "auggie": {"calls": 8, "cost_usd": 0.00}
-  },
-  "period": "all"
-}
+### /mur:stats
+
+Show pattern usage analytics — counts, costs, trends.
+
+```bash
+mur stats
 ```
 
-## Implementation Notes
+### /mur:session (Recording)
 
-This skill wraps the `mur` CLI. Commands execute:
-- `/murmur:sync` → `mur output sync --json`
-- `/murmur:learn` → `mur learn extract --auto --dry-run`
-- `/murmur:stats` → `mur output stats --json`
+Record conversation segments for workflow extraction. Use `/mur:in` and `/mur:out` markers in AI tools.
+
+```bash
+mur session start --source claude-code   # Start recording
+mur session stop --analyze               # Stop + analyze
+mur session list                         # List recordings
+mur session analyze <id>                 # LLM analysis
+mur session ui <id>                      # Web workflow editor
+mur session export <id> --format skill   # Export as skill
+```
+
+**Typical flow:**
+1. `/mur:in` → `mur session start`
+2. Conversation happens (events captured)
+3. `/mur:out` → `mur session stop --analyze --open`
+4. Edit in web UI → Save → Export
+
+### /mur:doctor
+
+Diagnose setup issues and fix common problems.
+
+```bash
+mur doctor
+```
+
+### /mur:feedback
+
+Rate pattern effectiveness to improve recommendations.
+
+```bash
+mur feedback helpful <pattern-name>
+mur feedback unhelpful <pattern-name>
+```
+
+## Other Useful Commands
+
+| Command | Purpose |
+|---------|---------|
+| `mur consolidate` | Score health, detect duplicates, resolve conflicts |
+| `mur community` | Browse and copy community patterns |
+| `mur dashboard` | Generate static HTML dashboard |
+| `mur serve` | Start local dashboard server |
+| `mur import` | Import patterns from external sources |
+| `mur index rebuild` | Rebuild embedding index |
+| `mur config` | View/edit configuration |
+
+## Pattern Storage
+
+Patterns live in `~/.mur/patterns/` with domain organization:
+
+```
+~/.mur/patterns/
+├── _global/        # Cross-domain patterns
+├── backend/        # Backend/API
+├── devops/         # DevOps
+├── web/            # Frontend
+└── projects/       # Project-specific
+```
 
 ## Learn More
 
-- [murmur-ai on GitHub](https://github.com/mur-run/mur-core)
-- [Full Documentation](https://github.com/mur-run/mur-core#readme)
+- [GitHub](https://github.com/mur-run/mur-core)
+- [Documentation](https://github.com/mur-run/mur-core#readme)

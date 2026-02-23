@@ -1,49 +1,74 @@
 {
-  "name": "@murmur-ai/openclaw-skill",
-  "version": "0.1.0",
-  "description": "OpenClaw skill for murmur-ai - unified AI CLI management",
+  "name": "@mur-run/openclaw-skill",
+  "version": "1.12.1",
+  "description": "OpenClaw skill for mur-core — continuous learning for AI assistants",
   "keywords": [
     "openclaw",
     "skill",
-    "murmur-ai",
+    "mur-core",
     "ai-cli",
-    "claude",
-    "gemini"
+    "continuous-learning",
+    "patterns"
   ],
   "author": "karajanchang",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/karajanchang/murmur-ai.git",
+    "url": "https://github.com/mur-run/mur-core.git",
     "directory": "integrations/openclaw"
   },
   "openclaw": {
     "type": "skill",
-    "name": "murmur",
-    "displayName": "Murmur AI",
-    "description": "Unified management for AI CLI tools",
+    "name": "mur",
+    "displayName": "mur-core",
+    "description": "Continuous learning for AI assistants — sync patterns, search knowledge, record sessions",
     "commands": [
       {
+        "name": "status",
+        "description": "Show mur status overview",
+        "exec": "mur status"
+      },
+      {
         "name": "sync",
-        "description": "Sync MCP, hooks, and patterns to all AI tools",
-        "exec": "mur output sync --json"
+        "description": "Smart sync patterns to cloud/git + local AI CLIs",
+        "exec": "mur sync"
+      },
+      {
+        "name": "search",
+        "description": "Semantic search across local and community patterns",
+        "exec": "mur search"
       },
       {
         "name": "learn",
-        "description": "Extract patterns from recent coding sessions",
-        "exec": "mur learn extract --auto --dry-run"
+        "description": "List and manage learned patterns",
+        "exec": "mur learn list"
       },
       {
         "name": "stats",
-        "description": "Show usage statistics",
-        "exec": "mur output stats --json"
+        "description": "Show pattern usage analytics",
+        "exec": "mur stats"
+      },
+      {
+        "name": "session",
+        "description": "Record conversation segments for workflow extraction",
+        "exec": "mur session status"
+      },
+      {
+        "name": "doctor",
+        "description": "Diagnose setup and fix common issues",
+        "exec": "mur doctor"
+      },
+      {
+        "name": "feedback",
+        "description": "Rate pattern effectiveness",
+        "exec": "mur feedback"
       }
     ],
     "requirements": [
       {
         "type": "binary",
         "name": "mur",
-        "installHint": "Install murmur-ai: go install github.com/karajanchang/murmur-ai/cmd/mur@latest"
+        "installHint": "Install mur-core: go install github.com/mur-run/mur-core/cmd/mur@latest"
       }
     ]
   }
