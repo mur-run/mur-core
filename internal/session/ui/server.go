@@ -95,7 +95,7 @@ func (s *Server) Serve(port int) error {
 		<-s.shutdown
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
-		srv.Shutdown(ctx)
+		_ = srv.Shutdown(ctx)
 	}()
 
 	err = srv.Serve(ln)
@@ -230,13 +230,13 @@ func (s *Server) handleExport(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/x-yaml")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.yaml", filename))
-	w.Write(yamlData)
+	_, _ = w.Write(yamlData)
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(v)
+	_ = json.NewEncoder(w).Encode(v)
 }
 
 func openBrowser(url string) {
@@ -251,5 +251,5 @@ func openBrowser(url string) {
 	default:
 		return
 	}
-	cmd.Start()
+	_ = cmd.Start()
 }

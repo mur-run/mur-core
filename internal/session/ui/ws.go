@@ -81,7 +81,7 @@ func (s *Server) sendState(conn *websocket.Conn) {
 	s.mu.RUnlock()
 
 	s.clientMu.Lock()
-	conn.WriteMessage(websocket.TextMessage, data)
+	_ = conn.WriteMessage(websocket.TextMessage, data)
 	s.clientMu.Unlock()
 }
 
@@ -125,7 +125,7 @@ func (s *Server) sendTo(conn *websocket.Conn, msg ServerMessage) {
 		return
 	}
 	s.clientMu.Lock()
-	conn.WriteMessage(websocket.TextMessage, data)
+	_ = conn.WriteMessage(websocket.TextMessage, data)
 	s.clientMu.Unlock()
 }
 
