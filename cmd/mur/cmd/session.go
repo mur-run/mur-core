@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -65,8 +66,7 @@ var sessionStopCmd = &cobra.Command{
 		fmt.Fprintf(os.Stderr, "  Events:   %d\n", len(events))
 
 		if analyze {
-			fmt.Fprintf(os.Stderr, "\nAnalysis not yet implemented (Phase 3).\n")
-			fmt.Fprintf(os.Stderr, "Recording saved: ~/.mur/session/recordings/%s.jsonl\n", state.SessionID)
+			return runAnalysis(state.SessionID)
 		}
 
 		return nil
@@ -149,6 +149,15 @@ var sessionListCmd = &cobra.Command{
 	},
 }
 
+var sessionAnalyzeCmd = &cobra.Command{
+	Use:   "analyze <session-id>",
+	Short: "Analyze a recorded session and extract a workflow",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runAnalysis(args[0])
+	},
+}
+
 var sessionRecordCmd = &cobra.Command{
 	Use:    "record",
 	Short:  "Append an event to the active session",
@@ -172,18 +181,51 @@ var sessionRecordCmd = &cobra.Command{
 	},
 }
 
+// runAnalysis creates an LLM provider and runs QA-CoT analysis on a session.
+func runAnalysis(sessionID string) error {
+	fmt.Fprintf(os.Stderr, "\nAnalyzing session %s...\n", sessionID[:8])
+
+	provider, err := session.NewLLMProviderFromEnv()
+	if err != nil {
+		return fmt.Errorf("LLM setup: %w", err)
+	}
+
+	result, err := session.Analyze(sessionID, provider)
+	if err != nil {
+		return fmt.Errorf("analysis failed: %w", err)
+	}
+
+	// Print summary to stderr
+	fmt.Fprintf(os.Stderr, "  Name:      %s\n", result.Name)
+	fmt.Fprintf(os.Stderr, "  Trigger:   %s\n", result.Trigger)
+	fmt.Fprintf(os.Stderr, "  Steps:     %d\n", len(result.Steps))
+	fmt.Fprintf(os.Stderr, "  Variables: %d\n", len(result.Variables))
+	fmt.Fprintf(os.Stderr, "  Tools:     %v\n", result.Tools)
+	fmt.Fprintf(os.Stderr, "  Tags:      %v\n", result.Tags)
+
+	// Print full JSON to stdout (for piping)
+	data, err := json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshal result: %w", err)
+	}
+	fmt.Println(string(data))
+
+	return nil
+}
+
 func init() {
 	rootCmd.AddCommand(sessionCmd)
 	sessionCmd.AddCommand(sessionStartCmd)
 	sessionCmd.AddCommand(sessionStopCmd)
 	sessionCmd.AddCommand(sessionStatusCmd)
 	sessionCmd.AddCommand(sessionListCmd)
+	sessionCmd.AddCommand(sessionAnalyzeCmd)
 	sessionCmd.AddCommand(sessionRecordCmd)
 
 	sessionStartCmd.Flags().String("source", "", "Recording source (e.g. claude-code, codex)")
 	sessionStartCmd.Flags().String("marker", "", "Context marker from /mur:in message")
 
-	sessionStopCmd.Flags().Bool("analyze", false, "Analyze the recording after stopping (Phase 3)")
+	sessionStopCmd.Flags().Bool("analyze", false, "Analyze the recording after stopping")
 	sessionStopCmd.Flags().Bool("open", false, "Open web UI after analysis (Phase 4)")
 
 	sessionStatusCmd.Flags().BoolP("quiet", "q", false, "Exit 0 if recording, 1 if not (for scripts)")
