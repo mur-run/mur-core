@@ -1,6 +1,6 @@
 ---
 name: mur-skill
-description: "OpenClaw skill for mur-core — continuous learning for AI assistants. Sync patterns, search knowledge, record sessions, and manage your learning across all AI CLI tools."
+description: "OpenClaw skill for mur-core — continuous learning for AI assistants. Sync patterns, search knowledge, and manage your learning across all AI CLI tools."
 ---
 
 # mur-core OpenClaw Skill
@@ -70,24 +70,14 @@ Show pattern usage analytics — counts, costs, trends.
 mur stats
 ```
 
-### /mur:session (Recording)
+### /mur:transcripts
 
-Record conversation segments for workflow extraction. Use `/mur:in` and `/mur:out` markers in AI tools.
+Browse AI coding session transcripts.
 
 ```bash
-mur session start --source claude-code   # Start recording
-mur session stop --analyze               # Stop + analyze
-mur session list                         # List recordings
-mur session analyze <id>                 # LLM analysis
-mur session ui <id>                      # Web workflow editor
-mur session export <id> --format skill   # Export as skill
+mur transcripts            # List recent transcripts
+mur transcripts --json     # JSON output
 ```
-
-**Typical flow:**
-1. `/mur:in` → `mur session start`
-2. Conversation happens (events captured)
-3. `/mur:out` → `mur session stop --analyze --open`
-4. Edit in web UI → Save → Export
 
 ### /mur:doctor
 
