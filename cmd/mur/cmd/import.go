@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 
+	"github.com/mur-run/mur-core/internal/cloud"
 	"github.com/mur-run/mur-core/internal/config"
 	"github.com/mur-run/mur-core/internal/core/pattern"
 )
@@ -127,10 +128,28 @@ func runImportGist(cmd *cobra.Command, args []string) error {
 
 	// Share if requested
 	if importShare {
-		fmt.Println("\nSharing to community...")
-		// TODO: Call share API
-		_ = cfg // Will use for share
-		fmt.Println("  (Share functionality coming soon)")
+		if !cfg.Community.ShareEnabled {
+			fmt.Println("\n⚠ Community sharing is disabled in config.")
+			fmt.Println("  Enable with: mur config set community.share_enabled true")
+		} else {
+			fmt.Println("\nSharing to community...")
+			client, err := cloud.NewClient("")
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "  ⚠ Could not connect to cloud: %v\n", err)
+			} else {
+				shareReq := &cloud.ShareLocalPatternRequest{
+					Name:        p.Name,
+					Description: p.Description,
+					Content:     p.Content,
+				}
+				resp, err := client.ShareLocalPattern(shareReq)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "  ⚠ Share failed: %v\n", err)
+				} else {
+					fmt.Printf("  ✓ Shared to community (id: %s, status: %s)\n", resp.ID, resp.Status)
+				}
+			}
+		}
 	}
 
 	fmt.Println("\nRun 'mur sync' to sync to your CLIs")
