@@ -3,37 +3,39 @@ package session
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
 // AnalysisResult is the structured workflow extracted from a session transcript.
 type AnalysisResult struct {
-	Name        string     `json:"name"`
-	Trigger     string     `json:"trigger"`
-	Description string     `json:"description"`
-	Variables   []Variable `json:"variables"`
-	Steps       []Step     `json:"steps"`
-	Tools       []string   `json:"tools"`
-	Tags        []string   `json:"tags"`
+	Name        string     `json:"name" yaml:"name"`
+	Trigger     string     `json:"trigger" yaml:"trigger"`
+	Description string     `json:"description" yaml:"description"`
+	Variables   []Variable `json:"variables" yaml:"variables,omitempty"`
+	Steps       []Step     `json:"steps" yaml:"steps"`
+	Tools       []string   `json:"tools" yaml:"tools,omitempty"`
+	Tags        []string   `json:"tags" yaml:"tags,omitempty"`
 }
 
 // Variable represents a parameterizable value in a workflow.
 type Variable struct {
-	Name        string `json:"name"`
-	Type        string `json:"type"` // string, path, url, number, bool
-	Required    bool   `json:"required"`
-	Default     string `json:"default"`
-	Description string `json:"description"`
+	Name        string `json:"name" yaml:"name"`
+	Type        string `json:"type" yaml:"type"` // string, path, url, number, bool
+	Required    bool   `json:"required" yaml:"required"`
+	Default     string `json:"default" yaml:"default,omitempty"`
+	Description string `json:"description" yaml:"description"`
 }
 
 // Step represents a single action in a workflow.
 type Step struct {
-	Order         int    `json:"order"`
-	Description   string `json:"description"`
-	Command       string `json:"command,omitempty"`
-	Tool          string `json:"tool,omitempty"`
-	NeedsApproval bool   `json:"needs_approval"`
-	OnFailure     string `json:"on_failure"` // skip, abort, retry
+	Order         int    `json:"order" yaml:"order"`
+	Description   string `json:"description" yaml:"description"`
+	Command       string `json:"command,omitempty" yaml:"command,omitempty"`
+	Tool          string `json:"tool,omitempty" yaml:"tool,omitempty"`
+	NeedsApproval bool   `json:"needs_approval" yaml:"needs_approval"`
+	OnFailure     string `json:"on_failure" yaml:"on_failure"` // skip, abort, retry
 }
 
 // qaCoTPrompt is the Question-Answer Chain of Thought prompt for analysis.
@@ -151,6 +153,48 @@ func parseAnalysisResponse(raw string) (*AnalysisResult, error) {
 		}
 	}
 
+	return &result, nil
+}
+
+// analysisDir returns the path to ~/.mur/session/analysis/.
+func analysisDir() (string, error) {
+	dir, err := sessionDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "analysis"), nil
+}
+
+// SaveAnalysis persists an AnalysisResult to disk for later use by the web UI.
+func SaveAnalysis(sessionID string, result *AnalysisResult) error {
+	dir, err := analysisDir()
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("create analysis dir: %w", err)
+	}
+	data, err := json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshal analysis: %w", err)
+	}
+	return os.WriteFile(filepath.Join(dir, sessionID+".json"), data, 0644)
+}
+
+// LoadAnalysis reads a previously saved AnalysisResult from disk.
+func LoadAnalysis(sessionID string) (*AnalysisResult, error) {
+	dir, err := analysisDir()
+	if err != nil {
+		return nil, err
+	}
+	data, err := os.ReadFile(filepath.Join(dir, sessionID+".json"))
+	if err != nil {
+		return nil, fmt.Errorf("load analysis: %w", err)
+	}
+	var result AnalysisResult
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, fmt.Errorf("parse analysis: %w", err)
+	}
 	return &result, nil
 }
 

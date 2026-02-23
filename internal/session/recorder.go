@@ -175,3 +175,40 @@ func RecordingPath(sessionID string) (string, error) {
 	}
 	return filepath.Join(recDir, sessionID+".jsonl"), nil
 }
+
+// ResolveSessionID resolves a session ID prefix to a full session ID.
+// Accepts both full UUIDs and short prefixes (e.g. first 8 chars).
+func ResolveSessionID(prefix string) (string, error) {
+	recDir, err := recordingsDir()
+	if err != nil {
+		return "", err
+	}
+
+	entries, err := os.ReadDir(recDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", fmt.Errorf("no recordings found")
+		}
+		return "", fmt.Errorf("read recordings: %w", err)
+	}
+
+	var matches []string
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".jsonl") {
+			continue
+		}
+		sid := strings.TrimSuffix(entry.Name(), ".jsonl")
+		if strings.HasPrefix(sid, prefix) {
+			matches = append(matches, sid)
+		}
+	}
+
+	switch len(matches) {
+	case 0:
+		return "", fmt.Errorf("no session found matching %q", prefix)
+	case 1:
+		return matches[0], nil
+	default:
+		return "", fmt.Errorf("ambiguous prefix %q matches %d sessions", prefix, len(matches))
+	}
+}
