@@ -625,6 +625,12 @@ func createConfig(murDir string, selectedCLIs []string, defaultCLI string) error
 func createConfigWithModels(murDir string, selectedCLIs []string, defaultCLI string, models modelSetup) error {
 	configPath := filepath.Join(murDir, "config.yaml")
 
+	// Preserve existing server.team if config already exists
+	var existingTeam string
+	if existingCfg, err := config.Load(); err == nil {
+		existingTeam = existingCfg.Server.Team
+	}
+
 	// Map CLI names to config keys
 	cliMap := map[string]string{
 		"Claude Code": "claude",
@@ -646,7 +652,7 @@ func createConfigWithModels(murDir string, selectedCLIs []string, defaultCLI str
 		toolsYaml += fmt.Sprintf("  %s:\n    enabled: %t\n    binary: %s\n", key, enabled, key)
 	}
 
-	config := fmt.Sprintf(`# mur Configuration
+	configContent := fmt.Sprintf(`# mur Configuration
 # https://github.com/mur-run/mur-core
 
 schema_version: 2
@@ -725,7 +731,19 @@ routing:
 #   AfterTool: []
 `, defaultKey, toolsYaml, models.llmYaml(), models.searchYaml())
 
-	return os.WriteFile(configPath, []byte(config), 0644)
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		return err
+	}
+
+	// Restore preserved server.team
+	if existingTeam != "" {
+		if cfg, err := config.Load(); err == nil {
+			cfg.Server.Team = existingTeam
+			_ = cfg.Save()
+		}
+	}
+
+	return nil
 }
 
 func installClaudeHooks(home, murDir string) error {

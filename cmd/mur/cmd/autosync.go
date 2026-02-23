@@ -11,7 +11,6 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
 
 	"github.com/mur-run/mur-core/internal/config"
 )
@@ -97,10 +96,7 @@ func runAutoSyncEnable(cmd *cobra.Command, args []string) error {
 	cfg.Sync.Auto = true
 	cfg.Sync.IntervalMinutes = intervalMinutes
 
-	home, _ := os.UserHomeDir()
-	configPath := filepath.Join(home, ".mur", "config.yaml")
-	data, _ := yaml.Marshal(cfg)
-	_ = os.WriteFile(configPath, data, 0644)
+	_ = cfg.Save()
 
 	// Install platform-specific scheduler
 	switch runtime.GOOS {
@@ -125,10 +121,7 @@ func runAutoSyncDisable(cmd *cobra.Command, args []string) error {
 	}
 	cfg.Sync.Auto = false
 
-	home, _ := os.UserHomeDir()
-	configPath := filepath.Join(home, ".mur", "config.yaml")
-	data, _ := yaml.Marshal(cfg)
-	_ = os.WriteFile(configPath, data, 0644)
+	_ = cfg.Save()
 
 	// Remove platform-specific scheduler
 	switch runtime.GOOS {

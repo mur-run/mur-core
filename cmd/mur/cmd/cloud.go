@@ -129,16 +129,7 @@ var cloudSelectCmd = &cobra.Command{
 
 		cfg.Server.Team = teamSlug
 
-		// Save config
-		home, _ := os.UserHomeDir()
-		configPath := filepath.Join(home, ".mur", "config.yaml")
-
-		data, err := yaml.Marshal(cfg)
-		if err != nil {
-			return fmt.Errorf("failed to marshal config: %w", err)
-		}
-
-		if err := os.WriteFile(configPath, data, 0644); err != nil {
+		if err := cfg.Save(); err != nil {
 			return fmt.Errorf("failed to save config: %w", err)
 		}
 
@@ -176,19 +167,19 @@ Examples:
 			return nil
 		}
 
-		// Get team from flag or config
+		// Get team from flag or config (auto-select if single team)
 		if teamSlug == "" {
 			cfg, err := config.Load()
-			if err == nil && cfg.Server.Team != "" {
-				teamSlug = cfg.Server.Team
+			if err != nil {
+				return fmt.Errorf("failed to load config: %w", err)
+			}
+			teamSlug, err = resolveActiveTeam(cfg, client)
+			if err != nil {
+				return err
 			}
 		}
 
-		if teamSlug == "" {
-			return fmt.Errorf("no team specified. Use --team or run 'mur cloud select <team>'")
-		}
-
-		// Find team ID and check subscription
+		// Find team and check subscription
 		teams, err := client.ListTeams()
 		if err != nil {
 			return fmt.Errorf("failed to list teams: %w", err)
@@ -415,6 +406,33 @@ func getCloudClient(cmd *cobra.Command) (*cloud.Client, error) {
 	return cloud.NewClient(serverURL)
 }
 
+// resolveActiveTeam returns the active team slug. If none is set in config
+// and the user has exactly one team, it auto-selects and persists it.
+func resolveActiveTeam(cfg *config.Config, client *cloud.Client) (string, error) {
+	if cfg.Server.Team != "" {
+		return cfg.Server.Team, nil
+	}
+	teams, err := client.ListTeams()
+	if err != nil {
+		return "", fmt.Errorf("failed to list teams: %w", err)
+	}
+	if len(teams) == 0 {
+		return "", fmt.Errorf("no teams found. Create one with: mur cloud create \"My Team\"")
+	}
+	if len(teams) == 1 {
+		cfg.Server.Team = teams[0].Slug
+		_ = cfg.Save()
+		fmt.Fprintf(os.Stderr, "  Auto-selected team: %s\n", teams[0].Name)
+		return teams[0].Slug, nil
+	}
+	// Multiple teams - list them and ask user to choose
+	fmt.Fprintf(os.Stderr, "Multiple teams found:\n")
+	for _, t := range teams {
+		fmt.Fprintf(os.Stderr, "  - %s (%s)\n", t.Name, t.Slug)
+	}
+	return "", fmt.Errorf("multiple teams found. Select one with: mur cloud select <team-slug>")
+}
+
 func getLocalSyncVersion(teamSlug string) int64 {
 	home, _ := os.UserHomeDir()
 	path := filepath.Join(home, ".mur", "sync-state.yaml")
@@ -562,16 +580,16 @@ Examples:
 			return nil
 		}
 
-		// Get team from flag or config
+		// Get team from flag or config (auto-select if single team)
 		if teamSlug == "" {
 			cfg, err := config.Load()
-			if err == nil && cfg.Server.Team != "" {
-				teamSlug = cfg.Server.Team
+			if err != nil {
+				return fmt.Errorf("failed to load config: %w", err)
 			}
-		}
-
-		if teamSlug == "" {
-			return fmt.Errorf("no team specified. Use --team or run 'mur cloud select <team>'")
+			teamSlug, err = resolveActiveTeam(cfg, client)
+			if err != nil {
+				return err
+			}
 		}
 
 		// Find team ID
@@ -691,16 +709,16 @@ Examples:
 			return nil
 		}
 
-		// Get team from flag or config
+		// Get team from flag or config (auto-select if single team)
 		if teamSlug == "" {
 			cfg, err := config.Load()
-			if err == nil && cfg.Server.Team != "" {
-				teamSlug = cfg.Server.Team
+			if err != nil {
+				return fmt.Errorf("failed to load config: %w", err)
 			}
-		}
-
-		if teamSlug == "" {
-			return fmt.Errorf("no team specified. Use --team or run 'mur cloud select <team>'")
+			teamSlug, err = resolveActiveTeam(cfg, client)
+			if err != nil {
+				return err
+			}
 		}
 
 		// Find team ID

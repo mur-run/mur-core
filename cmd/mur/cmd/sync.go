@@ -249,10 +249,10 @@ func runCloudSync(cmd *cobra.Command, cfg *config.Config) error {
 		return fmt.Errorf("not logged in. Run 'mur login' first")
 	}
 
-	// Get team from config
-	teamSlug := cfg.Server.Team
-	if teamSlug == "" {
-		return fmt.Errorf("no team configured. Run 'mur cloud select <team>'")
+	// Get team from config (auto-select if single team)
+	teamSlug, err := resolveActiveTeam(cfg, client)
+	if err != nil {
+		return err
 	}
 
 	// This calls the same logic as 'mur cloud sync'
