@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MUR Workflow Editor</title>
+<style>
+:root {
+  --primary: #4F46E5;
+  --primary-hover: #4338CA;
+  --primary-light: #EEF2FF;
+  --primary-faint: #F5F3FF;
+  --bg: #F3F4F6;
+  --card: #FFFFFF;
+  --border: #E5E7EB;
+  --border-focus: #A5B4FC;
+  --text: #111827;
+  --text-secondary: #6B7280;
+  --text-tertiary: #9CA3AF;
+  --success: #059669;
+  --success-light: #ECFDF5;
+  --danger: #DC2626;
+  --danger-light: #FEF2F2;
+  --warning: #D97706;
+  --warning-light: #FFFBEB;
+  --radius: 8px;
+  --radius-sm: 6px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.04);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+header {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  color: white;
+  padding: 0 24px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(79,70,229,0.3);
+}
+
+.logo {
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: 1px;
+  opacity: 0.9;
+  background: rgba(255,255,255,0.15);
+  padding: 2px 10px;
+  border-radius: 4px;
+}
+
+header h1 {
+  font-size: 16px;
+  font-weight: 500;
+  flex: 1;
+}
+
+.session-badge {
+  font-size: 12px;
+  background: rgba(255,255,255,0.15);
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+.connection-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #34D399;
+  display: inline-block;
+}
+
+.connection-dot.disconnected { background: #F87171; }
+
+main {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 24px 16px 100px;
+}
+
+.section {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-bottom: 20px;
+  border: 1px solid var(--border);
+}
+
+.section-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.section-header h2 {
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+}
+
+.section-body { padding: 20px; }
+
+.field-group {
+  margin-bottom: 16px;
+}
+
+.field-group:last-child { margin-bottom: 0; }
+
+.field-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+input[type="text"], textarea, select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text);
+  background: white;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+input[type="text"]:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(165,180,252,0.3);
+}
+
+textarea { resize: vertical; min-height: 60px; }
+
+.tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 16px;
+}
+
+.tag .tag-remove {
+  cursor: pointer;
+  opacity: 0.6;
+  font-size: 14px;
+  line-height: 1;
+  margin-left: 2px;
+}
+
+.tag .tag-remove:hover { opacity: 1; }
+
+.tag-add {
+  border: 1px dashed var(--border);
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tag-add:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* Variables table */
+.var-row {
+  display: grid;
+  grid-template-columns: 1fr 100px 80px 1fr 1fr 36px;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.var-row:last-of-type { border-bottom: none; }
+
+.var-row input, .var-row select {
+  padding: 6px 8px;
+  font-size: 13px;
+}
+
+.var-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* Toggle switch */
+.toggle {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: var(--border);
+  border-radius: 20px;
+  transition: background 0.2s;
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  left: 2px;
+  top: 2px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+
+.toggle input:checked + .toggle-slider { background: var(--primary); }
+.toggle input:checked + .toggle-slider::before { transform: translateX(16px); }
+
+/* Steps */
+.step-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+.step-card:last-of-type { margin-bottom: 0; }
+
+.step-card.dragging {
+  opacity: 0.5;
+  border-color: var(--primary);
+}
+
+.step-card.drag-over {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(79,70,229,0.2);
+}
+
+.step-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  cursor: default;
+}
+
+.drag-handle {
+  cursor: grab;
+  color: var(--text-tertiary);
+  font-size: 16px;
+  user-select: none;
+  padding: 0 2px;
+  line-height: 1;
+}
+
+.drag-handle:active { cursor: grabbing; }
+
+.step-number {
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 700;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.step-desc {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.step-desc:focus {
+  outline: none;
+  background: var(--primary-faint);
+}
+
+.approval-badge {
+  font-size: 11px;
+  background: var(--warning-light);
+  color: var(--warning);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.btn-icon {
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.btn-icon:hover { background: var(--bg); color: var(--text-secondary); }
+.btn-icon.btn-ai { color: var(--primary); }
+.btn-icon.btn-ai:hover { background: var(--primary-light); }
+.btn-icon.btn-danger:hover { background: var(--danger-light); color: var(--danger); }
+
+.step-details {
+  display: none;
+  padding: 0 12px 12px 46px;
+}
+
+.step-details.expanded { display: block; }
+
+.step-details .field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.step-details .field-group { margin-bottom: 10px; }
+.step-details .field-group:last-child { margin-bottom: 0; }
+
+.step-details label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  margin-bottom: 3px;
+  display: block;
+}
+
+.step-details input, .step-details select {
+  padding: 6px 8px;
+  font-size: 13px;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+}
+
+.btn-primary:hover { background: var(--primary-hover); }
+
+.btn-secondary {
+  background: white;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover { background: var(--bg); }
+
+.btn-danger {
+  background: white;
+  color: var(--danger);
+  border: 1px solid var(--border);
+}
+
+.btn-danger:hover { background: var(--danger-light); border-color: var(--danger); }
+
+.btn-sm {
+  padding: 5px 12px;
+  font-size: 12px;
+}
+
+.btn-add {
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--text-tertiary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  width: 100%;
+  text-align: center;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.btn-add:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-faint);
+}
+
+/* Actions bar */
+.actions-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  padding: 12px 24px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  z-index: 100;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
+}
+
+/* Toast notifications */
+.toast-container {
+  position: fixed;
+  top: 68px;
+  right: 16px;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toast {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+  font-size: 13px;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: slideIn 0.2s ease;
+  max-width: 360px;
+}
+
+.toast.success { border-left: 3px solid var(--success); }
+.toast.error { border-left: 3px solid var(--danger); }
+.toast.info { border-left: 3px solid var(--primary); }
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* AI Suggestion panel */
+.ai-panel {
+  display: none;
+  background: var(--primary-faint);
+  border: 1px solid var(--border-focus);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  margin-top: 12px;
+}
+
+.ai-panel.visible { display: block; }
+
+.ai-panel-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ai-panel-body {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+
+.ai-panel-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Tools display */
+.tools-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tool-badge {
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--bg);
+  color: var(--text-secondary);
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 24px;
+  color: var(--text-tertiary);
+  font-size: 14px;
+}
+
+/* Loading spinner */
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">MUR</div>
+  <h1>Workflow Editor</h1>
+  <span class="session-badge">{{.SessionID}}</span>
+  <span class="connection-dot" id="connDot" title="WebSocket connected"></span>
+</header>
+
+<main id="app">
+  <!-- Metadata -->
+  <div class="section" id="meta-section">
+    <div class="section-header">
+      <h2>Workflow Details</h2>
+    </div>
+    <div class="section-body">
+      <div class="field-group">
+        <label>Name</label>
+        <input type="text" id="wf-name" placeholder="workflow-name">
+      </div>
+      <div class="field-group">
+        <label>Trigger</label>
+        <input type="text" id="wf-trigger" placeholder="When to use this workflow">
+      </div>
+      <div class="field-group">
+        <label>Description</label>
+        <textarea id="wf-description" placeholder="What this workflow does"></textarea>
+      </div>
+      <div class="field-group">
+        <label>Tags</label>
+        <div class="tags-container" id="wf-tags"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Variables -->
+  <div class="section" id="vars-section">
+    <div class="section-header">
+      <h2>Variables</h2>
+      <button class="btn btn-sm btn-secondary" onclick="addVariable()">+ Add</button>
+    </div>
+    <div class="section-body">
+      <div id="vars-header" class="var-row var-header" style="display:none">
+        <span>Name</span><span>Type</span><span>Required</span><span>Default</span><span>Description</span><span></span>
+      </div>
+      <div id="vars-list"></div>
+      <div id="vars-empty" class="empty-state">No variables defined</div>
+    </div>
+  </div>
+
+  <!-- Steps -->
+  <div class="section" id="steps-section">
+    <div class="section-header">
+      <h2>Steps</h2>
+      <button class="btn btn-sm btn-secondary" onclick="addStep()">+ Add Step</button>
+    </div>
+    <div class="section-body">
+      <div id="steps-list"></div>
+      <div id="steps-empty" class="empty-state">No steps defined</div>
+    </div>
+  </div>
+
+  <!-- Tools -->
+  <div class="section" id="tools-section">
+    <div class="section-header">
+      <h2>Tools Used</h2>
+    </div>
+    <div class="section-body">
+      <div class="tools-container" id="tools-list"></div>
+    </div>
+  </div>
+
+  <!-- AI Suggestion -->
+  <div class="ai-panel" id="ai-panel">
+    <div class="ai-panel-header">AI Suggestion</div>
+    <div class="ai-panel-body" id="ai-message"></div>
+    <div class="ai-panel-actions">
+      <button class="btn btn-sm btn-secondary" onclick="dismissAI()">Dismiss</button>
+    </div>
+  </div>
+</main>
+
+<!-- Actions bar -->
+<div class="actions-bar">
+  <button class="btn btn-primary" onclick="saveWorkflow()">Save as Skill</button>
+  <button class="btn btn-secondary" onclick="exportYAML()">Export YAML</button>
+  <button class="btn btn-danger" onclick="discardWorkflow()">Discard</button>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toasts"></div>
+
+<script>
+var workflow = {{.WorkflowJSON}};
+var ws = null;
+var expandedSteps = {};
+
+// ─── WebSocket ───────────────────────────────────────────
+
+function connect() {
+  var protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(protocol + '//' + location.host + '/ws');
+
+  ws.onopen = function() {
+    document.getElementById('connDot').classList.remove('disconnected');
+  };
+
+  ws.onclose = function() {
+    document.getElementById('connDot').classList.add('disconnected');
+    setTimeout(connect, 2000);
+  };
+
+  ws.onmessage = function(e) {
+    var msg = JSON.parse(e.data);
+    switch (msg.type) {
+      case 'state.full':
+        workflow = msg.workflow;
+        render();
+        break;
+      case 'ai.suggestion':
+        showAISuggestion(msg.message);
+        break;
+      case 'save.success':
+        showToast('Workflow saved successfully', 'success');
+        break;
+    }
+  };
+}
+
+function send(msg) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify(msg));
+  }
+}
+
+// ─── Rendering ───────────────────────────────────────────
+
+function render() {
+  renderMetadata();
+  renderVariables();
+  renderSteps();
+  renderTools();
+}
+
+function renderMetadata() {
+  var name = document.getElementById('wf-name');
+  var trigger = document.getElementById('wf-trigger');
+  var desc = document.getElementById('wf-description');
+
+  if (document.activeElement !== name) name.value = workflow.name || '';
+  if (document.activeElement !== trigger) trigger.value = workflow.trigger || '';
+  if (document.activeElement !== desc) desc.value = workflow.description || '';
+
+  renderTags();
+}
+
+function renderTags() {
+  var container = document.getElementById('wf-tags');
+  container.innerHTML = '';
+  var tags = workflow.tags || [];
+  for (var i = 0; i < tags.length; i++) {
+    (function(idx) {
+      var tag = document.createElement('span');
+      tag.className = 'tag';
+      tag.innerHTML = escapeHtml(tags[idx]) +
+        '<span class="tag-remove" onclick="removeTag(' + idx + ')">&times;</span>';
+      container.appendChild(tag);
+    })(i);
+  }
+  var addBtn = document.createElement('button');
+  addBtn.className = 'tag-add';
+  addBtn.textContent = '+ Add Tag';
+  addBtn.onclick = function() {
+    var t = prompt('Enter tag:');
+    if (t && t.trim()) {
+      var newTags = (workflow.tags || []).slice();
+      newTags.push(t.trim());
+      send({ type: 'workflow.update', field: 'tags', value: newTags });
+    }
+  };
+  container.appendChild(addBtn);
+}
+
+function renderVariables() {
+  var list = document.getElementById('vars-list');
+  var empty = document.getElementById('vars-empty');
+  var header = document.getElementById('vars-header');
+  var vars = workflow.variables || [];
+
+  list.innerHTML = '';
+
+  if (vars.length === 0) {
+    empty.style.display = 'block';
+    header.style.display = 'none';
+    return;
+  }
+
+  empty.style.display = 'none';
+  header.style.display = 'grid';
+
+  for (var i = 0; i < vars.length; i++) {
+    (function(idx) {
+      var v = vars[idx];
+      var row = document.createElement('div');
+      row.className = 'var-row';
+      row.innerHTML =
+        '<input type="text" value="' + escapeAttr(v.name) + '" onchange="updateVar(' + idx + ',\'name\',this.value)">' +
+        '<select onchange="updateVar(' + idx + ',\'type\',this.value)">' +
+          optionList(['string','path','url','number','bool'], v.type) +
+        '</select>' +
+        '<label class="toggle"><input type="checkbox"' + (v.required ? ' checked' : '') +
+          ' onchange="updateVar(' + idx + ',\'required\',this.checked)"><span class="toggle-slider"></span></label>' +
+        '<input type="text" value="' + escapeAttr(v['default'] || '') + '" placeholder="default" onchange="updateVar(' + idx + ',\'default\',this.value)">' +
+        '<input type="text" value="' + escapeAttr(v.description || '') + '" placeholder="description" onchange="updateVar(' + idx + ',\'description\',this.value)">' +
+        '<button class="btn-icon btn-danger" onclick="deleteVar(' + idx + ')" title="Delete">&times;</button>';
+      list.appendChild(row);
+    })(i);
+  }
+}
+
+function renderSteps() {
+  var list = document.getElementById('steps-list');
+  var empty = document.getElementById('steps-empty');
+  var steps = workflow.steps || [];
+
+  list.innerHTML = '';
+
+  if (steps.length === 0) {
+    empty.style.display = 'block';
+    return;
+  }
+
+  empty.style.display = 'none';
+
+  for (var i = 0; i < steps.length; i++) {
+    (function(idx) {
+      var step = steps[idx];
+      var isExpanded = expandedSteps[idx];
+
+      var card = document.createElement('div');
+      card.className = 'step-card';
+      card.id = 'step-' + idx;
+      card.draggable = true;
+      card.ondragstart = function(e) { dragStart(e, idx); };
+      card.ondragover = function(e) { dragOver(e, this); };
+      card.ondragleave = function(e) { dragLeave(this); };
+      card.ondrop = function(e) { drop(e, idx); };
+      card.ondragend = function(e) { dragEnd(this); };
+
+      var headerHTML =
+        '<div class="step-header">' +
+          '<span class="drag-handle" title="Drag to reorder">&#x2630;</span>' +
+          '<span class="step-number">' + (idx + 1) + '</span>' +
+          '<input type="text" class="step-desc" value="' + escapeAttr(step.description) +
+            '" onchange="updateStep(' + idx + ',\'description\',this.value)">' +
+          (step.needs_approval ? '<span class="approval-badge">Approval</span>' : '') +
+          '<button class="btn-icon" onclick="toggleStep(' + idx + ')" title="Expand">' +
+            (isExpanded ? '&#x25B2;' : '&#x25BC;') + '</button>' +
+          '<button class="btn-icon btn-ai" onclick="reviewStep(' + idx + ')" title="AI Review">AI</button>' +
+          '<button class="btn-icon btn-danger" onclick="deleteStep(' + idx + ')" title="Delete">&times;</button>' +
+        '</div>';
+
+      var detailsHTML =
+        '<div class="step-details' + (isExpanded ? ' expanded' : '') + '">' +
+          '<div class="field-group">' +
+            '<label>Command</label>' +
+            '<input type="text" value="' + escapeAttr(step.command || '') +
+              '" placeholder="e.g. ssh $host" onchange="updateStep(' + idx + ',\'command\',this.value)">' +
+          '</div>' +
+          '<div class="field-group">' +
+            '<label>Tool</label>' +
+            '<input type="text" value="' + escapeAttr(step.tool || '') +
+              '" placeholder="e.g. shell, file-edit" onchange="updateStep(' + idx + ',\'tool\',this.value)">' +
+          '</div>' +
+          '<div class="field-row">' +
+            '<div class="field-group">' +
+              '<label>Needs Approval</label>' +
+              '<label class="toggle"><input type="checkbox"' + (step.needs_approval ? ' checked' : '') +
+                ' onchange="updateStep(' + idx + ',\'needs_approval\',this.checked)"><span class="toggle-slider"></span></label>' +
+            '</div>' +
+            '<div class="field-group">' +
+              '<label>On Failure</label>' +
+              '<select onchange="updateStep(' + idx + ',\'on_failure\',this.value)">' +
+                optionList(['abort','skip','retry'], step.on_failure || 'abort') +
+              '</select>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+
+      card.innerHTML = headerHTML + detailsHTML;
+      list.appendChild(card);
+    })(i);
+  }
+}
+
+function renderTools() {
+  var container = document.getElementById('tools-list');
+  var tools = workflow.tools || [];
+  container.innerHTML = '';
+  if (tools.length === 0) {
+    container.innerHTML = '<span style="color:var(--text-tertiary);font-size:14px">No tools recorded</span>';
+    return;
+  }
+  for (var i = 0; i < tools.length; i++) {
+    var badge = document.createElement('span');
+    badge.className = 'tool-badge';
+    badge.textContent = tools[i];
+    container.appendChild(badge);
+  }
+}
+
+// ─── Event Handlers ──────────────────────────────────────
+
+function setupMetadataListeners() {
+  document.getElementById('wf-name').addEventListener('change', function() {
+    send({ type: 'workflow.update', field: 'name', value: this.value });
+  });
+  document.getElementById('wf-trigger').addEventListener('change', function() {
+    send({ type: 'workflow.update', field: 'trigger', value: this.value });
+  });
+  document.getElementById('wf-description').addEventListener('change', function() {
+    send({ type: 'workflow.update', field: 'description', value: this.value });
+  });
+}
+
+function removeTag(idx) {
+  var newTags = (workflow.tags || []).slice();
+  newTags.splice(idx, 1);
+  send({ type: 'workflow.update', field: 'tags', value: newTags });
+}
+
+function addVariable() {
+  var name = prompt('Variable name:');
+  if (name && name.trim()) {
+    send({ type: 'variable.add', name: name.trim(), var_type: 'string' });
+  }
+}
+
+function updateVar(idx, field, value) {
+  send({ type: 'variable.update', index: idx, field: field, value: value });
+}
+
+function deleteVar(idx) {
+  send({ type: 'variable.delete', index: idx });
+}
+
+function addStep() {
+  var lastIdx = (workflow.steps || []).length - 1;
+  send({ type: 'step.add', after: lastIdx });
+}
+
+function updateStep(idx, field, value) {
+  send({ type: 'step.update', index: idx, field: field, value: value });
+}
+
+function deleteStep(idx) {
+  if (confirm('Delete this step?')) {
+    delete expandedSteps[idx];
+    send({ type: 'step.delete', index: idx });
+  }
+}
+
+function toggleStep(idx) {
+  expandedSteps[idx] = !expandedSteps[idx];
+  var details = document.querySelector('#step-' + idx + ' .step-details');
+  if (details) details.classList.toggle('expanded');
+  var btn = document.querySelector('#step-' + idx + ' .step-header .btn-icon');
+  if (btn) btn.innerHTML = expandedSteps[idx] ? '&#x25B2;' : '&#x25BC;';
+}
+
+function reviewStep(idx) {
+  showToast('Requesting AI review...', 'info');
+  send({ type: 'ai.review', step_index: idx });
+}
+
+// ─── Drag and Drop ───────────────────────────────────────
+
+var dragFromIndex = -1;
+
+function dragStart(e, idx) {
+  dragFromIndex = idx;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', idx);
+  e.target.classList.add('dragging');
+}
+
+function dragOver(e, el) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  el.classList.add('drag-over');
+}
+
+function dragLeave(el) {
+  el.classList.remove('drag-over');
+}
+
+function drop(e, toIdx) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  var fromIdx = dragFromIndex;
+  if (fromIdx !== -1 && fromIdx !== toIdx) {
+    send({ type: 'step.reorder', from: fromIdx, to: toIdx });
+  }
+  dragFromIndex = -1;
+}
+
+function dragEnd(el) {
+  el.classList.remove('dragging');
+  var cards = document.querySelectorAll('.step-card');
+  for (var i = 0; i < cards.length; i++) cards[i].classList.remove('drag-over');
+}
+
+// ─── Actions ─────────────────────────────────────────────
+
+function saveWorkflow() {
+  fetch('/api/save', { method: 'POST' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.error) {
+        showToast('Save failed: ' + data.error, 'error');
+      } else {
+        showToast('Saved! Closing editor...', 'success');
+        setTimeout(function() { window.close(); }, 1500);
+      }
+    })
+    .catch(function(err) { showToast('Save error: ' + err, 'error'); });
+}
+
+function exportYAML() {
+  window.location.href = '/api/export';
+}
+
+function discardWorkflow() {
+  if (confirm('Discard all changes and close the editor?')) {
+    fetch('/api/discard', { method: 'POST' })
+      .then(function() {
+        showToast('Discarded. Closing...', 'info');
+        setTimeout(function() { window.close(); }, 1000);
+      })
+      .catch(function(err) { showToast('Error: ' + err, 'error'); });
+  }
+}
+
+// ─── AI Suggestion ───────────────────────────────────────
+
+function showAISuggestion(message) {
+  document.getElementById('ai-message').textContent = message;
+  document.getElementById('ai-panel').classList.add('visible');
+  // Scroll to panel
+  document.getElementById('ai-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function dismissAI() {
+  document.getElementById('ai-panel').classList.remove('visible');
+}
+
+// ─── Toasts ──────────────────────────────────────────────
+
+function showToast(message, type) {
+  var container = document.getElementById('toasts');
+  var toast = document.createElement('div');
+  toast.className = 'toast ' + (type || 'info');
+  toast.textContent = message;
+  container.appendChild(toast);
+  setTimeout(function() {
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.3s';
+    setTimeout(function() { toast.remove(); }, 300);
+  }, 3000);
+}
+
+// ─── Utilities ───────────────────────────────────────────
+
+function escapeHtml(str) {
+  var div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+
+function escapeAttr(str) {
+  return (str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function optionList(options, selected) {
+  var html = '';
+  for (var i = 0; i < options.length; i++) {
+    html += '<option value="' + options[i] + '"' +
+      (options[i] === selected ? ' selected' : '') + '>' +
+      options[i] + '</option>';
+  }
+  return html;
+}
+
+// ─── Init ────────────────────────────────────────────────
+
+render();
+setupMetadataListeners();
+connect();
+</script>
+
+</body>
+</html>

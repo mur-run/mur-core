@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/mur-run/mur-core/internal/session"
+	"github.com/mur-run/mur-core/internal/session/ui"
 )
 
 var sessionCmd = &cobra.Command{
@@ -52,6 +53,7 @@ var sessionStopCmd = &cobra.Command{
 	Short: "Stop recording and optionally analyze",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		analyze, _ := cmd.Flags().GetBool("analyze")
+		openUI, _ := cmd.Flags().GetBool("open")
 
 		state, err := session.StopRecording()
 		if err != nil {
@@ -66,7 +68,18 @@ var sessionStopCmd = &cobra.Command{
 		fmt.Fprintf(os.Stderr, "  Events:   %d\n", len(events))
 
 		if analyze {
-			return runAnalysis(state.SessionID)
+			result, err := runAnalysis(state.SessionID)
+			if err != nil {
+				return err
+			}
+
+			if openUI && result != nil {
+				srv, err := ui.NewServer(result, state.SessionID)
+				if err != nil {
+					return err
+				}
+				return srv.Serve(3939)
+			}
 		}
 
 		return nil
@@ -154,7 +167,40 @@ var sessionAnalyzeCmd = &cobra.Command{
 	Short: "Analyze a recorded session and extract a workflow",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runAnalysis(args[0])
+		_, err := runAnalysis(args[0])
+		return err
+	},
+}
+
+var sessionUICmd = &cobra.Command{
+	Use:   "ui <session-id>",
+	Short: "Open the workflow editor web UI for a session",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		sessionID, err := session.ResolveSessionID(args[0])
+		if err != nil {
+			return err
+		}
+
+		result, err := session.LoadAnalysis(sessionID)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "No saved analysis found. Analyzing session...\n")
+			result, err = runAnalysis(sessionID)
+			if err != nil {
+				return err
+			}
+		}
+
+		port, _ := cmd.Flags().GetInt("port")
+		if port == 0 {
+			port = 3939
+		}
+
+		srv, err := ui.NewServer(result, sessionID)
+		if err != nil {
+			return err
+		}
+		return srv.Serve(port)
 	},
 }
 
@@ -182,17 +228,26 @@ var sessionRecordCmd = &cobra.Command{
 }
 
 // runAnalysis creates an LLM provider and runs QA-CoT analysis on a session.
-func runAnalysis(sessionID string) error {
-	fmt.Fprintf(os.Stderr, "\nAnalyzing session %s...\n", sessionID[:8])
+func runAnalysis(sessionID string) (*session.AnalysisResult, error) {
+	shortID := sessionID
+	if len(shortID) > 8 {
+		shortID = shortID[:8]
+	}
+	fmt.Fprintf(os.Stderr, "\nAnalyzing session %s...\n", shortID)
 
 	provider, err := session.NewLLMProviderFromEnv()
 	if err != nil {
-		return fmt.Errorf("LLM setup: %w", err)
+		return nil, fmt.Errorf("LLM setup: %w", err)
 	}
 
 	result, err := session.Analyze(sessionID, provider)
 	if err != nil {
-		return fmt.Errorf("analysis failed: %w", err)
+		return nil, fmt.Errorf("analysis failed: %w", err)
+	}
+
+	// Save analysis result for later use by the web UI
+	if err := session.SaveAnalysis(sessionID, result); err != nil {
+		fmt.Fprintf(os.Stderr, "  Warning: could not save analysis: %v\n", err)
 	}
 
 	// Print summary to stderr
@@ -206,11 +261,11 @@ func runAnalysis(sessionID string) error {
 	// Print full JSON to stdout (for piping)
 	data, err := json.MarshalIndent(result, "", "  ")
 	if err != nil {
-		return fmt.Errorf("marshal result: %w", err)
+		return nil, fmt.Errorf("marshal result: %w", err)
 	}
 	fmt.Println(string(data))
 
-	return nil
+	return result, nil
 }
 
 func init() {
@@ -221,16 +276,19 @@ func init() {
 	sessionCmd.AddCommand(sessionListCmd)
 	sessionCmd.AddCommand(sessionAnalyzeCmd)
 	sessionCmd.AddCommand(sessionRecordCmd)
+	sessionCmd.AddCommand(sessionUICmd)
 
 	sessionStartCmd.Flags().String("source", "", "Recording source (e.g. claude-code, codex)")
 	sessionStartCmd.Flags().String("marker", "", "Context marker from /mur:in message")
 
 	sessionStopCmd.Flags().Bool("analyze", false, "Analyze the recording after stopping")
-	sessionStopCmd.Flags().Bool("open", false, "Open web UI after analysis (Phase 4)")
+	sessionStopCmd.Flags().Bool("open", false, "Open web UI after analysis")
 
 	sessionStatusCmd.Flags().BoolP("quiet", "q", false, "Exit 0 if recording, 1 if not (for scripts)")
 
 	sessionRecordCmd.Flags().String("type", "", "Event type: user, assistant, tool_call, tool_result")
 	sessionRecordCmd.Flags().String("content", "", "Event content")
 	sessionRecordCmd.Flags().String("tool", "", "Tool name (for tool_call/tool_result events)")
+
+	sessionUICmd.Flags().Int("port", 3939, "Port for the web UI server")
 }
