@@ -29,8 +29,16 @@ func sessionDir() (string, error) {
 	return filepath.Join(home, ".mur", "session"), nil
 }
 
+// recordingsDirFunc is the function used to resolve the recordings directory.
+// Tests can override this to point at a temp directory.
+var recordingsDirFunc = defaultRecordingsDir
+
 // recordingsDir returns the path to ~/.mur/session/recordings/.
 func recordingsDir() (string, error) {
+	return recordingsDirFunc()
+}
+
+func defaultRecordingsDir() (string, error) {
 	dir, err := sessionDir()
 	if err != nil {
 		return "", err
