@@ -54,7 +54,9 @@ func SuperpowersSkillsDir() (string, error) {
 	return filepath.Join(home, ".claude", "plugins", "using-superpowers", "skills"), nil
 }
 
-// ListSkills returns all available skills from ~/.mur/skills/
+// ListSkills returns all available skills from ~/.mur/skills/.
+// This includes both standalone .md files and workflow skill directories
+// (directories containing a SKILL.md file).
 func ListSkills() ([]Skill, error) {
 	skillsDir, err := SkillsSourceDir()
 	if err != nil {
@@ -74,6 +76,15 @@ func ListSkills() ([]Skill, error) {
 	var skills []Skill
 	for _, entry := range entries {
 		if entry.IsDir() {
+			// Check for workflow skill directories (contain SKILL.md)
+			skillMDPath := filepath.Join(skillsDir, entry.Name(), "SKILL.md")
+			if _, err := os.Stat(skillMDPath); err == nil {
+				skill, err := parseSkillFile(skillMDPath)
+				if err == nil {
+					skill.SourcePath = skillMDPath
+					skills = append(skills, skill)
+				}
+			}
 			continue
 		}
 		if !strings.HasSuffix(entry.Name(), ".md") {
@@ -166,6 +177,8 @@ func parseSkillFile(path string) (Skill, error) {
 }
 
 // SyncSkills syncs skills to all CLI tools.
+// This syncs both standalone .md skill files and workflow skill directories
+// (directories containing SKILL.md, exported via mur session export).
 func SyncSkills() ([]SyncResult, error) {
 	skillsDir, err := SkillsSourceDir()
 	if err != nil {
@@ -183,10 +196,16 @@ func SyncSkills() ([]SyncResult, error) {
 		return nil, fmt.Errorf("cannot read skills directory: %w", err)
 	}
 
-	// Filter .md files
+	// Collect standalone .md files
 	var skillFiles []string
+	// Collect workflow skill directories (contain SKILL.md)
+	var workflowDirs []string
 	for _, entry := range entries {
 		if entry.IsDir() {
+			skillMDPath := filepath.Join(skillsDir, entry.Name(), "SKILL.md")
+			if _, err := os.Stat(skillMDPath); err == nil {
+				workflowDirs = append(workflowDirs, entry.Name())
+			}
 			continue
 		}
 		if strings.HasSuffix(entry.Name(), ".md") {
@@ -194,7 +213,7 @@ func SyncSkills() ([]SyncResult, error) {
 		}
 	}
 
-	if len(skillFiles) == 0 {
+	if len(skillFiles) == 0 && len(workflowDirs) == 0 {
 		return nil, fmt.Errorf("no skill files found in %s", skillsDir)
 	}
 
@@ -206,6 +225,18 @@ func SyncSkills() ([]SyncResult, error) {
 	var results []SyncResult
 	for _, target := range DefaultSkillsTargets() {
 		result := syncSkillsToTarget(home, skillsDir, target, skillFiles)
+		if !result.Success {
+			results = append(results, result)
+			continue
+		}
+
+		// Also sync workflow skill directories
+		wfResult := syncWorkflowDirsToTarget(home, skillsDir, target, workflowDirs)
+		totalCount := len(skillFiles) + len(workflowDirs)
+		if wfResult.Success {
+			result.Message = fmt.Sprintf("synced %d skills (%d files, %d workflows)",
+				totalCount, len(skillFiles), len(workflowDirs))
+		}
 		results = append(results, result)
 	}
 
@@ -245,6 +276,41 @@ func syncSkillsToTarget(home, skillsDir string, target SkillsTarget, skillFiles 
 		Target:  target.Name,
 		Success: true,
 		Message: fmt.Sprintf("synced %d skills", copied),
+	}
+}
+
+// syncWorkflowDirsToTarget copies workflow skill directories to a CLI target.
+// Each workflow directory's SKILL.md is synced as <name>.md to the target skills dir.
+func syncWorkflowDirsToTarget(home, skillsDir string, target SkillsTarget, workflowDirs []string) SyncResult {
+	targetDir := filepath.Join(home, target.SkillsDir)
+
+	if err := os.MkdirAll(targetDir, 0755); err != nil {
+		return SyncResult{
+			Target:  target.Name,
+			Success: false,
+			Message: fmt.Sprintf("cannot create directory: %v", err),
+		}
+	}
+
+	copied := 0
+	for _, dirName := range workflowDirs {
+		srcPath := filepath.Join(skillsDir, dirName, "SKILL.md")
+		dstPath := filepath.Join(targetDir, dirName+".md")
+
+		if err := copyFile(srcPath, dstPath); err != nil {
+			return SyncResult{
+				Target:  target.Name,
+				Success: false,
+				Message: fmt.Sprintf("cannot copy workflow skill %s: %v", dirName, err),
+			}
+		}
+		copied++
+	}
+
+	return SyncResult{
+		Target:  target.Name,
+		Success: true,
+		Message: fmt.Sprintf("synced %d workflow skills", copied),
 	}
 }
 

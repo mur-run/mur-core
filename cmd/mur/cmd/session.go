@@ -17,19 +17,38 @@ var sessionCmd = &cobra.Command{
 	Short: "Manage conversation recording sessions",
 	Long: `Record conversation segments for workflow extraction.
 
-Use /mur:in and /mur:out in Claude Code to mark segments, or use
-these commands directly:
+Use /mur:in and /mur:out in Claude Code (or other AI tools) to mark
+conversation segments for recording. MUR captures all events between
+markers, analyzes them with an LLM, and lets you edit and export
+the extracted workflow as a reusable skill.
 
-  mur session start          # Start recording
-  mur session stop           # Stop recording
-  mur session status         # Check recording state
-  mur session list           # List past recordings
-  mur session record         # Append an event to the active session`,
+Commands:
+  mur session start          Start recording events
+  mur session stop           Stop recording (optionally analyze)
+  mur session status         Show recording indicator
+  mur session list           List past recordings
+  mur session analyze <id>   Run LLM analysis on a recording
+  mur session ui <id>        Open interactive workflow editor
+  mur session export <id>    Export workflow as skill/YAML/markdown
+
+Typical flow:
+  1. mur session start --source claude-code
+  2. (conversation happens, events are captured)
+  3. mur session stop --analyze --open
+  4. (edit workflow in web UI, click Save)
+
+Or manually:
+  1. mur session analyze <session-id>
+  2. mur session export <session-id> --format skill`,
 }
 
 var sessionStartCmd = &cobra.Command{
 	Use:   "start",
 	Short: "Start recording a conversation segment",
+	Long: `Begin recording conversation events for later workflow extraction.
+
+If a recording session is already active, it will be stopped automatically
+before starting a new one. Events are stored as JSONL in ~/.mur/session/recordings/.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		source, _ := cmd.Flags().GetString("source")
 		marker, _ := cmd.Flags().GetString("marker")
@@ -51,6 +70,11 @@ var sessionStartCmd = &cobra.Command{
 var sessionStopCmd = &cobra.Command{
 	Use:   "stop",
 	Short: "Stop recording and optionally analyze",
+	Long: `Stop the active recording session.
+
+With --analyze, runs LLM analysis on the captured transcript to extract
+a structured workflow. With --open, also launches the interactive web
+editor to refine the workflow before saving.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		analyze, _ := cmd.Flags().GetBool("analyze")
 		openUI, _ := cmd.Flags().GetBool("open")
@@ -89,6 +113,10 @@ var sessionStopCmd = &cobra.Command{
 var sessionStatusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Show current recording status",
+	Long: `Display the current recording state.
+
+With --quiet, exits 0 if recording is active, 1 if not.
+This is useful in hook scripts to check state programmatically.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		quiet, _ := cmd.Flags().GetBool("quiet")
 
@@ -116,11 +144,17 @@ var sessionStatusCmd = &cobra.Command{
 		duration := time.Since(time.Unix(state.StartedAt, 0)).Truncate(time.Second)
 		events, _ := session.ReadEvents(state.SessionID)
 
-		fmt.Printf("Recording active\n")
-		fmt.Printf("  Session: %s\n", state.SessionID[:8])
-		fmt.Printf("  Source:  %s\n", state.Source)
-		fmt.Printf("  Started: %s ago\n", duration)
-		fmt.Printf("  Events:  %d\n", len(events))
+		shortID := state.SessionID
+		if len(shortID) > 8 {
+			shortID = shortID[:8]
+		}
+
+		fmt.Printf("REC  Recording active\n")
+		fmt.Printf("  Session:  %s\n", shortID)
+		fmt.Printf("  Source:   %s\n", state.Source)
+		fmt.Printf("  Duration: %s\n", duration)
+		fmt.Printf("  Events:   %d captured\n", len(events))
+		fmt.Printf("\nUse 'mur session stop' to end recording.\n")
 
 		return nil
 	},
@@ -227,6 +261,77 @@ var sessionRecordCmd = &cobra.Command{
 	},
 }
 
+var sessionExportCmd = &cobra.Command{
+	Use:   "export <session-id>",
+	Short: "Export a session workflow as a skill, YAML, or markdown",
+	Long: `Export an analyzed session workflow to a reusable format.
+
+Formats:
+  skill     Full skill directory: SKILL.md + workflow.yaml + run.sh + steps/
+  yaml      Standalone workflow YAML file
+  markdown  Human-readable markdown documentation
+
+Examples:
+  mur session export abc123 --format skill
+  mur session export abc123 --format yaml --output workflow.yaml
+  mur session export abc123 --format markdown --output workflow.md`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		sessionID, err := session.ResolveSessionID(args[0])
+		if err != nil {
+			return err
+		}
+
+		result, err := session.LoadAnalysis(sessionID)
+		if err != nil {
+			return fmt.Errorf("no analysis found for session %s (run 'mur session analyze' first): %w", args[0], err)
+		}
+
+		format, _ := cmd.Flags().GetString("format")
+		output, _ := cmd.Flags().GetString("output")
+
+		switch format {
+		case "skill":
+			outputDir := output
+			if outputDir == "" {
+				outputDir, err = session.DefaultSkillsOutputDir()
+				if err != nil {
+					return err
+				}
+			}
+			skillPath, err := session.ExportAsSkill(result, sessionID, outputDir)
+			if err != nil {
+				return fmt.Errorf("export skill: %w", err)
+			}
+			fmt.Fprintf(os.Stderr, "Skill exported to %s\n", skillPath)
+			fmt.Println(skillPath)
+
+		case "yaml":
+			if output == "" {
+				output = result.Name + ".yaml"
+			}
+			if err := session.ExportAsYAML(result, sessionID, output); err != nil {
+				return fmt.Errorf("export YAML: %w", err)
+			}
+			fmt.Fprintf(os.Stderr, "YAML exported to %s\n", output)
+
+		case "markdown", "md":
+			if output == "" {
+				output = result.Name + ".md"
+			}
+			if err := session.ExportAsMarkdown(result, output); err != nil {
+				return fmt.Errorf("export markdown: %w", err)
+			}
+			fmt.Fprintf(os.Stderr, "Markdown exported to %s\n", output)
+
+		default:
+			return fmt.Errorf("unknown format %q (use: skill, yaml, markdown)", format)
+		}
+
+		return nil
+	},
+}
+
 // runAnalysis creates an LLM provider and runs QA-CoT analysis on a session.
 func runAnalysis(sessionID string) (*session.AnalysisResult, error) {
 	shortID := sessionID
@@ -277,6 +382,7 @@ func init() {
 	sessionCmd.AddCommand(sessionAnalyzeCmd)
 	sessionCmd.AddCommand(sessionRecordCmd)
 	sessionCmd.AddCommand(sessionUICmd)
+	sessionCmd.AddCommand(sessionExportCmd)
 
 	sessionStartCmd.Flags().String("source", "", "Recording source (e.g. claude-code, codex)")
 	sessionStartCmd.Flags().String("marker", "", "Context marker from /mur:in message")
@@ -291,4 +397,7 @@ func init() {
 	sessionRecordCmd.Flags().String("tool", "", "Tool name (for tool_call/tool_result events)")
 
 	sessionUICmd.Flags().Int("port", 3939, "Port for the web UI server")
+
+	sessionExportCmd.Flags().StringP("format", "f", "skill", "Export format: skill, yaml, markdown")
+	sessionExportCmd.Flags().StringP("output", "o", "", "Output path (default: ~/.mur/skills/ for skill, ./<name>.yaml/.md for others)")
 }
