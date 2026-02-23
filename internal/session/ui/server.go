@@ -16,8 +16,9 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/mur-run/mur-core/internal/session"
 	"gopkg.in/yaml.v3"
+
+	"github.com/mur-run/mur-core/internal/session"
 )
 
 //go:embed templates/editor.html
