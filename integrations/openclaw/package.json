@@ -21,7 +21,7 @@
     "type": "skill",
     "name": "mur",
     "displayName": "mur-core",
-    "description": "Continuous learning for AI assistants — sync patterns, search knowledge, manage learning",
+    "description": "Continuous learning for AI assistants — sync patterns, search knowledge, record sessions",
     "commands": [
       {
         "name": "status",
@@ -49,9 +49,9 @@
         "exec": "mur stats"
       },
       {
-        "name": "transcripts",
-        "description": "Browse AI coding session transcripts",
-        "exec": "mur transcripts"
+        "name": "session",
+        "description": "Record conversation segments for workflow extraction",
+        "exec": "mur session status"
       },
       {
         "name": "doctor",
