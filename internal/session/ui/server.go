@@ -147,22 +147,35 @@ func (s *Server) handleSave(w http.ResponseWriter, r *http.Request) {
 	result := s.workflow
 	s.mu.RUnlock()
 
+	// Save analysis to disk
 	if err := session.SaveAnalysis(s.sessionID, result); err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
 
-	shortID := s.sessionID
-	if len(shortID) > 8 {
-		shortID = shortID[:8]
+	// Export as skill to ~/.mur/skills/
+	skillsDir, err := session.DefaultSkillsOutputDir()
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	skillPath, err := session.ExportAsSkill(result, s.sessionID, skillsDir)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "export failed: " + err.Error()})
+		return
 	}
 
 	s.broadcastMessage(ServerMessage{
 		Type: "save.success",
-		Path: fmt.Sprintf("~/.mur/session/analysis/%s.json", shortID),
+		Path: skillPath,
 	})
 
-	writeJSON(w, http.StatusOK, map[string]string{"status": "saved", "name": result.Name})
+	writeJSON(w, http.StatusOK, map[string]string{
+		"status": "saved",
+		"name":   result.Name,
+		"path":   skillPath,
+	})
 
 	go func() {
 		time.Sleep(500 * time.Millisecond)
