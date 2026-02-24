@@ -112,13 +112,14 @@ When the user invokes this skill:
 If any command fails, report the error but continue with the remaining steps. Always clean up the state file.
 `
 
-// EnsureOpenClawSkills writes the built-in mur-in and mur-out skills to
-// ~/.mur/skills/ so they can be synced to OpenClaw's ~/.agents/skills/ directory.
+// EnsureOpenClawSkills writes the built-in mur-in and mur-out skills directly
+// to ~/.agents/skills/ where OpenClaw can discover them.
 func EnsureOpenClawSkills() error {
-	skillsDir, err := SkillsSourceDir()
+	home, err := os.UserHomeDir()
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot determine home directory: %w", err)
 	}
+	skillsDir := filepath.Join(home, ".agents", "skills")
 
 	skills := []struct {
 		dir     string

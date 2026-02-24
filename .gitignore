@@ -36,3 +36,5 @@ site/
 
 # Plans (private - business & architecture docs)
 plans/
+deploy/workflow-api/node_modules/
+deploy/workflow-api/package-lock.json
