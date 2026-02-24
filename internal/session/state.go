@@ -97,6 +97,12 @@ func StartRecording(source, marker string) (*RecordingState, error) {
 		return nil, err
 	}
 
+	// Write session metadata sidecar (for analyze-time filtering)
+	metaPath := filepath.Join(recDir, state.SessionID+".meta.json")
+	if metaData, err := json.MarshalIndent(state, "", "  "); err == nil {
+		os.WriteFile(metaPath, metaData, 0644)
+	}
+
 	return state, nil
 }
 

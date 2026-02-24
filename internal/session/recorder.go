@@ -62,9 +62,14 @@ func RecordEvent(sessionID string, event EventRecord) error {
 
 // RecordEventForActive records an event to the currently active session.
 // Returns nil if no session is active (no-op).
+// Skips mur's own management commands to avoid polluting the transcript.
 func RecordEventForActive(event EventRecord) error {
 	active, sessionID := IsRecording()
 	if !active {
+		return nil
+	}
+	// Don't record mur's own meta commands
+	if isMurMetaEvent(event) {
 		return nil
 	}
 	return RecordEvent(sessionID, event)
