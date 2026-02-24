@@ -14,11 +14,12 @@ When the user invokes this skill:
 1. Read `~/.mur/openclaw-session.json` to get the session state
    - If the file doesn't exist, inform the user that no active session was found and suggest running `/mur-in` first
 2. Calculate the session duration from `start_time` to now
-3. Run pattern extraction:
+3. Run pattern extraction using the session's start_time to scope to only this session's activity:
    ```bash
-   mur learn extract --llm --auto --accept-all
+   mur learn extract --llm --auto --accept-all --since "<start_time from session state>"
    ```
-   This analyzes recent activity and extracts reusable patterns using the configured LLM.
+   Replace `<start_time from session state>` with the actual `start_time` value read from the session JSON in step 1.
+   This analyzes only the activity within the recording window and extracts reusable patterns using the configured LLM.
 4. Run sync to push patterns to all configured CLI tools:
    ```bash
    mur sync --quiet

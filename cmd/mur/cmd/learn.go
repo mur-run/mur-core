@@ -279,6 +279,8 @@ Examples:
   mur learn extract --auto --no-strict   # Auto mode without quality filter
   mur learn extract --llm                # Use LLM (default from config)
   mur learn extract --llm ollama         # Use local Ollama
+  mur learn extract --llm --since 2h     # Only from last 2 hours
+  mur learn extract --llm --since "2024-01-01T10:00:00Z" --until "2024-01-01T12:00:00Z"
 
 When --auto is specified, these defaults apply:
   --quiet       (use --verbose to override)
@@ -350,13 +352,16 @@ When --auto is specified, these defaults apply:
 			}
 		}
 
+		sinceStr, _ := cmd.Flags().GetString("since")
+		untilStr, _ := cmd.Flags().GetString("until")
+
 		// LLM mode
 		if llm != "" {
-			return runExtractLLM(ctx, sessionID, llm, llmModel, dryRun, acceptAll, quiet, strict, minConfidence)
+			return runExtractLLM(ctx, sessionID, llm, llmModel, dryRun, acceptAll, quiet, strict, minConfidence, sinceStr, untilStr)
 		}
 
 		if auto {
-			return runExtractAuto(ctx, dryRun, acceptAll, quiet, minConfidence)
+			return runExtractAuto(ctx, dryRun, acceptAll, quiet, minConfidence, sinceStr, untilStr)
 		}
 
 		if sessionID != "" {
@@ -585,7 +590,7 @@ shared patterns from main (if pull_from_main is enabled).`,
 	},
 }
 
-func runExtractAuto(ctx context.Context, dryRun, acceptAll, quiet bool, minConfidence float64) error {
+func runExtractAuto(ctx context.Context, dryRun, acceptAll, quiet bool, minConfidence float64, sinceStr, untilStr string) error {
 	if minConfidence == 0 {
 		minConfidence = 0.6 // Default threshold for auto-accept
 	}
@@ -599,6 +604,9 @@ func runExtractAuto(ctx context.Context, dryRun, acceptAll, quiet bool, minConfi
 	if err != nil {
 		return fmt.Errorf("failed to list sessions: %w", err)
 	}
+
+	// Filter sessions by time range
+	sessions = filterSessionsByTime(sessions, sinceStr, untilStr)
 
 	if len(sessions) == 0 {
 		if !quiet {
@@ -721,7 +729,7 @@ func runExtractAuto(ctx context.Context, dryRun, acceptAll, quiet bool, minConfi
 	return nil
 }
 
-func runExtractLLM(ctx context.Context, sessionID, provider, model string, dryRun, acceptAll, quiet, strict bool, minConfidence float64) error {
+func runExtractLLM(ctx context.Context, sessionID, provider, model string, dryRun, acceptAll, quiet, strict bool, minConfidence float64, sinceStr, untilStr string) error {
 	// Setup quality config for strict mode
 	qualityCfg := learn.DefaultExtractionConfig()
 
@@ -807,7 +815,7 @@ func runExtractLLM(ctx context.Context, sessionID, provider, model string, dryRu
 			fmt.Fprintln(os.Stderr, "⚠️  No LLM available (Ollama not running, no API keys)")
 			fmt.Fprintln(os.Stderr, "   Falling back to keyword extraction (lower quality)")
 			// Call keyword-based extraction instead
-			return runExtractAuto(ctx, dryRun, acceptAll, quiet, minConfidence)
+			return runExtractAuto(ctx, dryRun, acceptAll, quiet, minConfidence, sinceStr, untilStr)
 		}
 	}
 
@@ -817,7 +825,7 @@ func runExtractLLM(ctx context.Context, sessionID, provider, model string, dryRu
 		if !sysinfo.OllamaRunning(opts.OllamaURL) {
 			// Always warn (even in quiet mode)
 			fmt.Fprintln(os.Stderr, "⚠️  Ollama not available, falling back to keyword extraction")
-			return runExtractAuto(ctx, dryRun, acceptAll, quiet, minConfidence)
+			return runExtractAuto(ctx, dryRun, acceptAll, quiet, minConfidence, sinceStr, untilStr)
 		}
 	case learn.LLMClaude:
 		if opts.ClaudeKey == "" {
@@ -863,6 +871,37 @@ func runExtractLLM(ctx context.Context, sessionID, provider, model string, dryRu
 			}
 			sessions = append(sessions, sess)
 		}
+	}
+
+	// Filter sessions by time range
+	if sinceStr != "" || untilStr != "" {
+		sinceTime := parseTimeOrDuration(sinceStr)
+		untilTime := parseTimeOrDuration(untilStr)
+		var filtered []*learn.Session
+		for _, s := range sessions {
+			if !sinceTime.IsZero() && s.CreatedAt.Before(sinceTime) {
+				continue
+			}
+			if !untilTime.IsZero() && s.CreatedAt.After(untilTime) {
+				continue
+			}
+			// Filter individual messages within the session
+			var filteredMsgs []learn.SessionMessage
+			for _, msg := range s.Messages {
+				if !sinceTime.IsZero() && msg.Timestamp.Before(sinceTime) {
+					continue
+				}
+				if !untilTime.IsZero() && msg.Timestamp.After(untilTime) {
+					continue
+				}
+				filteredMsgs = append(filteredMsgs, msg)
+			}
+			s.Messages = filteredMsgs
+			if len(s.Messages) > 0 {
+				filtered = append(filtered, s)
+			}
+		}
+		sessions = filtered
 	}
 
 	if len(sessions) == 0 {
@@ -1262,12 +1301,60 @@ func init() {
 	learnExtractCmd.Flags().String("llm-model", "", "LLM model (default from config)")
 	learnExtractCmd.Flags().Bool("async", false, "Run in background (detached process, parent exits immediately)")
 	learnExtractCmd.Flags().String("timeout", "", "Timeout duration (e.g. '30s', '2m'). Default: 2m")
+	learnExtractCmd.Flags().String("since", "", "Only process sessions/messages after this time (ISO 8601 or duration like 1h, 30m)")
+	learnExtractCmd.Flags().String("until", "", "Only process sessions/messages before this time (ISO 8601 or duration like 1h, 30m)")
 
 	learnPushCmd.Flags().Bool("auto-merge", false, "Check and create PRs for high-confidence patterns after push")
 	learnPushCmd.Flags().Bool("dry-run", false, "Preview auto-merge without creating PRs")
 
 	learnAutoMergeCmd.Flags().Bool("dry-run", false, "Preview without creating PRs")
 	learnAutoMergeCmd.Flags().Float64("threshold", 0, "Override confidence threshold (default: from config or 0.8)")
+}
+
+// parseTimeOrDuration parses a time string as ISO 8601, date, or a Go duration
+// (interpreted as that amount of time ago from now).
+func parseTimeOrDuration(s string) time.Time {
+	if s == "" {
+		return time.Time{}
+	}
+	// Try ISO 8601 (RFC3339)
+	if t, err := time.Parse(time.RFC3339, s); err == nil {
+		return t
+	}
+	// Try without timezone
+	if t, err := time.Parse("2006-01-02T15:04:05", s); err == nil {
+		return t
+	}
+	// Try date only
+	if t, err := time.Parse("2006-01-02", s); err == nil {
+		return t
+	}
+	// Try as duration (e.g. "2h" means 2 hours ago)
+	if d, err := time.ParseDuration(s); err == nil {
+		return time.Now().Add(-d)
+	}
+	return time.Time{}
+}
+
+// filterSessionsByTime filters a slice of sessions (value type) by the given
+// since/until time strings. Sessions outside the range are dropped.
+func filterSessionsByTime(sessions []learn.Session, sinceStr, untilStr string) []learn.Session {
+	if sinceStr == "" && untilStr == "" {
+		return sessions
+	}
+	sinceTime := parseTimeOrDuration(sinceStr)
+	untilTime := parseTimeOrDuration(untilStr)
+	var filtered []learn.Session
+	for _, s := range sessions {
+		if !sinceTime.IsZero() && s.CreatedAt.Before(sinceTime) {
+			continue
+		}
+		if !untilTime.IsZero() && s.CreatedAt.After(untilTime) {
+			continue
+		}
+		filtered = append(filtered, s)
+	}
+	return filtered
 }
 
 // truncate shortens a string to max length with ellipsis.
