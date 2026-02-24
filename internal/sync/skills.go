@@ -279,8 +279,9 @@ func syncSkillsToTarget(home, skillsDir string, target SkillsTarget, skillFiles 
 	}
 }
 
-// syncWorkflowDirsToTarget copies workflow skill directories to a CLI target.
-// Each workflow directory's SKILL.md is synced as <name>.md to the target skills dir.
+// syncWorkflowDirsToTarget copies entire workflow skill directories to a CLI target.
+// Each workflow directory (containing SKILL.md, workflow.yaml, run.sh, steps/) is
+// copied as a complete directory to the target skills dir.
 func syncWorkflowDirsToTarget(home, skillsDir string, target SkillsTarget, workflowDirs []string) SyncResult {
 	targetDir := filepath.Join(home, target.SkillsDir)
 
@@ -294,10 +295,10 @@ func syncWorkflowDirsToTarget(home, skillsDir string, target SkillsTarget, workf
 
 	copied := 0
 	for _, dirName := range workflowDirs {
-		srcPath := filepath.Join(skillsDir, dirName, "SKILL.md")
-		dstPath := filepath.Join(targetDir, dirName+".md")
+		srcDir := filepath.Join(skillsDir, dirName)
+		dstDir := filepath.Join(targetDir, dirName)
 
-		if err := copyFile(srcPath, dstPath); err != nil {
+		if err := copyDir(srcDir, dstDir); err != nil {
 			return SyncResult{
 				Target:  target.Name,
 				Success: false,
@@ -312,6 +313,34 @@ func syncWorkflowDirsToTarget(home, skillsDir string, target SkillsTarget, workf
 		Success: true,
 		Message: fmt.Sprintf("synced %d workflow skills", copied),
 	}
+}
+
+// copyDir recursively copies a directory from src to dst.
+func copyDir(src, dst string) error {
+	if err := os.MkdirAll(dst, 0755); err != nil {
+		return err
+	}
+
+	entries, err := os.ReadDir(src)
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		srcPath := filepath.Join(src, entry.Name())
+		dstPath := filepath.Join(dst, entry.Name())
+
+		if entry.IsDir() {
+			if err := copyDir(srcPath, dstPath); err != nil {
+				return err
+			}
+		} else {
+			if err := copyFile(srcPath, dstPath); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // copyFile copies a file from src to dst.
