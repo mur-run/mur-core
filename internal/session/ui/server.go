@@ -19,6 +19,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/mur-run/mur-core/internal/session"
+	mursync "github.com/mur-run/mur-core/internal/sync"
 )
 
 //go:embed templates/editor.html
@@ -166,16 +167,30 @@ func (s *Server) handleSave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Auto-sync skills to all AI CLI tools (Claude Code, Gemini, etc.)
+	var syncMsg string
+	if results, err := mursync.SyncSkills(); err == nil {
+		for _, r := range results {
+			if r.Success {
+				syncMsg += r.Target + " "
+			}
+		}
+	}
+
 	s.broadcastMessage(ServerMessage{
 		Type: "save.success",
 		Path: skillPath,
 	})
 
-	writeJSON(w, http.StatusOK, map[string]string{
+	resp := map[string]string{
 		"status": "saved",
 		"name":   result.Name,
 		"path":   skillPath,
-	})
+	}
+	if syncMsg != "" {
+		resp["synced_to"] = syncMsg
+	}
+	writeJSON(w, http.StatusOK, resp)
 
 	go func() {
 		time.Sleep(500 * time.Millisecond)
