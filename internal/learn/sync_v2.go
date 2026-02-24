@@ -341,6 +341,36 @@ func syncToCursorV2(home string, patterns []pattern.Pattern) SyncResult {
 func patternToSkillV2(p pattern.Pattern) string {
 	var sb strings.Builder
 
+	// Combine keywords from Tags.Confirmed and Applies.Keywords (deduplicated)
+	seen := make(map[string]bool)
+	var combinedKeywords []string
+	for _, t := range p.Tags.Confirmed {
+		lower := strings.ToLower(t)
+		if !seen[lower] {
+			seen[lower] = true
+			combinedKeywords = append(combinedKeywords, t)
+		}
+	}
+	for _, k := range p.Applies.Keywords {
+		lower := strings.ToLower(k)
+		if !seen[lower] {
+			seen[lower] = true
+			combinedKeywords = append(combinedKeywords, k)
+		}
+	}
+
+	// YAML frontmatter
+	sb.WriteString("---\n")
+	sb.WriteString(fmt.Sprintf("name: learned-%s\n", p.Name))
+	sb.WriteString("description: |\n")
+	if p.Description != "" {
+		sb.WriteString(fmt.Sprintf("  %s\n", p.Description))
+	}
+	if len(combinedKeywords) > 0 {
+		sb.WriteString(fmt.Sprintf("  Trigger keywords: %s\n", strings.Join(combinedKeywords, ", ")))
+	}
+	sb.WriteString("---\n\n")
+
 	// Title
 	sb.WriteString(fmt.Sprintf("# %s\n\n", p.Name))
 

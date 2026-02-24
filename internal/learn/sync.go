@@ -369,6 +369,18 @@ func syncToCursor(home string, patterns []Pattern) SyncResult {
 func patternToSkill(p Pattern) string {
 	var sb strings.Builder
 
+	// YAML frontmatter
+	sb.WriteString("---\n")
+	sb.WriteString(fmt.Sprintf("name: learned-%s\n", p.Name))
+	sb.WriteString("description: |\n")
+	if p.Description != "" {
+		sb.WriteString(fmt.Sprintf("  %s\n", p.Description))
+	}
+	if len(p.Tags) > 0 {
+		sb.WriteString(fmt.Sprintf("  Trigger keywords: %s\n", strings.Join(p.Tags, ", ")))
+	}
+	sb.WriteString("---\n\n")
+
 	// Title
 	sb.WriteString(fmt.Sprintf("# %s\n\n", p.Name))
 

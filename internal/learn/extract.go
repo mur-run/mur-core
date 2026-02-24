@@ -91,20 +91,21 @@ func ExtractFromSession(sessionPath string) ([]ExtractedPattern, error) {
 
 // JSONPattern represents a pattern in JSON format from Claude's response.
 type JSONPattern struct {
-	Name          string   `json:"name"`
-	Title         string   `json:"title"`
-	Confidence    string   `json:"confidence"`
-	Score         float64  `json:"score"`
-	Category      string   `json:"category"`
-	Domain        string   `json:"domain"`
-	Project       string   `json:"project"`
-	Problem       string   `json:"problem"`
-	Solution      string   `json:"solution"`
-	Verification  string   `json:"verification"`
-	WhyNonObvious string   `json:"why_non_obvious"`
-	Description   string   `json:"description"` // Alternative field
-	Content       string   `json:"content"`     // Alternative field
-	Tags          []string `json:"tags"`        // Pattern tags for categorization
+	Name            string   `json:"name"`
+	Title           string   `json:"title"`
+	Confidence      string   `json:"confidence"`
+	Score           float64  `json:"score"`
+	Category        string   `json:"category"`
+	Domain          string   `json:"domain"`
+	Project         string   `json:"project"`
+	Problem         string   `json:"problem"`
+	Solution        string   `json:"solution"`
+	Verification    string   `json:"verification"`
+	WhyNonObvious   string   `json:"why_non_obvious"`
+	Description     string   `json:"description"`      // Alternative field
+	Content         string   `json:"content"`           // Alternative field
+	Tags            []string `json:"tags"`              // Pattern tags for categorization
+	TriggerKeywords []string `json:"trigger_keywords"`  // Trigger keywords for AI agent activation
 }
 
 // extractJSONPatterns attempts to parse JSON pattern arrays from text.
@@ -201,13 +202,16 @@ func extractJSONPatterns(text string, sourceID string) []ExtractedPattern {
 				description = truncateText(jp.Problem, 100)
 			}
 
+			// Merge tags and trigger_keywords (deduplicated)
+		mergedTags := deduplicateTags(jp.Tags, jp.TriggerKeywords)
+
 			pattern := Pattern{
 				Name:        jp.Name,
 				Description: description,
 				Content:     content,
 				Domain:      domain,
 				Category:    category,
-				Tags:        jp.Tags,
+				Tags:        mergedTags,
 				Confidence:  confidence,
 				CreatedAt:   time.Now().Format(time.RFC3339),
 				UpdatedAt:   time.Now().Format(time.RFC3339),
@@ -582,6 +586,22 @@ func truncateEvidence(text string, maxLen int) string {
 		return text
 	}
 	return text[:maxLen] + "..."
+}
+
+// deduplicateTags merges multiple tag slices and removes duplicates (case-insensitive).
+func deduplicateTags(tagSlices ...[]string) []string {
+	seen := make(map[string]bool)
+	var result []string
+	for _, tags := range tagSlices {
+		for _, tag := range tags {
+			lower := strings.ToLower(tag)
+			if !seen[lower] {
+				seen[lower] = true
+				result = append(result, tag)
+			}
+		}
+	}
+	return result
 }
 
 // sortByConfidence sorts extracted patterns by confidence (descending).

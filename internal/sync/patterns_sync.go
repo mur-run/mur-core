@@ -416,7 +416,16 @@ func syncMurIndex(home string, target PatternTarget, patternCount int, cfg *conf
 
 // generateLightweightIndex creates a minimal SKILL.md that tells AI to use mur search.
 func generateLightweightIndex(patternCount int) string {
-	return fmt.Sprintf(`# mur-index
+	return fmt.Sprintf(`---
+name: mur-index
+description: |
+  Pattern library for searching learned development patterns and community knowledge.
+  Search patterns before solving problems using mur CLI.
+  Trigger keywords: mur, patterns, search, learned patterns, community patterns,
+  best practices, error handling, debugging, solutions, 模式, 搜尋, 最佳實踐
+---
+
+# mur-index
 
 Pattern library with %d local patterns + community patterns. **Do NOT load all at once.**
 

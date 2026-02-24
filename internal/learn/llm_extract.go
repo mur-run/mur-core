@@ -68,6 +68,7 @@ For each pattern, output a JSON object with:
 - category: "pattern", "lesson", "decision", "template", or "debug"
 - domain: "dev", "devops", "mobile", "web", "backend", or "general"
 - tags: array of 2-5 relevant tags (e.g., ["swift", "swiftui", "macos", "menubar"])
+- trigger_keywords: array of 10-20 trigger keywords for AI agent activation (include: English terms, Chinese translations 繁體中文, abbreviations, common user phrasings in the transcript language)
 - problem: the SPECIFIC problem encountered (with error messages if any)
 - solution: the solution that WORKED (not generic advice)
 - why_non_obvious: why this can't be easily Googled
@@ -113,6 +114,7 @@ Example of GOOD pattern (from actual debugging):
     "category": "debug",
     "domain": "mobile",
     "tags": ["swift", "swiftui", "macos", "menubar", "workaround"],
+    "trigger_keywords": ["menubarextra", "sheet", "zstack", "overlay", "popover", "MenuBarExtra", "SwiftUI sheet", "選單列", "彈出視窗", "sheet not showing", "sheet fails"],
     "problem": "SwiftUI .sheet() modifier silently fails in MenuBarExtra popovers - sheets never appear",
     "solution": "Use ZStack with overlay and manual isPresented state instead of .sheet()",
     "why_non_obvious": "Apple docs don't mention this limitation. Error is silent - no console output."
@@ -239,12 +241,16 @@ func parseJSONArray(text string, sourceID string) []ExtractedPattern {
 			category = "pattern"
 		}
 
+		// Merge tags and trigger_keywords (deduplicated)
+		mergedTags := deduplicateTags(jp.Tags, jp.TriggerKeywords)
+
 		pattern := Pattern{
 			Name:        jp.Name,
 			Description: jp.Title,
 			Content:     content,
 			Domain:      domain,
 			Category:    category,
+			Tags:        mergedTags,
 			Confidence:  confidence,
 			CreatedAt:   time.Now().Format(time.RFC3339),
 			UpdatedAt:   time.Now().Format(time.RFC3339),
