@@ -282,6 +282,7 @@ mur workflows marketplace publish <id> [--price <amount>] [--execute-only]
 - 12 new tests (31 total)
 
 ### ⏳ Phase 3 — Commander & Marketplace (TODO, 等有用戶再做)
+> 收費功能等有用戶基礎再做
 - [ ] Commander Server/Client 架構設計（需要更詳細 spec）
 - [ ] Adapter 層（Claude/GPT/Gemini 跨 AI tool portability）
 - [ ] Marketplace 基礎架構（社群評分、瀏覽、搜尋）
@@ -289,7 +290,13 @@ mur workflows marketplace publish <id> [--price <amount>] [--execute-only]
 - [ ] Execute-only 封裝（strip 實作細節）
 - [ ] `mur wf marketplace list/publish/search` CLI
 
-**決定：** 收費功能等有用戶基礎再做，先專注核心功能和社群。
+### ⏳ Phase 4 — Developer Experience & Community (TODO)
+- [ ] Workflows Web UI（瀏覽/編輯/視覺化 steps，像 `mur session ui`）
+- [ ] `mur workflows import <url|file>` — 從 GitHub/URL 匯入別人的 workflow
+- [ ] Community 免費分享（開源社群版，非 marketplace）
+- [ ] Workflow templates（常見 SOP 模板：deploy, code review, debug...）
+- [ ] `mur workflows watch` — 監聽檔案變更自動更新 workflow
+- [ ] Analytics dashboard（哪些 workflows 最常跑、成功率、平均耗時）
 
 ## Decisions
 
