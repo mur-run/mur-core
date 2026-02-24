@@ -1,10 +1,3 @@
-// Security model: "URL as secret" (like GitHub secret gists)
-// - Session keys are cryptographically random UUIDs
-// - Knowing the key is required to access the data
-// - Sessions expire after 24 hours
-// - Rate limiting prevents abuse (10 req/min per IP)
-// - Max upload size: 5MB
-
 interface Env {
 	MUR_SESSIONS: R2Bucket;
 	CORS_ORIGIN: string;
