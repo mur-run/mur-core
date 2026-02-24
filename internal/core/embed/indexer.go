@@ -53,10 +53,11 @@ func NewPatternIndexer(cfg *config.Config) (*PatternIndexer, error) {
 		apiKey = os.Getenv(cfg.Search.APIKeyEnv)
 	}
 	embedCfg := Config{
-		Provider: cfg.Search.Provider,
-		Model:    cfg.Search.Model,
-		Endpoint: cfg.Search.OllamaURL,
-		APIKey:   apiKey,
+		Provider:  cfg.Search.Provider,
+		Model:     cfg.Search.Model,
+		Endpoint:  cfg.Search.OllamaURL,
+		APIKey:    apiKey,
+		OpenAIURL: cfg.Search.OpenAIURL,
 	}
 	embedder, err := NewEmbedder(embedCfg)
 	if err != nil {

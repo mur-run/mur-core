@@ -36,6 +36,8 @@ type Config struct {
 	Endpoint string `yaml:"endpoint,omitempty"`
 	// API key (for openai)
 	APIKey string `yaml:"api_key,omitempty"`
+	// OpenAI-compatible API URL (e.g. OpenRouter)
+	OpenAIURL string `yaml:"openai_url,omitempty"`
 }
 
 // DefaultConfig returns the default embedding config.
@@ -58,7 +60,11 @@ func NewEmbedder(cfg Config) (Embedder, error) {
 		if apiKey == "" {
 			return nil, fmt.Errorf("OpenAI API key required: set OPENAI_API_KEY env var")
 		}
-		return NewOpenAIEmbedder(apiKey, cfg.Model), nil
+		e := NewOpenAIEmbedder(apiKey, cfg.Model)
+		if cfg.OpenAIURL != "" {
+			e.baseURL = cfg.OpenAIURL
+		}
+		return e, nil
 
 	case "voyage":
 		apiKey := cfg.APIKey

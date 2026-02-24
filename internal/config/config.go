@@ -295,6 +295,7 @@ type SearchConfig struct {
 	Provider   string  `yaml:"provider,omitempty"`    // ollama | openai | google | voyage | none
 	Model      string  `yaml:"model,omitempty"`       // embedding model name
 	OllamaURL  string  `yaml:"ollama_url,omitempty"`  // Ollama API URL
+	OpenAIURL  string  `yaml:"openai_url,omitempty"`  // OpenAI-compatible API URL (e.g. OpenRouter)
 	APIKeyEnv  string  `yaml:"api_key_env,omitempty"` // env var name for API key (e.g. OPENAI_API_KEY)
 	TopK       int     `yaml:"top_k,omitempty"`       // default number of results
 	MinScore   float64 `yaml:"min_score,omitempty"`   // minimum similarity score

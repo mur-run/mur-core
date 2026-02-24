@@ -332,6 +332,7 @@ type modelSetup struct {
 	EmbedAPIKeyEnv string
 	EmbedMinScore  string
 	OllamaURL      string
+	OpenAIURL      string // OpenAI-compatible API URL (e.g. OpenRouter)
 }
 
 func defaultCloudSetup() modelSetup {
@@ -468,32 +469,256 @@ func askCloudSetup() (modelSetup, error) {
 	m := defaultCloudSetup()
 
 	fmt.Println()
-	fmt.Println("  Using OpenAI for both embedding and extraction.")
-	fmt.Println("  Estimated cost: ~$0.02/month for typical usage.")
-	fmt.Println()
 
-	// Check if OPENAI_API_KEY is set
-	if os.Getenv("OPENAI_API_KEY") != "" {
-		fmt.Println("  ✅ OPENAI_API_KEY detected in environment")
-	} else {
-		fmt.Println("  ⚠️  Set OPENAI_API_KEY in your shell profile:")
-		fmt.Println("     export OPENAI_API_KEY=sk-...")
+	// Ask for provider first
+	var providerChoice string
+	providerPrompt := &survey.Select{
+		Message: "API Provider:",
+		Options: []string{
+			"OpenRouter (one key, all models — recommended)",
+			"OpenAI",
+			"Google Gemini",
+			"Anthropic",
+		},
+		Default: "OpenRouter (one key, all models — recommended)",
 	}
-
-	// Ask if they want a different provider
-	var wantDifferent bool
-	diffPrompt := &survey.Confirm{
-		Message: "Use a different provider? (Gemini, Claude, etc.)",
-		Default: false,
-	}
-	if err := survey.AskOne(diffPrompt, &wantDifferent); err != nil {
+	if err := survey.AskOne(providerPrompt, &providerChoice); err != nil {
 		return modelSetup{}, fmt.Errorf("setup cancelled")
 	}
-	if !wantDifferent {
-		return m, nil
+
+	switch {
+	case strings.HasPrefix(providerChoice, "OpenRouter"):
+		return askOpenRouterSetup(m)
+	case strings.HasPrefix(providerChoice, "OpenAI"):
+		return askOpenAISetup(m)
+	case strings.HasPrefix(providerChoice, "Google"):
+		return askGeminiSetup(m)
+	case strings.HasPrefix(providerChoice, "Anthropic"):
+		return askAnthropicSetup(m)
 	}
 
-	return askCustomSetup()
+	return m, nil
+}
+
+func askOpenRouterSetup(m modelSetup) (modelSetup, error) {
+	fmt.Println()
+	fmt.Println("  ── OpenRouter ──────────────────────────")
+	fmt.Println()
+	fmt.Println("  One API key for all models. Get yours at:")
+	fmt.Println("  https://openrouter.ai/keys")
+	fmt.Println()
+
+	m.OpenAIURL = "https://openrouter.ai/api/v1"
+	m.LLMProvider = "openai"
+	m.LLMAPIKeyEnv = "OPENROUTER_API_KEY"
+	m.EmbedProvider = "openai"
+	m.EmbedAPIKeyEnv = "OPENROUTER_API_KEY"
+
+	// Check if API key is set
+	if os.Getenv("OPENROUTER_API_KEY") != "" {
+		fmt.Println("  ✅ OPENROUTER_API_KEY detected in environment")
+	} else {
+		fmt.Println("  ⚠️  Set OPENROUTER_API_KEY in your shell profile:")
+		fmt.Println("     export OPENROUTER_API_KEY=sk-or-...")
+	}
+	fmt.Println()
+
+	// LLM model selection
+	var llmChoice string
+	llmPrompt := &survey.Select{
+		Message: "LLM model (for analysis):",
+		Options: []string{
+			"google/gemini-2.5-flash (fast, cheap — recommended)",
+			"anthropic/claude-sonnet-4",
+			"deepseek/deepseek-chat-v3",
+			"openai/gpt-4o-mini",
+		},
+		Default: "google/gemini-2.5-flash (fast, cheap — recommended)",
+	}
+	if err := survey.AskOne(llmPrompt, &llmChoice); err != nil {
+		return modelSetup{}, fmt.Errorf("setup cancelled")
+	}
+	m.LLMModel = strings.SplitN(llmChoice, " ", 2)[0]
+
+	// Embedding model selection
+	var embedChoice string
+	embedPrompt := &survey.Select{
+		Message: "Embedding model (for search):",
+		Options: []string{
+			"openai/text-embedding-3-small ($0.02/1M — recommended)",
+			"google/text-embedding-004 (free tier)",
+		},
+		Default: "openai/text-embedding-3-small ($0.02/1M — recommended)",
+	}
+	if err := survey.AskOne(embedPrompt, &embedChoice); err != nil {
+		return modelSetup{}, fmt.Errorf("setup cancelled")
+	}
+	m.EmbedModel = strings.SplitN(embedChoice, " ", 2)[0]
+	m.EmbedMinScore = "0.3"
+
+	// Print summary
+	printCloudSummary(m, "OpenRouter")
+
+	return m, nil
+}
+
+func askOpenAISetup(m modelSetup) (modelSetup, error) {
+	fmt.Println()
+	m.LLMProvider = "openai"
+	m.LLMAPIKeyEnv = "OPENAI_API_KEY"
+	m.EmbedProvider = "openai"
+	m.EmbedAPIKeyEnv = "OPENAI_API_KEY"
+
+	// Check API key
+	printProviderSetupHints("openai", "OPENAI_API_KEY")
+	fmt.Println()
+
+	// LLM model
+	var llmChoice string
+	llmPrompt := &survey.Select{
+		Message: "LLM model (for analysis):",
+		Options: []string{
+			"gpt-4o-mini (recommended)",
+			"gpt-4o",
+		},
+		Default: "gpt-4o-mini (recommended)",
+	}
+	if err := survey.AskOne(llmPrompt, &llmChoice); err != nil {
+		return modelSetup{}, fmt.Errorf("setup cancelled")
+	}
+	m.LLMModel = strings.SplitN(llmChoice, " ", 2)[0]
+
+	// Embedding model
+	var embedChoice string
+	embedPrompt := &survey.Select{
+		Message: "Embedding model (for search):",
+		Options: []string{
+			"text-embedding-3-small ($0.02/1M — recommended)",
+			"text-embedding-3-large ($0.13/1M, higher quality)",
+		},
+		Default: "text-embedding-3-small ($0.02/1M — recommended)",
+	}
+	if err := survey.AskOne(embedPrompt, &embedChoice); err != nil {
+		return modelSetup{}, fmt.Errorf("setup cancelled")
+	}
+	m.EmbedModel = strings.SplitN(embedChoice, " ", 2)[0]
+	m.EmbedMinScore = "0.3"
+
+	printCloudSummary(m, "OpenAI")
+
+	return m, nil
+}
+
+func askGeminiSetup(m modelSetup) (modelSetup, error) {
+	fmt.Println()
+	m.LLMProvider = "gemini"
+	m.LLMAPIKeyEnv = "GEMINI_API_KEY"
+	m.EmbedProvider = "google"
+	m.EmbedAPIKeyEnv = "GEMINI_API_KEY"
+
+	// Check API key
+	printProviderSetupHints("gemini", "GEMINI_API_KEY")
+	fmt.Println()
+
+	// LLM model
+	var llmChoice string
+	llmPrompt := &survey.Select{
+		Message: "LLM model (for analysis):",
+		Options: []string{
+			"gemini-2.5-flash (recommended)",
+			"gemini-2.5-pro",
+		},
+		Default: "gemini-2.5-flash (recommended)",
+	}
+	if err := survey.AskOne(llmPrompt, &llmChoice); err != nil {
+		return modelSetup{}, fmt.Errorf("setup cancelled")
+	}
+	m.LLMModel = strings.SplitN(llmChoice, " ", 2)[0]
+
+	// Embedding model
+	m.EmbedModel = "text-embedding-004"
+	fmt.Println("  Embedding: text-embedding-004 (free tier)")
+	m.EmbedMinScore = "0.3"
+
+	printCloudSummary(m, "Google Gemini")
+
+	return m, nil
+}
+
+func askAnthropicSetup(m modelSetup) (modelSetup, error) {
+	fmt.Println()
+	m.LLMProvider = "claude"
+	m.LLMAPIKeyEnv = "ANTHROPIC_API_KEY"
+
+	// Check API key
+	printProviderSetupHints("claude", "ANTHROPIC_API_KEY")
+	fmt.Println()
+
+	// LLM model
+	var llmChoice string
+	llmPrompt := &survey.Select{
+		Message: "LLM model (for analysis):",
+		Options: []string{
+			"claude-haiku (fast, cheap — recommended)",
+			"claude-sonnet-4",
+		},
+		Default: "claude-haiku (fast, cheap — recommended)",
+	}
+	if err := survey.AskOne(llmPrompt, &llmChoice); err != nil {
+		return modelSetup{}, fmt.Errorf("setup cancelled")
+	}
+	m.LLMModel = strings.SplitN(llmChoice, " ", 2)[0]
+
+	// Anthropic has no embedding API — ask which provider to use
+	fmt.Println()
+	fmt.Println("  Anthropic has no embedding API. Choose an embedding provider:")
+	var embedChoice string
+	embedPrompt := &survey.Select{
+		Message: "Embedding provider (for search):",
+		Options: []string{
+			"OpenAI text-embedding-3-small ($0.02/1M — recommended)",
+			"Google text-embedding-004 (free tier)",
+			"Ollama qwen3-embedding (free, local)",
+		},
+		Default: "OpenAI text-embedding-3-small ($0.02/1M — recommended)",
+	}
+	if err := survey.AskOne(embedPrompt, &embedChoice); err != nil {
+		return modelSetup{}, fmt.Errorf("setup cancelled")
+	}
+
+	switch {
+	case strings.HasPrefix(embedChoice, "OpenAI"):
+		m.EmbedProvider = "openai"
+		m.EmbedModel = "text-embedding-3-small"
+		m.EmbedAPIKeyEnv = "OPENAI_API_KEY"
+		m.EmbedMinScore = "0.3"
+	case strings.HasPrefix(embedChoice, "Google"):
+		m.EmbedProvider = "google"
+		m.EmbedModel = "text-embedding-004"
+		m.EmbedAPIKeyEnv = "GEMINI_API_KEY"
+		m.EmbedMinScore = "0.3"
+	case strings.HasPrefix(embedChoice, "Ollama"):
+		m.EmbedProvider = "ollama"
+		m.EmbedModel = "qwen3-embedding"
+		m.EmbedMinScore = "0.5"
+	}
+
+	printCloudSummary(m, "Anthropic")
+
+	return m, nil
+}
+
+// printCloudSummary prints a summary of the cloud setup choices.
+func printCloudSummary(m modelSetup, providerName string) {
+	fmt.Println()
+	fmt.Println("  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+	fmt.Printf("  LLM:       %s (via %s)\n", m.LLMModel, providerName)
+	fmt.Printf("  Embedding: %s", m.EmbedModel)
+	if m.EmbedProvider == "ollama" {
+		fmt.Println(" (local)")
+	} else {
+		fmt.Printf(" (via %s)\n", providerName)
+	}
 }
 
 func askCustomSetup() (modelSetup, error) {
@@ -605,7 +830,12 @@ func (m modelSetup) llmYaml() string {
 	case "ollama":
 		return fmt.Sprintf("    provider: ollama\n    model: %s\n    ollama_url: %s", m.LLMModel, m.OllamaURL)
 	default:
-		return fmt.Sprintf("    provider: %s\n    model: %s\n    api_key_env: %s", m.LLMProvider, m.LLMModel, m.LLMAPIKeyEnv)
+		s := fmt.Sprintf("    provider: %s\n    model: %s", m.LLMProvider, m.LLMModel)
+		if m.OpenAIURL != "" {
+			s += fmt.Sprintf("\n    openai_url: %s", m.OpenAIURL)
+		}
+		s += fmt.Sprintf("\n    api_key_env: %s", m.LLMAPIKeyEnv)
+		return s
 	}
 }
 
@@ -614,7 +844,12 @@ func (m modelSetup) searchYaml() string {
 	case "ollama":
 		return fmt.Sprintf("  provider: ollama\n  model: %s\n  ollama_url: %s\n  min_score: %s", m.EmbedModel, m.OllamaURL, m.EmbedMinScore)
 	default:
-		return fmt.Sprintf("  provider: %s\n  model: %s\n  api_key_env: %s\n  min_score: %s", m.EmbedProvider, m.EmbedModel, m.EmbedAPIKeyEnv, m.EmbedMinScore)
+		s := fmt.Sprintf("  provider: %s\n  model: %s", m.EmbedProvider, m.EmbedModel)
+		if m.OpenAIURL != "" {
+			s += fmt.Sprintf("\n  openai_url: %s", m.OpenAIURL)
+		}
+		s += fmt.Sprintf("\n  api_key_env: %s\n  min_score: %s", m.EmbedAPIKeyEnv, m.EmbedMinScore)
+		return s
 	}
 }
 
