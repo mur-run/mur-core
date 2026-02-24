@@ -13,11 +13,12 @@ import (
 
 // EventRecord represents a single recorded event in a session.
 type EventRecord struct {
-	Timestamp int64          `json:"ts"`
-	Type      string         `json:"type"` // "user", "assistant", "tool_call", "tool_result"
-	Content   string         `json:"content"`
-	Tool      string         `json:"tool,omitempty"`
-	Meta      map[string]any `json:"meta,omitempty"`
+	Timestamp     int64          `json:"ts"`
+	Type          string         `json:"type"` // "user", "assistant", "tool_call", "tool_result"
+	Content       string         `json:"content"`
+	Tool          string         `json:"tool,omitempty"`
+	CorrelationID string         `json:"cid,omitempty"` // Groups related events (e.g. tool_call + tool_result)
+	Meta          map[string]any `json:"meta,omitempty"`
 }
 
 // RecordingInfo summarizes a past recording for listing.
@@ -62,9 +63,14 @@ func RecordEvent(sessionID string, event EventRecord) error {
 
 // RecordEventForActive records an event to the currently active session.
 // Returns nil if no session is active (no-op).
+// Skips mur's own management commands to avoid polluting the transcript.
 func RecordEventForActive(event EventRecord) error {
 	active, sessionID := IsRecording()
 	if !active {
+		return nil
+	}
+	// Don't record mur's own meta commands
+	if isMurMetaEvent(event) {
 		return nil
 	}
 	return RecordEvent(sessionID, event)

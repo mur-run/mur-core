@@ -41,17 +41,19 @@ type Step struct {
 // qaCoTPrompt is the Question-Answer Chain of Thought prompt for analysis.
 const qaCoTPrompt = `Analyze this AI conversation transcript and extract a reusable workflow.
 
+IMPORTANT: Focus ONLY on the events in the transcript below. Do NOT infer, hallucinate, or reference any context not explicitly present in the transcript. If the transcript is about price comparison, the workflow must be about price comparison — not about something else entirely.
+
 Answer each question step by step:
 
-Q1: What was the user's initial problem or goal?
-Q2: What was the root cause (if debugging)?
-Q3: What steps were attempted? Which succeeded, which failed?
+Q1: What was the user's FIRST message? What specific problem or goal does it describe?
+Q2: What was the root cause (if debugging)? If not debugging, write "N/A".
+Q3: What steps were attempted? Which succeeded, which failed? List them chronologically.
 Q4: What is the minimal correct sequence of steps to solve this?
 Q5: What tools or commands were used at each step?
 Q6: Which values are environment-specific and should be variables?
 Q7: Are there conditional branches (if X then Y)?
 Q8: Which steps need human approval before proceeding?
-Q9: What's a good name and trigger description for this workflow?
+Q9: Based ONLY on Q1's answer, what's a good kebab-case name and trigger description?
 Q10: What tags would help find this workflow later?
 
 After your analysis, output ONLY a JSON object (no markdown fences) with this structure:
@@ -80,6 +82,10 @@ func Analyze(sessionID string, provider LLMProvider) (*AnalysisResult, error) {
 		return nil, fmt.Errorf("read transcript: %w", err)
 	}
 
+	// Filter events: only keep events after session start time
+	// and exclude mur's own management commands.
+	events = filterSessionEvents(sessionID, events)
+
 	if len(events) == 0 {
 		return nil, fmt.Errorf("session %s has no events", sessionID)
 	}
@@ -100,11 +106,131 @@ func Analyze(sessionID string, provider LLMProvider) (*AnalysisResult, error) {
 	return result, nil
 }
 
+// filterSessionEvents removes events that don't belong to the session:
+//  1. Events with timestamps before the session's startedAt time
+//  2. Events that are mur's own management commands (session start/stop/analyze, etc.)
+func filterSessionEvents(sessionID string, events []EventRecord) []EventRecord {
+	// Get session start time from state or first event
+	var startTS int64
+	resolved, err := ResolveSessionID(sessionID)
+	if err == nil {
+		sessionID = resolved
+	}
+	// Try reading the recording's start time from active.json metadata
+	// If unavailable, use the first event's timestamp as a fallback
+	if state, err := loadSessionMeta(sessionID); err == nil && state.StartedAt > 0 {
+		startTS = state.StartedAt
+	} else if len(events) > 0 {
+		startTS = events[0].Timestamp
+	}
+
+	filtered := make([]EventRecord, 0, len(events))
+	for _, e := range events {
+		// Skip events before session start
+		if startTS > 0 && e.Timestamp > 0 && e.Timestamp < startTS {
+			continue
+		}
+		// Skip mur's own management commands
+		if isMurMetaEvent(e) {
+			continue
+		}
+		// Skip system prompt / config injections
+		if isSystemPromptEvent(e) {
+			continue
+		}
+		filtered = append(filtered, e)
+	}
+	return filtered
+}
+
+// isSystemPromptEvent returns true if the event looks like a system prompt
+// or configuration injection (AGENTS.md, SOUL.md, etc.) that shouldn't
+// be part of workflow transcripts.
+func isSystemPromptEvent(e EventRecord) bool {
+	if e.Type != "user" && e.Type != "assistant" {
+		return false
+	}
+	// Detect common system prompt markers
+	markers := []string{
+		"# AGENTS.md",
+		"# SOUL.md",
+		"# CLAUDE.md",
+		"<system>",
+		"<!-- system prompt",
+		"## Runtime\nRuntime: agent=",
+	}
+	for _, m := range markers {
+		if strings.Contains(e.Content, m) {
+			return true
+		}
+	}
+	return false
+}
+
+// isMurMetaEvent returns true if the event is a mur self-management command
+// (e.g. "mur session start", "mur session stop", "mur context", "mur search").
+func isMurMetaEvent(e EventRecord) bool {
+	if e.Type != "tool_call" && e.Type != "tool_result" {
+		return false
+	}
+	content := strings.TrimSpace(e.Content)
+	// Check for common mur CLI invocations
+	murPrefixes := []string{
+		"mur session",
+		"mur context",
+		"mur search",
+		"mur learn",
+		"mur sync",
+		"mur feedback",
+		"mur stats",
+		"mur doctor",
+		"mur consolidate",
+	}
+	lower := strings.ToLower(content)
+	for _, prefix := range murPrefixes {
+		if strings.HasPrefix(lower, prefix) {
+			return true
+		}
+	}
+	// Also check tool name metadata
+	if strings.HasPrefix(strings.ToLower(e.Tool), "mur") {
+		return true
+	}
+	return false
+}
+
+// loadSessionMeta tries to read the session metadata from a sidecar JSON file.
+// Sessions store their start time when recording begins.
+func loadSessionMeta(sessionID string) (*RecordingState, error) {
+	recDir, err := recordingsDir()
+	if err != nil {
+		return nil, err
+	}
+	metaPath := filepath.Join(recDir, sessionID+".meta.json")
+	data, err := os.ReadFile(metaPath)
+	if err != nil {
+		return nil, err
+	}
+	var state RecordingState
+	if err := json.Unmarshal(data, &state); err != nil {
+		return nil, err
+	}
+	return &state, nil
+}
+
 // formatTranscript converts EventRecords into a readable text transcript.
+// Deduplicates consecutive events with the same content (retry protection).
 func formatTranscript(events []EventRecord) string {
 	var b strings.Builder
+	var prevContent string
 
 	for _, e := range events {
+		// Skip exact consecutive duplicates (retry dedup)
+		key := e.Type + "|" + e.Tool + "|" + e.Content
+		if key == prevContent {
+			continue
+		}
+		prevContent = key
 		switch e.Type {
 		case "user":
 			fmt.Fprintf(&b, "[USER] %s\n", e.Content)

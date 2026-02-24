@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -291,6 +292,101 @@ func TestStepOrderNormalization(t *testing.T) {
 		}
 		if step.OnFailure != "abort" {
 			t.Errorf("step %d OnFailure = %q, want %q", i, step.OnFailure, "abort")
+		}
+	}
+}
+
+func TestIsMurMetaEvent(t *testing.T) {
+	tests := []struct {
+		name   string
+		event  EventRecord
+		isMeta bool
+	}{
+		{"mur session start", EventRecord{Type: "tool_call", Content: "mur session start --source claude-code"}, true},
+		{"mur session stop", EventRecord{Type: "tool_call", Content: "mur session stop"}, true},
+		{"mur context compact", EventRecord{Type: "tool_call", Content: "mur context --compact"}, true},
+		{"mur search inject", EventRecord{Type: "tool_call", Content: "mur search --inject \"fix bug\""}, true},
+		{"mur tool result", EventRecord{Type: "tool_result", Content: "Recording started (session: abc123)"}, false},
+		{"mur tool name", EventRecord{Type: "tool_call", Tool: "mur-session", Content: "start"}, true},
+		{"normal command", EventRecord{Type: "tool_call", Content: "docker compose logs web --tail 50"}, false},
+		{"user message", EventRecord{Type: "user", Content: "mur session start"}, false},
+		{"assistant", EventRecord{Type: "assistant", Content: "Let me check mur"}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isMurMetaEvent(tt.event); got != tt.isMeta {
+				t.Errorf("isMurMetaEvent() = %v, want %v", got, tt.isMeta)
+			}
+		})
+	}
+}
+
+func TestIsSystemPromptEvent(t *testing.T) {
+	tests := []struct {
+		name     string
+		event    EventRecord
+		isSysPrompt bool
+	}{
+		{"agents.md content", EventRecord{Type: "user", Content: "# AGENTS.md\n\nYou are..."}, true},
+		{"soul.md content", EventRecord{Type: "user", Content: "blah blah # SOUL.md blah"}, true},
+		{"claude.md content", EventRecord{Type: "assistant", Content: "# CLAUDE.md\n\nThis project..."}, true},
+		{"normal user msg", EventRecord{Type: "user", Content: "去台灣各大購物網站做比價表"}, false},
+		{"tool call", EventRecord{Type: "tool_call", Content: "# AGENTS.md"}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isSystemPromptEvent(tt.event); got != tt.isSysPrompt {
+				t.Errorf("isSystemPromptEvent() = %v, want %v", got, tt.isSysPrompt)
+			}
+		})
+	}
+}
+
+func TestFormatTranscript_Dedup(t *testing.T) {
+	events := []EventRecord{
+		{Timestamp: 1000, Type: "tool_call", Tool: "shell", Content: "curl http://example.com"},
+		{Timestamp: 1001, Type: "tool_call", Tool: "shell", Content: "curl http://example.com"}, // retry
+		{Timestamp: 1002, Type: "tool_result", Tool: "shell", Content: "200 OK"},
+	}
+	result := formatTranscript(events)
+	// Should only have one TOOL_CALL for curl
+	count := strings.Count(result, "curl http://example.com")
+	if count != 1 {
+		t.Errorf("expected 1 occurrence of curl command, got %d\n%s", count, result)
+	}
+}
+
+func TestFilterSessionEvents_TimeBoundary(t *testing.T) {
+	events := []EventRecord{
+		{Timestamp: 900, Type: "tool_call", Content: "old command from before session"},
+		{Timestamp: 950, Type: "tool_result", Content: "old result"},
+		{Timestamp: 1000, Type: "user", Content: "actual user prompt"},
+		{Timestamp: 1001, Type: "tool_call", Content: "docker compose logs"},
+		{Timestamp: 1002, Type: "tool_call", Content: "mur session stop"},
+	}
+
+	// Create temp session with meta
+	tmpDir := t.TempDir()
+	recDir := tmpDir + "/recordings"
+	os.MkdirAll(recDir, 0755)
+
+	sessionID := "test-filter-session"
+	meta := RecordingState{StartedAt: 999}
+	metaData, _ := json.Marshal(meta)
+	os.WriteFile(recDir+"/"+sessionID+".meta.json", metaData, 0644)
+
+	origFunc := recordingsDirFunc
+	recordingsDirFunc = func() (string, error) { return recDir, nil }
+	defer func() { recordingsDirFunc = origFunc }()
+
+	filtered := filterSessionEvents(sessionID, events)
+
+	// Should keep: ts=1000 (user), ts=1001 (docker)
+	// Should skip: ts=900,950 (before start), ts=1002 (mur meta)
+	if len(filtered) != 2 {
+		t.Errorf("expected 2 events, got %d", len(filtered))
+		for _, e := range filtered {
+			t.Logf("  ts=%d type=%s content=%s", e.Timestamp, e.Type, e.Content)
 		}
 	}
 }
