@@ -219,6 +219,27 @@ func runSync(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Sync skills (~/.mur/skills/ → CLI tools)
+	skillResults, err := sync.SyncSkills()
+	if err == nil {
+		if !syncQuiet {
+			fmt.Println()
+			fmt.Println("Syncing skills to CLIs...")
+			for _, r := range skillResults {
+				status := "✓"
+				if !r.Success {
+					status = "✗"
+				}
+				fmt.Printf("  %s %s: %s\n", status, r.Target, r.Message)
+			}
+		}
+	} else if !syncQuiet {
+		// Not an error if no skills exist yet
+		if !strings.Contains(err.Error(), "no skill") {
+			fmt.Printf("  ⚠ Skills sync: %v\n", err)
+		}
+	}
+
 	// Cleanup community cache (if configured)
 	cacheConfig := cfg.GetCacheConfig()
 	if cacheConfig.Cleanup == "on_sync" {
