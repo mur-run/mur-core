@@ -11,6 +11,7 @@ import (
 	"github.com/mur-run/mur-core/internal/core/embed"
 	"github.com/mur-run/mur-core/internal/core/inject"
 	"github.com/mur-run/mur-core/internal/core/pattern"
+	"github.com/mur-run/mur-core/internal/session"
 )
 
 var contextCmd = &cobra.Command{
@@ -37,6 +38,13 @@ func init() {
 }
 
 func runContext(cmd *cobra.Command, args []string) error {
+	// Suppress pattern injection during active recording to avoid
+	// polluting the session transcript with injected patterns that
+	// alter LLM behavior and make workflows non-reproducible.
+	if active, _ := session.IsRecording(); active {
+		return nil
+	}
+
 	prompt, _ := cmd.Flags().GetString("prompt")
 	maxPatterns, _ := cmd.Flags().GetInt("max")
 	compact, _ := cmd.Flags().GetBool("compact")

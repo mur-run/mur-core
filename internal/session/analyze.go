@@ -41,17 +41,19 @@ type Step struct {
 // qaCoTPrompt is the Question-Answer Chain of Thought prompt for analysis.
 const qaCoTPrompt = `Analyze this AI conversation transcript and extract a reusable workflow.
 
+IMPORTANT: Focus ONLY on the events in the transcript below. Do NOT infer, hallucinate, or reference any context not explicitly present in the transcript. If the transcript is about price comparison, the workflow must be about price comparison — not about something else entirely.
+
 Answer each question step by step:
 
-Q1: What was the user's initial problem or goal?
-Q2: What was the root cause (if debugging)?
-Q3: What steps were attempted? Which succeeded, which failed?
+Q1: What was the user's FIRST message? What specific problem or goal does it describe?
+Q2: What was the root cause (if debugging)? If not debugging, write "N/A".
+Q3: What steps were attempted? Which succeeded, which failed? List them chronologically.
 Q4: What is the minimal correct sequence of steps to solve this?
 Q5: What tools or commands were used at each step?
 Q6: Which values are environment-specific and should be variables?
 Q7: Are there conditional branches (if X then Y)?
 Q8: Which steps need human approval before proceeding?
-Q9: What's a good name and trigger description for this workflow?
+Q9: Based ONLY on Q1's answer, what's a good kebab-case name and trigger description?
 Q10: What tags would help find this workflow later?
 
 After your analysis, output ONLY a JSON object (no markdown fences) with this structure:
@@ -132,9 +134,37 @@ func filterSessionEvents(sessionID string, events []EventRecord) []EventRecord {
 		if isMurMetaEvent(e) {
 			continue
 		}
+		// Skip system prompt / config injections
+		if isSystemPromptEvent(e) {
+			continue
+		}
 		filtered = append(filtered, e)
 	}
 	return filtered
+}
+
+// isSystemPromptEvent returns true if the event looks like a system prompt
+// or configuration injection (AGENTS.md, SOUL.md, etc.) that shouldn't
+// be part of workflow transcripts.
+func isSystemPromptEvent(e EventRecord) bool {
+	if e.Type != "user" && e.Type != "assistant" {
+		return false
+	}
+	// Detect common system prompt markers
+	markers := []string{
+		"# AGENTS.md",
+		"# SOUL.md",
+		"# CLAUDE.md",
+		"<system>",
+		"<!-- system prompt",
+		"## Runtime\nRuntime: agent=",
+	}
+	for _, m := range markers {
+		if strings.Contains(e.Content, m) {
+			return true
+		}
+	}
+	return false
 }
 
 // isMurMetaEvent returns true if the event is a mur self-management command
@@ -189,10 +219,18 @@ func loadSessionMeta(sessionID string) (*RecordingState, error) {
 }
 
 // formatTranscript converts EventRecords into a readable text transcript.
+// Deduplicates consecutive events with the same content (retry protection).
 func formatTranscript(events []EventRecord) string {
 	var b strings.Builder
+	var prevContent string
 
 	for _, e := range events {
+		// Skip exact consecutive duplicates (retry dedup)
+		key := e.Type + "|" + e.Tool + "|" + e.Content
+		if key == prevContent {
+			continue
+		}
+		prevContent = key
 		switch e.Type {
 		case "user":
 			fmt.Fprintf(&b, "[USER] %s\n", e.Content)

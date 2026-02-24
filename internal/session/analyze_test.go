@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -317,6 +318,41 @@ func TestIsMurMetaEvent(t *testing.T) {
 				t.Errorf("isMurMetaEvent() = %v, want %v", got, tt.isMeta)
 			}
 		})
+	}
+}
+
+func TestIsSystemPromptEvent(t *testing.T) {
+	tests := []struct {
+		name     string
+		event    EventRecord
+		isSysPrompt bool
+	}{
+		{"agents.md content", EventRecord{Type: "user", Content: "# AGENTS.md\n\nYou are..."}, true},
+		{"soul.md content", EventRecord{Type: "user", Content: "blah blah # SOUL.md blah"}, true},
+		{"claude.md content", EventRecord{Type: "assistant", Content: "# CLAUDE.md\n\nThis project..."}, true},
+		{"normal user msg", EventRecord{Type: "user", Content: "去台灣各大購物網站做比價表"}, false},
+		{"tool call", EventRecord{Type: "tool_call", Content: "# AGENTS.md"}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isSystemPromptEvent(tt.event); got != tt.isSysPrompt {
+				t.Errorf("isSystemPromptEvent() = %v, want %v", got, tt.isSysPrompt)
+			}
+		})
+	}
+}
+
+func TestFormatTranscript_Dedup(t *testing.T) {
+	events := []EventRecord{
+		{Timestamp: 1000, Type: "tool_call", Tool: "shell", Content: "curl http://example.com"},
+		{Timestamp: 1001, Type: "tool_call", Tool: "shell", Content: "curl http://example.com"}, // retry
+		{Timestamp: 1002, Type: "tool_result", Tool: "shell", Content: "200 OK"},
+	}
+	result := formatTranscript(events)
+	// Should only have one TOOL_CALL for curl
+	count := strings.Count(result, "curl http://example.com")
+	if count != 1 {
+		t.Errorf("expected 1 occurrence of curl command, got %d\n%s", count, result)
 	}
 }
 

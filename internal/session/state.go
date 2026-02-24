@@ -18,6 +18,7 @@ type RecordingState struct {
 	StartedAt int64  `json:"started_at"`
 	Source    string `json:"source"` // "claude-code", "codex", etc.
 	Marker    string `json:"marker"` // original /mur:in message context
+	PID       int    `json:"pid,omitempty"` // Process ID of the recording source
 }
 
 // sessionDir returns the path to ~/.mur/session/.
@@ -58,8 +59,9 @@ func activeStatePath() (string, error) {
 // StartRecording creates a new recording session.
 // If a session is already active, it stops the old one first.
 func StartRecording(source, marker string) (*RecordingState, error) {
-	// If already recording, stop the current session
+	// If already recording, warn and stop the current session
 	if state, _ := GetState(); state != nil && state.Active {
+		fmt.Fprintf(os.Stderr, "Warning: stopping existing recording session %s before starting new one\n", state.SessionID[:8])
 		if _, err := StopRecording(); err != nil {
 			return nil, fmt.Errorf("failed to stop existing session: %w", err)
 		}
@@ -80,6 +82,7 @@ func StartRecording(source, marker string) (*RecordingState, error) {
 		StartedAt: time.Now().Unix(),
 		Source:    source,
 		Marker:    marker,
+		PID:       os.Getpid(),
 	}
 
 	// Create the JSONL file (empty, ready for appends)

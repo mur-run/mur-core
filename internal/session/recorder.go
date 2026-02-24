@@ -13,11 +13,12 @@ import (
 
 // EventRecord represents a single recorded event in a session.
 type EventRecord struct {
-	Timestamp int64          `json:"ts"`
-	Type      string         `json:"type"` // "user", "assistant", "tool_call", "tool_result"
-	Content   string         `json:"content"`
-	Tool      string         `json:"tool,omitempty"`
-	Meta      map[string]any `json:"meta,omitempty"`
+	Timestamp     int64          `json:"ts"`
+	Type          string         `json:"type"` // "user", "assistant", "tool_call", "tool_result"
+	Content       string         `json:"content"`
+	Tool          string         `json:"tool,omitempty"`
+	CorrelationID string         `json:"cid,omitempty"` // Groups related events (e.g. tool_call + tool_result)
+	Meta          map[string]any `json:"meta,omitempty"`
 }
 
 // RecordingInfo summarizes a past recording for listing.
