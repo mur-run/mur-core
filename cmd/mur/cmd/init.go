@@ -311,6 +311,7 @@ func detectCLIs() []cliTool {
 		{Name: "Codex", Binary: "codex", HooksSupport: false},
 		{Name: "Auggie", Binary: "auggie", HooksSupport: true},
 		{Name: "Aider", Binary: "aider", HooksSupport: false},
+		{Name: "OpenClaw", Binary: "openclaw", HooksSupport: false},
 	}
 
 	for i := range tools {
@@ -873,6 +874,7 @@ func createConfigWithModels(murDir string, selectedCLIs []string, defaultCLI str
 		"Codex":       "codex",
 		"Auggie":      "auggie",
 		"Aider":       "aider",
+		"OpenClaw":    "openclaw",
 	}
 
 	defaultKey := "claude"

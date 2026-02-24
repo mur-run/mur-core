@@ -219,6 +219,13 @@ func runSync(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Ensure OpenClaw built-in skills exist if OpenClaw is enabled
+	if tool, ok := cfg.Tools["openclaw"]; ok && tool.Enabled {
+		if err := sync.EnsureOpenClawSkills(); err != nil && !syncQuiet {
+			fmt.Printf("  ⚠ OpenClaw skills: %v\n", err)
+		}
+	}
+
 	// Sync skills (~/.mur/skills/ → CLI tools)
 	skillResults, err := sync.SyncSkills()
 	if err == nil {

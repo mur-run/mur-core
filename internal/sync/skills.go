@@ -32,6 +32,7 @@ func DefaultSkillsTargets() []SkillsTarget {
 		{Name: "Gemini CLI", SkillsDir: ".gemini/skills"},
 		{Name: "Auggie", SkillsDir: ".augment/skills"},
 		{Name: "OpenCode", SkillsDir: ".opencode/skills"},
+		{Name: "OpenClaw", SkillsDir: ".agents/skills"},
 		// Note: Codex uses ~/.codex/instructions.md instead of a skills directory
 	}
 }
