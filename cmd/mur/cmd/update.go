@@ -132,10 +132,15 @@ func updateBinary() error {
 	switch installMethod {
 	case "homebrew":
 		fmt.Println("  📦 Detected Homebrew installation")
-		// Update tap first to ensure we have the latest formula
-		fmt.Println("  ↻ Updating tap...")
-		updateTap := exec.Command("brew", "update", "mur-run/tap")
-		_ = updateTap.Run() // Ignore errors, upgrade will still work with cached version
+		// Force-refresh tap to ensure we have the latest formula
+		fmt.Println("  ↻ Refreshing tap...")
+		tapCmd := exec.Command("brew", "tap", "--force", "mur-run/tap")
+		if err := tapCmd.Run(); err != nil {
+			// Fallback to full brew update if tap refresh fails
+			fmt.Println("  ↻ Tap refresh failed, running brew update...")
+			fullUpdate := exec.Command("brew", "update")
+			_ = fullUpdate.Run()
+		}
 		cmd = exec.Command("brew", "upgrade", "mur")
 	case "go":
 		fmt.Println("  🐹 Detected Go installation")
@@ -149,24 +154,12 @@ func updateBinary() error {
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
-		// If homebrew upgrade fails (e.g., already latest), try update first
 		if installMethod == "homebrew" {
-			fmt.Println("  ℹ️  Running brew update first...")
-			updateCmd := exec.Command("brew", "update")
-			_ = updateCmd.Run()
-
-			// Retry upgrade
-			retryCmd := exec.Command("brew", "upgrade", "mur")
-			retryCmd.Stdout = os.Stdout
-			retryCmd.Stderr = os.Stderr
-			if retryErr := retryCmd.Run(); retryErr != nil {
-				// Check if already up to date
-				fmt.Println("  ✓ mur is already up to date")
-				return nil
-			}
-		} else {
-			return fmt.Errorf("failed to update binary: %w", err)
+			// upgrade returns error when already up to date
+			fmt.Println("  ✓ mur is already up to date")
+			return nil
 		}
+		return fmt.Errorf("failed to update binary: %w", err)
 	}
 	fmt.Println("  ✓ mur binary updated to latest")
 	return nil
