@@ -178,6 +178,192 @@ func TestEnsureTool(t *testing.T) {
 	}
 }
 
+func TestSavePreservesComments(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	oldHome := os.Getenv("HOME")
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", oldHome) }()
+
+	// Write a config file with comments (simulating mur init template)
+	configDir := filepath.Join(tmpDir, ".mur")
+	_ = os.MkdirAll(configDir, 0755)
+
+	commentedConfig := `# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 🔧 Murmur Configuration
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+schema_version: 2
+default_tool: claude # 💡 Change with: mur config default <tool>
+
+# ━━━ AI Tools ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+tools:
+  claude:
+    enabled: true
+    binary: claude
+    flags:
+      - "-p"
+    tier: paid # Requires API key or subscription
+    capabilities:
+      - coding
+      - analysis
+  gemini:
+    enabled: true
+    binary: gemini
+    flags:
+      - "-p"
+    tier: free # Free tier available
+    capabilities:
+      - coding
+      - simple-qa
+
+# ━━━ Learning ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+learning:
+  auto_extract: true
+  sync_to_tools: true
+  pattern_limit: 5
+  llm:
+    provider: ollama # 💡 Options: ollama | claude | openai | gemini
+    model: llama3.2:3b
+`
+	configPath := filepath.Join(configDir, "config.yaml")
+	_ = os.WriteFile(configPath, []byte(commentedConfig), 0644)
+
+	// Load + Save cycle (this is what destroys comments without the fix)
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if err := cfg.Save(); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	// Read back and check comments survived
+	result, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("ReadFile error = %v", err)
+	}
+	content := string(result)
+
+	// Section dividers must survive
+	wantComments := []string{
+		"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+		"🔧 Murmur Configuration",
+		"━━━ AI Tools",
+		"━━━ Learning",
+		"💡 Change with: mur config default <tool>",
+		"💡 Options: ollama | claude | openai | gemini",
+		"Requires API key or subscription",
+		"Free tier available",
+	}
+	for _, want := range wantComments {
+		if !strings.Contains(content, want) {
+			t.Errorf("comment not preserved: %q\n\nFull output:\n%s", want, content)
+		}
+	}
+
+	// Values must still be correct
+	cfg2, err := Load()
+	if err != nil {
+		t.Fatalf("Load() after Save() error = %v", err)
+	}
+	if cfg2.DefaultTool != "claude" {
+		t.Errorf("DefaultTool = %q, want %q", cfg2.DefaultTool, "claude")
+	}
+	if !cfg2.Learning.AutoExtract {
+		t.Error("Learning.AutoExtract should be true")
+	}
+}
+
+func TestSaveCreatesNewFile(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	oldHome := os.Getenv("HOME")
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", oldHome) }()
+
+	cfg := &Config{
+		DefaultTool: "gemini",
+		Tools: map[string]Tool{
+			"gemini": {Enabled: true, Binary: "gemini"},
+		},
+	}
+
+	if err := cfg.Save(); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	path, _ := ConfigPath()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("ReadFile error = %v", err)
+	}
+	content := string(data)
+
+	// Should have the header comment for new files
+	if !strings.Contains(content, "# Murmur Configuration") {
+		t.Error("new file missing header comment")
+	}
+
+	// Values should be correct
+	loaded, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if loaded.DefaultTool != "gemini" {
+		t.Errorf("DefaultTool = %q, want %q", loaded.DefaultTool, "gemini")
+	}
+}
+
+func TestSaveUpdatesValues(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	oldHome := os.Getenv("HOME")
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", oldHome) }()
+
+	// Write initial config with comments
+	configDir := filepath.Join(tmpDir, ".mur")
+	_ = os.MkdirAll(configDir, 0755)
+
+	initial := `# Header comment
+default_tool: claude # inline comment
+tools:
+  claude:
+    enabled: true
+    binary: claude
+`
+	configPath := filepath.Join(configDir, "config.yaml")
+	_ = os.WriteFile(configPath, []byte(initial), 0644)
+
+	// Load, change a value, save
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.DefaultTool = "gemini"
+	if err := cfg.Save(); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	// Check value changed and comments survived
+	result, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("ReadFile error = %v", err)
+	}
+	content := string(result)
+
+	if !strings.Contains(content, "default_tool: gemini") {
+		t.Errorf("value not updated, got:\n%s", content)
+	}
+	if !strings.Contains(content, "# Header comment") {
+		t.Errorf("header comment lost, got:\n%s", content)
+	}
+	if !strings.Contains(content, "inline comment") {
+		t.Errorf("inline comment lost, got:\n%s", content)
+	}
+}
+
 func TestMarshalDefaultConfigClean(t *testing.T) {
 	cfg := defaultConfig()
 

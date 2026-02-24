@@ -493,7 +493,7 @@ func (c *Config) applyDefaults() {
 	}
 }
 
-// Save writes config back to file.
+// Save writes config back to file, preserving any existing comments.
 func (c *Config) Save() error {
 	path, err := ConfigPath()
 	if err != nil {
@@ -506,20 +506,123 @@ func (c *Config) Save() error {
 		return fmt.Errorf("cannot create config directory: %w", err)
 	}
 
-	data, err := yaml.Marshal(c)
+	// Marshal current config into a yaml.Node tree
+	var freshDoc yaml.Node
+	freshBytes, err := yaml.Marshal(c)
 	if err != nil {
 		return fmt.Errorf("cannot serialize config: %w", err)
 	}
+	if err := yaml.Unmarshal(freshBytes, &freshDoc); err != nil {
+		return fmt.Errorf("cannot parse serialized config: %w", err)
+	}
 
-	// Add header comment
+	// Try to read existing file to preserve comments
+	existing, readErr := os.ReadFile(path)
+	if readErr == nil && len(existing) > 0 {
+		var existingDoc yaml.Node
+		if err := yaml.Unmarshal(existing, &existingDoc); err == nil {
+			// Merge fresh values into existing tree (preserving comments)
+			mergeNodes(&existingDoc, &freshDoc)
+			return writeNodeToFile(path, &existingDoc)
+		}
+	}
+
+	// No existing file or unparseable — write fresh with header comment
 	header := "# Murmur Configuration\n# https://github.com/mur-run/mur-core\n\n"
-	content := header + string(data)
-
+	content := header + string(freshBytes)
 	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
 		return fmt.Errorf("cannot write config: %w", err)
 	}
 
 	return nil
+}
+
+// writeNodeToFile encodes a yaml.Node document to a file.
+func writeNodeToFile(path string, doc *yaml.Node) error {
+	f, err := os.Create(path)
+	if err != nil {
+		return fmt.Errorf("cannot write config: %w", err)
+	}
+	defer f.Close()
+
+	enc := yaml.NewEncoder(f)
+	enc.SetIndent(2)
+	if err := enc.Encode(doc); err != nil {
+		return fmt.Errorf("cannot encode config: %w", err)
+	}
+	return enc.Close()
+}
+
+// mergeNodes recursively merges values from src into dst, preserving
+// dst's comments. Both must be document or mapping nodes.
+func mergeNodes(dst, src *yaml.Node) {
+	// Unwrap document nodes
+	if dst.Kind == yaml.DocumentNode && src.Kind == yaml.DocumentNode {
+		if len(dst.Content) > 0 && len(src.Content) > 0 {
+			mergeNodes(dst.Content[0], src.Content[0])
+		}
+		return
+	}
+
+	// Only merge mappings
+	if dst.Kind != yaml.MappingNode || src.Kind != yaml.MappingNode {
+		return
+	}
+
+	srcKeys := buildKeyIndex(src)
+
+	// Update existing keys in dst
+	for i := 0; i+1 < len(dst.Content); i += 2 {
+		keyNode := dst.Content[i]
+		valNode := dst.Content[i+1]
+
+		srcIdx, ok := srcKeys[keyNode.Value]
+		if !ok {
+			continue
+		}
+		srcVal := src.Content[srcIdx+1]
+
+		if valNode.Kind == yaml.MappingNode && srcVal.Kind == yaml.MappingNode {
+			// Recurse into nested mappings
+			mergeNodes(valNode, srcVal)
+		} else {
+			// Replace value but preserve comments on the value node
+			headComment := valNode.HeadComment
+			lineComment := valNode.LineComment
+			footComment := valNode.FootComment
+
+			*valNode = *srcVal
+
+			// Restore original comments if the new node has none
+			if valNode.HeadComment == "" {
+				valNode.HeadComment = headComment
+			}
+			if valNode.LineComment == "" {
+				valNode.LineComment = lineComment
+			}
+			if valNode.FootComment == "" {
+				valNode.FootComment = footComment
+			}
+		}
+	}
+
+	// Add keys present in src but missing from dst
+	dstKeys := buildKeyIndex(dst)
+	for i := 0; i+1 < len(src.Content); i += 2 {
+		srcKey := src.Content[i]
+		if _, exists := dstKeys[srcKey.Value]; !exists {
+			dst.Content = append(dst.Content, src.Content[i], src.Content[i+1])
+		}
+	}
+}
+
+// buildKeyIndex returns a map from key string to its index in a mapping node's Content slice.
+func buildKeyIndex(m *yaml.Node) map[string]int {
+	idx := make(map[string]int, len(m.Content)/2)
+	for i := 0; i+1 < len(m.Content); i += 2 {
+		idx[m.Content[i].Value] = i
+	}
+	return idx
 }
 
 // GetDefaultTool returns the default tool name.
