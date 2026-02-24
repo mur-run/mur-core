@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/mur-run/mur-core/internal/config"
+	"github.com/mur-run/mur-core/internal/hooks"
 )
 
 var updateCmd = &cobra.Command{
@@ -283,86 +283,24 @@ Patterns are automatically synced to all your AI CLIs.
 }
 
 func updateHookTemplates() error {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
+	// Delegate to the hooks package which has the complete, up-to-date
+	// installation logic (session recording, PostToolUse, slash commands, etc.)
+	results := hooks.InstallAllHooksWithOptions(hooks.HookOptions{})
 
-	murDir := filepath.Join(home, ".mur")
-	hooksDir := filepath.Join(murDir, "hooks")
-
-	// Create hooks directory
-	if err := os.MkdirAll(hooksDir, 0755); err != nil {
-		return err
-	}
-
-	// Update on-prompt-reminder.md
-	reminderContent := `[ContinuousLearning] If during this task you discover something non-obvious (a debugging technique, a workaround, a pattern), save it:
-
-  mur learn add --name "pattern-name" --content "description"
-
-Or create a file in ~/.mur/patterns/
-
-Only save if: it required discovery, it helps future tasks, and it's verified.
-`
-	reminderPath := filepath.Join(hooksDir, "on-prompt-reminder.md")
-	if err := os.WriteFile(reminderPath, []byte(reminderContent), 0644); err != nil {
-		return err
-	}
-
-	// Update on-stop.sh
-	stopScript := `#!/bin/bash
-# Sync patterns after session
-mur sync patterns --quiet 2>/dev/null || true
-`
-	stopPath := filepath.Join(hooksDir, "on-stop.sh")
-	if err := os.WriteFile(stopPath, []byte(stopScript), 0755); err != nil {
-		return err
-	}
-
-	// Re-install hooks to Claude settings
-	claudeSettingsPath := filepath.Join(home, ".claude", "settings.json")
-	if _, err := os.Stat(claudeSettingsPath); err == nil {
-		// Read existing settings
-		data, err := os.ReadFile(claudeSettingsPath)
+	var firstErr error
+	for tool, err := range results {
 		if err != nil {
-			return err
-		}
-
-		var settings map[string]interface{}
-		if err := json.Unmarshal(data, &settings); err != nil {
-			return err
-		}
-
-		// Update hook paths
-		hooks := map[string]interface{}{
-			"UserPromptSubmit": []map[string]interface{}{
-				{
-					"matcher": "",
-					"hooks": []map[string]interface{}{
-						{"type": "command", "command": fmt.Sprintf("cat %s >&2", reminderPath)},
-					},
-				},
-			},
-			"Stop": []map[string]interface{}{
-				{
-					"matcher": "",
-					"hooks": []map[string]interface{}{
-						{"type": "command", "command": fmt.Sprintf("bash %s", stopPath)},
-					},
-				},
-			},
-		}
-
-		settings["hooks"] = hooks
-
-		// Write back
-		newData, _ := json.MarshalIndent(settings, "", "  ")
-		if err := os.WriteFile(claudeSettingsPath, newData, 0644); err != nil {
-			return err
+			fmt.Printf("  ⚠ %s: %v\n", tool, err)
+			if firstErr == nil {
+				firstErr = err
+			}
 		}
 	}
 
-	fmt.Println("  ✓ Hook templates updated")
+	if firstErr != nil {
+		return fmt.Errorf("some hooks failed to update: %w", firstErr)
+	}
+
+	fmt.Println("  ✓ All hook templates updated")
 	return nil
 }
