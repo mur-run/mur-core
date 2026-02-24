@@ -28,14 +28,23 @@ When the user invokes this skill:
    ```bash
    mur workflows upload --file ~/.mur/last-session.json
    ```
-   - If the upload succeeds, capture the URL from stdout
-   - If the upload fails (no internet, API down), skip gracefully and continue
-6. Clean up by deleting `~/.mur/openclaw-session.json`
-7. Report results to the user:
+   - If the upload succeeds, capture the URL from stdout and save it as `workflow_url`
+   - If the upload fails (network error, timeout, API down), **do not treat this as a fatal error**. Instead:
+     - Show: "Upload skipped (offline/unavailable). Results saved locally."
+     - Set `workflow_url` to `"(local only)"`
+     - Continue with the remaining steps
+6. Save the session to history for future reference:
+   ```bash
+   echo '{"id":"<session_id>","start_time":"<start_time>","end_time":"<now in ISO 8601>","project":"<project>","goal":"<goal>","patterns_extracted":<count>,"workflow_url":"<url or (local only)>","tool":"openclaw"}' | mur sessions save
+   ```
+   Replace placeholders with actual values from the session state and extraction results.
+7. Clean up by deleting `~/.mur/openclaw-session.json`
+8. Report results to the user:
    - Session duration
    - Number of patterns extracted (parse from mur learn extract output)
    - Confirmation that patterns were synced to CLI tools
    - The project and goal from the session (if provided)
    - If upload succeeded, show the workflow URL: "Open Workflow: <url>"
+   - If upload was skipped, show: "Upload skipped (offline/unavailable). Results saved locally."
 
 If any command fails, report the error but continue with the remaining steps. Always clean up the state file.

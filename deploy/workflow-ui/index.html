@@ -39,6 +39,13 @@
     @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     .spinner { border: 3px solid rgba(255,255,255,0.1); border-top-color: #0ea5e9; border-radius: 50%; width: 32px; height: 32px; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
+    .confidence-slider { -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px; background: #374151; outline: none; }
+    .confidence-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #0ea5e9; cursor: pointer; }
+    .confidence-slider::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #0ea5e9; cursor: pointer; border: none; }
+    .editable-field { cursor: pointer; border-bottom: 1px dashed transparent; }
+    .editable-field:hover { border-bottom-color: #4b5563; }
+    .toast { position: fixed; bottom: 24px; right: 24px; z-index: 100; transition: all 0.3s ease; }
+    .toast.hidden { opacity: 0; transform: translateY(16px); pointer-events: none; }
   </style>
 </head>
 <body class="bg-gray-950 text-gray-100 min-h-screen">
@@ -60,6 +67,28 @@
       <a href="/" class="inline-block px-4 py-2 bg-mur-600 hover:bg-mur-700 rounded-lg text-sm font-medium transition-colors">
         Go Home
       </a>
+    </div>
+  </div>
+
+  <!-- Toast notification -->
+  <div id="toast" class="toast hidden">
+    <div class="bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 shadow-lg">
+      <p id="toast-message" class="text-sm text-gray-200"></p>
+    </div>
+  </div>
+
+  <!-- CLI Command Modal -->
+  <div id="cli-modal" class="hidden fixed inset-0 flex items-center justify-center bg-black/60 z-50">
+    <div class="bg-gray-900 border border-gray-700 rounded-xl p-6 max-w-lg w-full mx-4">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-semibold">Export to CLI</h3>
+        <button onclick="document.getElementById('cli-modal').classList.add('hidden')" class="text-gray-500 hover:text-gray-300">&times;</button>
+      </div>
+      <p class="text-sm text-gray-400 mb-3">Run this command to import patterns into mur:</p>
+      <div class="bg-gray-950 rounded-lg p-3 flex items-center gap-2">
+        <code id="cli-command" class="text-sm text-mur-400 flex-1 break-all"></code>
+        <button onclick="copyCliCommand()" class="shrink-0 px-2 py-1 text-xs bg-gray-800 hover:bg-gray-700 rounded text-gray-300 transition-colors">Copy</button>
+      </div>
     </div>
   </div>
 
@@ -171,8 +200,16 @@
         </div>
       </section>
 
-      <!-- Category Filter -->
-      <section id="filters" class="mb-6 fade-in">
+      <!-- Bulk Actions & Filters -->
+      <section id="actions" class="mb-6 fade-in">
+        <div class="flex flex-wrap items-center gap-2 mb-3">
+          <button onclick="selectAll()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-800 text-gray-400 hover:bg-gray-700 transition-colors">Select All</button>
+          <button onclick="deselectAll()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-800 text-gray-400 hover:bg-gray-700 transition-colors">Deselect All</button>
+          <button onclick="deleteSelected()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-900/50 text-red-400 hover:bg-red-900 transition-colors">Delete Selected</button>
+          <div class="flex-1"></div>
+          <button onclick="saveChanges()" class="px-4 py-1.5 text-xs font-medium rounded-lg bg-mur-600 text-white hover:bg-mur-700 transition-colors">Save Changes</button>
+          <button onclick="exportToCli()" class="px-4 py-1.5 text-xs font-medium rounded-lg bg-emerald-700 text-white hover:bg-emerald-800 transition-colors">Export to CLI</button>
+        </div>
         <div class="flex flex-wrap gap-2" id="category-filters"></div>
       </section>
 
@@ -183,12 +220,15 @@
 
   <script>
     const API_BASE = 'https://mur-workflow-api.mur-run.workers.dev';
+    let currentSessionKey = null;
+    let currentPatterns = [];
+    let currentSessionData = null;
 
     async function init() {
       const params = new URLSearchParams(window.location.search);
-      const sessionKey = params.get('s');
+      currentSessionKey = params.get('s');
 
-      if (!sessionKey) {
+      if (!currentSessionKey) {
         document.getElementById('landing').classList.remove('hidden');
         return;
       }
@@ -196,12 +236,13 @@
       document.getElementById('loading').classList.remove('hidden');
 
       try {
-        const resp = await fetch(`${API_BASE}/session/${encodeURIComponent(sessionKey)}`);
+        const resp = await fetch(`${API_BASE}/session/${encodeURIComponent(currentSessionKey)}`);
         if (!resp.ok) {
           const err = await resp.json().catch(() => ({}));
           throw new Error(err.error || `HTTP ${resp.status}`);
         }
         const data = await resp.json();
+        currentSessionData = data;
         renderSession(data);
       } catch (err) {
         document.getElementById('loading').classList.add('hidden');
@@ -216,6 +257,9 @@
       const session = data.session || data;
       const patterns = data.patterns || session.patterns || [];
       const meta = session.metadata || session;
+
+      // Store patterns with selection state
+      currentPatterns = patterns.map((p, i) => ({ ...p, _index: i, _selected: true }));
 
       // Header
       document.getElementById('header-project').textContent = meta.project || 'Unknown Project';
@@ -232,34 +276,40 @@
         ? new Date(meta.timestamp).toLocaleString()
         : 'N/A';
 
-      // Stats
-      const categories = new Set(patterns.map(p => p.category).filter(Boolean));
-      const domains = new Set(patterns.map(p => p.domain).filter(Boolean));
-      const avgConf = patterns.length > 0
-        ? Math.round(patterns.reduce((sum, p) => sum + (p.confidence || 0), 0) / patterns.length * 100)
-        : 0;
-
-      document.getElementById('stat-total').textContent = patterns.length;
-      document.getElementById('stat-categories').textContent = categories.size;
-      document.getElementById('stat-domains').textContent = domains.size;
-      document.getElementById('stat-confidence').textContent = avgConf + '%';
+      updateStats();
 
       // Category filters
+      const categories = new Set(currentPatterns.map(p => p.category).filter(Boolean));
       const filtersEl = document.getElementById('category-filters');
+      filtersEl.innerHTML = '';
       const allBtn = createFilterBtn('All', true);
-      allBtn.addEventListener('click', () => filterPatterns(patterns, null));
+      allBtn.addEventListener('click', () => filterPatterns(null));
       filtersEl.appendChild(allBtn);
 
       for (const cat of categories) {
         const btn = createFilterBtn(cat, false);
-        btn.addEventListener('click', () => filterPatterns(patterns, cat));
+        btn.addEventListener('click', () => filterPatterns(cat));
         filtersEl.appendChild(btn);
       }
 
       // Render patterns
-      filterPatterns(patterns, null);
+      filterPatterns(null);
 
       document.getElementById('session').classList.remove('hidden');
+    }
+
+    function updateStats() {
+      const active = currentPatterns;
+      const categories = new Set(active.map(p => p.category).filter(Boolean));
+      const domains = new Set(active.map(p => p.domain).filter(Boolean));
+      const avgConf = active.length > 0
+        ? Math.round(active.reduce((sum, p) => sum + (p.confidence || 0), 0) / active.length * 100)
+        : 0;
+
+      document.getElementById('stat-total').textContent = active.length;
+      document.getElementById('stat-categories').textContent = categories.size;
+      document.getElementById('stat-domains').textContent = domains.size;
+      document.getElementById('stat-confidence').textContent = avgConf + '%';
     }
 
     function createFilterBtn(label, active) {
@@ -272,7 +322,11 @@
       return btn;
     }
 
-    function filterPatterns(patterns, category) {
+    let currentFilter = null;
+
+    function filterPatterns(category) {
+      currentFilter = category;
+
       // Update active filter button
       document.querySelectorAll('.filter-btn').forEach(btn => {
         const isActive = category === null
@@ -284,8 +338,8 @@
       });
 
       const filtered = category
-        ? patterns.filter(p => p.category === category)
-        : patterns;
+        ? currentPatterns.filter(p => p.category === category)
+        : currentPatterns;
 
       const container = document.getElementById('patterns');
       container.innerHTML = '';
@@ -303,25 +357,30 @@
     function createPatternCard(pattern) {
       const card = document.createElement('div');
       card.className = 'pattern-card bg-gray-900 rounded-xl border border-gray-800 overflow-hidden';
+      card.dataset.index = pattern._index;
 
       const confidenceColor = (pattern.confidence || 0) >= 0.8 ? 'text-emerald-400'
         : (pattern.confidence || 0) >= 0.5 ? 'text-amber-400'
         : 'text-red-400';
 
       const header = document.createElement('div');
-      header.className = 'p-5 cursor-pointer flex items-start justify-between gap-4';
+      header.className = 'p-5 flex items-start justify-between gap-4';
       header.innerHTML = `
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2 mb-1.5">
+        <div class="flex items-center gap-3 shrink-0">
+          <input type="checkbox" ${pattern._selected ? 'checked' : ''} class="pattern-checkbox w-4 h-4 rounded bg-gray-800 border-gray-600 text-mur-500 focus:ring-mur-500 cursor-pointer" data-index="${pattern._index}">
+          <button class="delete-btn text-gray-600 hover:text-red-400 transition-colors text-lg leading-none" data-index="${pattern._index}" title="Delete pattern">&times;</button>
+        </div>
+        <div class="flex-1 min-w-0 cursor-pointer expand-trigger">
+          <div class="flex items-center gap-2 mb-1.5 flex-wrap">
             <h3 class="font-semibold truncate">${esc(pattern.name || 'Unnamed Pattern')}</h3>
-            ${pattern.category ? `<span class="px-2 py-0.5 text-[10px] font-medium rounded-full bg-gray-800 text-gray-400 uppercase tracking-wider shrink-0">${esc(pattern.category)}</span>` : ''}
-            ${pattern.domain ? `<span class="px-2 py-0.5 text-[10px] font-medium rounded-full bg-gray-800 text-mur-400 uppercase tracking-wider shrink-0">${esc(pattern.domain)}</span>` : ''}
+            <span class="editable-field px-2 py-0.5 text-[10px] font-medium rounded-full bg-gray-800 text-gray-400 uppercase tracking-wider shrink-0 category-tag" data-index="${pattern._index}" data-field="category" title="Click to edit category">${esc(pattern.category || 'uncategorized')}</span>
+            ${pattern.domain ? `<span class="editable-field px-2 py-0.5 text-[10px] font-medium rounded-full bg-gray-800 text-mur-400 uppercase tracking-wider shrink-0 domain-tag" data-index="${pattern._index}" data-field="domain" title="Click to edit domain">${esc(pattern.domain)}</span>` : ''}
           </div>
           <p class="text-sm text-gray-400 line-clamp-2">${esc(pattern.description || '')}</p>
         </div>
         <div class="shrink-0 text-right">
-          <span class="text-sm font-medium ${confidenceColor} mono">${Math.round((pattern.confidence || 0) * 100)}%</span>
-          <svg class="w-4 h-4 text-gray-600 mt-1 ml-auto transition-transform expand-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <span class="text-sm font-medium ${confidenceColor} mono confidence-display" data-index="${pattern._index}">${Math.round((pattern.confidence || 0) * 100)}%</span>
+          <svg class="w-4 h-4 text-gray-600 mt-1 ml-auto transition-transform expand-icon cursor-pointer expand-trigger" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
           </svg>
         </div>
@@ -330,6 +389,13 @@
       const detail = document.createElement('div');
       detail.className = 'hidden border-t border-gray-800 p-5 bg-gray-900/50';
       detail.innerHTML = `
+        <div class="mb-4">
+          <label class="text-xs text-gray-500 uppercase tracking-wider mb-2 block">Confidence</label>
+          <div class="flex items-center gap-3">
+            <input type="range" min="0" max="100" value="${Math.round((pattern.confidence || 0) * 100)}" class="confidence-slider flex-1" data-index="${pattern._index}">
+            <span class="text-xs mono text-gray-400 w-10 text-right confidence-value">${Math.round((pattern.confidence || 0) * 100)}%</span>
+          </div>
+        </div>
         <div class="prose prose-invert prose-sm max-w-none">
           <pre class="bg-gray-950 rounded-lg p-4 text-sm text-gray-300 whitespace-pre-wrap overflow-x-auto mono">${esc(pattern.content || pattern.description || 'No content available.')}</pre>
         </div>
@@ -338,16 +404,152 @@
           : ''}
       `;
 
-      header.addEventListener('click', () => {
-        const isOpen = !detail.classList.contains('hidden');
-        detail.classList.toggle('hidden');
-        const icon = header.querySelector('.expand-icon');
-        icon.style.transform = isOpen ? '' : 'rotate(180deg)';
+      // Expand/collapse on header click (but not checkbox/delete)
+      header.querySelectorAll('.expand-trigger').forEach(el => {
+        el.addEventListener('click', () => {
+          const isOpen = !detail.classList.contains('hidden');
+          detail.classList.toggle('hidden');
+          const icon = header.querySelector('.expand-icon');
+          icon.style.transform = isOpen ? '' : 'rotate(180deg)';
+        });
       });
+
+      // Checkbox handler
+      const checkbox = header.querySelector('.pattern-checkbox');
+      checkbox.addEventListener('change', (e) => {
+        e.stopPropagation();
+        const idx = parseInt(e.target.dataset.index);
+        currentPatterns[idx]._selected = e.target.checked;
+      });
+
+      // Delete button handler
+      const deleteBtn = header.querySelector('.delete-btn');
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = parseInt(e.target.dataset.index);
+        currentPatterns.splice(currentPatterns.findIndex(p => p._index === idx), 1);
+        updateStats();
+        filterPatterns(currentFilter);
+      });
+
+      // Editable category/domain tags
+      header.querySelectorAll('.editable-field').forEach(tag => {
+        tag.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const field = tag.dataset.field;
+          const idx = parseInt(tag.dataset.index);
+          const current = currentPatterns.find(p => p._index === idx);
+          if (!current) return;
+
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.value = current[field] || '';
+          input.className = 'px-2 py-0.5 text-[10px] font-medium rounded-full bg-gray-700 text-white uppercase tracking-wider outline-none border border-mur-500 w-24';
+          input.addEventListener('blur', () => {
+            current[field] = input.value.trim() || current[field];
+            tag.textContent = esc(current[field] || '');
+            tag.style.display = '';
+            input.remove();
+          });
+          input.addEventListener('keydown', (ev) => {
+            if (ev.key === 'Enter') input.blur();
+            if (ev.key === 'Escape') { input.value = current[field] || ''; input.blur(); }
+          });
+          tag.style.display = 'none';
+          tag.parentNode.insertBefore(input, tag.nextSibling);
+          input.focus();
+          input.select();
+        });
+      });
+
+      // Confidence slider handler
+      const slider = detail.querySelector('.confidence-slider');
+      const confValue = detail.querySelector('.confidence-value');
+      const confDisplay = header.querySelector('.confidence-display');
+      if (slider) {
+        slider.addEventListener('input', (e) => {
+          const val = parseInt(e.target.value);
+          const idx = parseInt(e.target.dataset.index);
+          const p = currentPatterns.find(pt => pt._index === idx);
+          if (p) p.confidence = val / 100;
+          confValue.textContent = val + '%';
+          confDisplay.textContent = val + '%';
+          const color = val >= 80 ? 'text-emerald-400' : val >= 50 ? 'text-amber-400' : 'text-red-400';
+          confDisplay.className = `text-sm font-medium ${color} mono confidence-display`;
+        });
+      }
 
       card.appendChild(header);
       card.appendChild(detail);
       return card;
+    }
+
+    // Bulk actions
+    function selectAll() {
+      currentPatterns.forEach(p => p._selected = true);
+      document.querySelectorAll('.pattern-checkbox').forEach(cb => cb.checked = true);
+    }
+
+    function deselectAll() {
+      currentPatterns.forEach(p => p._selected = false);
+      document.querySelectorAll('.pattern-checkbox').forEach(cb => cb.checked = false);
+    }
+
+    function deleteSelected() {
+      const toRemove = currentPatterns.filter(p => p._selected);
+      if (toRemove.length === 0) { showToast('No patterns selected.'); return; }
+      if (!confirm(`Delete ${toRemove.length} selected pattern(s)?`)) return;
+      currentPatterns = currentPatterns.filter(p => !p._selected);
+      updateStats();
+      filterPatterns(currentFilter);
+      showToast(`Deleted ${toRemove.length} pattern(s).`);
+    }
+
+    // Save changes to API
+    async function saveChanges() {
+      if (!currentSessionKey) return;
+
+      const patterns = currentPatterns.map(p => {
+        const { _index, _selected, ...rest } = p;
+        return rest;
+      });
+
+      try {
+        const resp = await fetch(`${API_BASE}/session/${encodeURIComponent(currentSessionKey)}/update`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ patterns }),
+        });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.error || `HTTP ${resp.status}`);
+        }
+        showToast('Changes saved successfully.');
+      } catch (err) {
+        showToast('Save failed: ' + err.message);
+      }
+    }
+
+    // Export to CLI
+    function exportToCli() {
+      if (!currentSessionKey) return;
+      const url = `${API_BASE}/session/${encodeURIComponent(currentSessionKey)}/export`;
+      const cmd = `mur learn import ${url}`;
+      document.getElementById('cli-command').textContent = cmd;
+      document.getElementById('cli-modal').classList.remove('hidden');
+    }
+
+    function copyCliCommand() {
+      const cmd = document.getElementById('cli-command').textContent;
+      navigator.clipboard.writeText(cmd).then(() => showToast('Copied to clipboard.'));
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-message').textContent = message;
+      toast.classList.remove('hidden');
+      clearTimeout(toast._timeout);
+      toast._timeout = setTimeout(() => toast.classList.add('hidden'), 3000);
     }
 
     function esc(str) {

@@ -33,3 +33,20 @@ When the user invokes this skill:
    - Remind them to run `/mur-out` when they're done to extract patterns
 
 If a session is already active (the state file exists), warn the user and ask if they want to start a new session (overwriting the old one).
+
+## Auto-trigger (recommended)
+
+This skill can be triggered automatically by the OpenClaw agent. When the agent detects the user is starting a new development task (e.g., "lets build X", "fix the bug in Y", "implement feature Z"), the agent should proactively start a mur session without being asked.
+
+**Trigger signals:**
+- User describes a new task, feature, or bug fix
+- User switches to a different project
+- User says "lets start working on..." or similar
+- A significant time gap since last activity (>2 hours)
+
+**Do NOT auto-trigger when:**
+- A session is already active (check ~/.mur/openclaw-session.json)
+- User is just asking questions or chatting
+- User is doing quick one-off tasks
+
+When auto-triggering, briefly inform the user: "Started mur session recording for this task."
