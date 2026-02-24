@@ -69,7 +69,12 @@ func saveHistory(records []SessionRecord) error {
 		return fmt.Errorf("marshal history: %w", err)
 	}
 
-	return os.WriteFile(path, data, 0644)
+	// Atomic write: temp file → rename
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, data, 0644); err != nil {
+		return fmt.Errorf("write temp file: %w", err)
+	}
+	return os.Rename(tmp, path)
 }
 
 // SaveSession saves a session record to ~/.mur/sessions/history.json.

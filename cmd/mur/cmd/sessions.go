@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -98,36 +99,68 @@ Examples:
 var sessionsSaveCmd = &cobra.Command{
 	Use:   "save",
 	Short: "Save a session record",
-	Long: `Save a session record to history. Reads JSON from stdin or --json flag.
+	Long: `Save a session record to history.
 
-The JSON should contain: id, start_time, end_time, project, goal,
-patterns_extracted, workflow_url (optional), tool.
+Input via flags (--id required) or JSON (stdin / --json).
 
 Examples:
-  echo '{"id":"abc","start_time":"2024-01-01T10:00:00Z","end_time":"2024-01-01T11:00:00Z","project":"myapp","goal":"fix bug","patterns_extracted":5,"tool":"openclaw"}' | mur sessions save
+  mur sessions save --id abc --project myapp --goal "fix bug" --patterns 5 --tool claude
+  echo '{"id":"abc",...}' | mur sessions save
   mur sessions save --json '{"id":"abc",...}'`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		jsonStr, _ := cmd.Flags().GetString("json")
-
-		var data []byte
-		var err error
-
-		if jsonStr != "" {
-			data = []byte(jsonStr)
-		} else {
-			data, err = io.ReadAll(os.Stdin)
-			if err != nil {
-				return fmt.Errorf("read stdin: %w", err)
-			}
-		}
-
-		if len(data) == 0 {
-			return fmt.Errorf("no data provided; pipe JSON to stdin or use --json")
-		}
+		idFlag, _ := cmd.Flags().GetString("id")
 
 		var record sessions.SessionRecord
-		if err := json.Unmarshal(data, &record); err != nil {
-			return fmt.Errorf("parse session record: %w", err)
+
+		if idFlag != "" {
+			// Build record from flags
+			record.ID = idFlag
+			record.Project, _ = cmd.Flags().GetString("project")
+			record.Goal, _ = cmd.Flags().GetString("goal")
+			record.Patterns, _ = cmd.Flags().GetInt("patterns")
+			record.Tool, _ = cmd.Flags().GetString("tool")
+			record.URL, _ = cmd.Flags().GetString("url")
+
+			startStr, _ := cmd.Flags().GetString("start-time")
+			endStr, _ := cmd.Flags().GetString("end-time")
+
+			if startStr != "" {
+				t, err := time.Parse(time.RFC3339, startStr)
+				if err != nil {
+					return fmt.Errorf("parse start-time: %w", err)
+				}
+				record.StartTime = t
+			}
+			if endStr != "" {
+				t, err := time.Parse(time.RFC3339, endStr)
+				if err != nil {
+					return fmt.Errorf("parse end-time: %w", err)
+				}
+				record.EndTime = t
+			}
+		} else {
+			// Existing JSON input path
+			jsonStr, _ := cmd.Flags().GetString("json")
+
+			var data []byte
+			var err error
+
+			if jsonStr != "" {
+				data = []byte(jsonStr)
+			} else {
+				data, err = io.ReadAll(os.Stdin)
+				if err != nil {
+					return fmt.Errorf("read stdin: %w", err)
+				}
+			}
+
+			if len(data) == 0 {
+				return fmt.Errorf("no data provided; use --id with flags, pipe JSON to stdin, or use --json")
+			}
+
+			if err := json.Unmarshal(data, &record); err != nil {
+				return fmt.Errorf("parse session record: %w", err)
+			}
 		}
 
 		if record.ID == "" {
@@ -152,4 +185,12 @@ func init() {
 
 	sessionsCmd.AddCommand(sessionsSaveCmd)
 	sessionsSaveCmd.Flags().String("json", "", "JSON session record (reads from stdin if omitted)")
+	sessionsSaveCmd.Flags().String("id", "", "Session ID (triggers flag-based input)")
+	sessionsSaveCmd.Flags().String("project", "", "Project name")
+	sessionsSaveCmd.Flags().String("goal", "", "Session goal")
+	sessionsSaveCmd.Flags().Int("patterns", 0, "Number of patterns extracted")
+	sessionsSaveCmd.Flags().String("tool", "", "Tool used (e.g. claude, gemini)")
+	sessionsSaveCmd.Flags().String("start-time", "", "Start time (RFC3339)")
+	sessionsSaveCmd.Flags().String("end-time", "", "End time (RFC3339)")
+	sessionsSaveCmd.Flags().String("url", "", "Workflow URL")
 }

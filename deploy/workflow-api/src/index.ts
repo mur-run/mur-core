@@ -16,6 +16,8 @@ const RATE_LIMIT_MAX = 10;
 const SESSION_TTL = 24 * 60 * 60; // 24 hours in seconds
 
 // Simple in-memory rate limiter (resets on worker restart, fine for this use case)
+// TODO: In-memory rate limiting resets on worker restart.
+// For higher traffic, consider Cloudflare Durable Objects or KV-based rate limiting.
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 
 function checkRateLimit(ip: string): boolean {
