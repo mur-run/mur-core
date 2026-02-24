@@ -5,8 +5,6 @@ compatibility_date = "2024-12-01"
 [vars]
 CORS_ORIGIN = "https://workflow.mur.run"
 
-# Set API token: npx wrangler secret put MUR_API_TOKEN
-
 [[r2_buckets]]
 binding = "MUR_SESSIONS"
 bucket_name = "mur-sessions"

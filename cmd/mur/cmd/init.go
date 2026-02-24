@@ -15,7 +15,6 @@ import (
 	"github.com/mur-run/mur-core/internal/sysinfo"
 
 	"github.com/mur-run/mur-core/internal/config"
-	"github.com/mur-run/mur-core/internal/envfile"
 	murhooks "github.com/mur-run/mur-core/internal/hooks"
 	"github.com/mur-run/mur-core/internal/sync"
 )
@@ -181,11 +180,6 @@ func runInteractiveInit(home, murDir string) error {
 		return err
 	}
 	fmt.Println("✓ Created config.yaml")
-
-	// Generate workflow API token if OpenClaw is selected
-	if contains(selectedCLIs, "OpenClaw") {
-		ensureWorkflowAPIToken()
-	}
 
 	// Install hooks if requested
 	if installHooks {
@@ -1271,29 +1265,6 @@ func askCommunitySharing() {
 		fmt.Println("✓ Community sharing disabled.")
 		fmt.Println("  Enable anytime: mur config set community.share_enabled true")
 	}
-	fmt.Println()
-}
-
-// ensureWorkflowAPIToken checks for MUR_WORKFLOW_API_TOKEN in ~/.mur/.env
-// and generates one if missing.
-func ensureWorkflowAPIToken() {
-	existing := envfile.Get("MUR_WORKFLOW_API_TOKEN")
-	if existing != "" {
-		fmt.Println("✓ Workflow API token already configured")
-		return
-	}
-
-	token := envfile.GenerateToken()
-	if err := envfile.Set("MUR_WORKFLOW_API_TOKEN", token); err != nil {
-		fmt.Printf("  ⚠ Failed to save API token: %v\n", err)
-		return
-	}
-
-	fmt.Println("✓ Generated workflow API token")
-	fmt.Printf("  Token: %s\n", token)
-	fmt.Println()
-	fmt.Println("  Set this as a Cloudflare Worker secret:")
-	fmt.Println("  npx wrangler secret put MUR_API_TOKEN")
 	fmt.Println()
 }
 

@@ -1,7 +1,13 @@
+// Security model: "URL as secret" (like GitHub secret gists)
+// - Session keys are cryptographically random UUIDs
+// - Knowing the key is required to access the data
+// - Sessions expire after 24 hours
+// - Rate limiting prevents abuse (10 req/min per IP)
+// - Max upload size: 5MB
+
 interface Env {
 	MUR_SESSIONS: R2Bucket;
 	CORS_ORIGIN: string;
-	MUR_API_TOKEN?: string; // Optional: set via wrangler secret put
 }
 
 const MAX_BODY_SIZE = 5 * 1024 * 1024; // 5MB
@@ -33,7 +39,7 @@ function corsHeaders(origin: string): Record<string, string> {
 	return {
 		"Access-Control-Allow-Origin": origin,
 		"Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-		"Access-Control-Allow-Headers": "Content-Type, Authorization",
+		"Access-Control-Allow-Headers": "Content-Type",
 		"Access-Control-Max-Age": "86400",
 	};
 }
@@ -64,25 +70,6 @@ function generateKey(): string {
 		.join("-");
 }
 
-function checkAuth(request: Request, env: Env, corsOrigin: string): Response | null {
-	// If no secret is configured, allow unauthenticated uploads (graceful degradation)
-	if (!env.MUR_API_TOKEN) {
-		return null;
-	}
-
-	const authHeader = request.headers.get("Authorization");
-	if (!authHeader) {
-		return jsonResponse({ error: "authentication required" }, 401, corsOrigin);
-	}
-
-	const parts = authHeader.split(" ");
-	if (parts.length !== 2 || parts[0] !== "Bearer" || parts[1] !== env.MUR_API_TOKEN) {
-		return jsonResponse({ error: "invalid token" }, 401, corsOrigin);
-	}
-
-	return null; // auth passed
-}
-
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
 		const url = new URL(request.url);
@@ -109,8 +96,6 @@ export default {
 
 		// Route: POST /upload
 		if (url.pathname === "/upload" && request.method === "POST") {
-			const authError = checkAuth(request, env, corsOrigin);
-			if (authError) return authError;
 			return handleUpload(request, env, corsOrigin);
 		}
 

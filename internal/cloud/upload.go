@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"time"
 )
 
@@ -49,13 +48,6 @@ func UploadSessionData(apiURL string, data []byte) (string, error) {
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Content-Encoding", "gzip")
-
-	// Include API token if available (loaded from ~/.mur/.env)
-	if token := os.Getenv("MUR_WORKFLOW_API_TOKEN"); token != "" {
-		req.Header.Set("Authorization", "Bearer "+token)
-	} else {
-		fmt.Fprintln(os.Stderr, "Warning: MUR_WORKFLOW_API_TOKEN not set. Upload may be rejected if server requires auth.")
-	}
 
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
