@@ -99,6 +99,27 @@ export default {
 			return handleUpload(request, env, corsOrigin);
 		}
 
+		// Route: POST /session/:key/update
+		const updateMatch = url.pathname.match(
+			/^\/session\/([a-z0-9-]+)\/update$/
+		);
+		if (updateMatch && request.method === "POST") {
+			return handleUpdateSession(
+				updateMatch[1],
+				request,
+				env,
+				corsOrigin
+			);
+		}
+
+		// Route: GET /session/:key/export
+		const exportMatch = url.pathname.match(
+			/^\/session\/([a-z0-9-]+)\/export$/
+		);
+		if (exportMatch && request.method === "GET") {
+			return handleExportSession(exportMatch[1], env, corsOrigin);
+		}
+
 		// Route: GET /session/:key
 		const sessionMatch = url.pathname.match(/^\/session\/([a-z0-9-]+)$/);
 		if (sessionMatch && request.method === "GET") {
@@ -199,4 +220,160 @@ async function handleGetSession(
 			...corsHeaders(corsOrigin),
 		},
 	});
+}
+
+async function readSessionJson(
+	key: string,
+	env: Env
+): Promise<{
+	json: Record<string, unknown>;
+	customMetadata: Record<string, string>;
+} | null> {
+	const object = await env.MUR_SESSIONS.get(key);
+	if (!object) return null;
+
+	const expiresAt = object.customMetadata?.expires_at;
+	if (expiresAt && new Date(expiresAt) < new Date()) {
+		await env.MUR_SESSIONS.delete(key);
+		return null;
+	}
+
+	const raw = await object.arrayBuffer();
+	let text: string;
+
+	// Data may be gzip-compressed — try decompressing, fall back to raw
+	try {
+		const ds = new DecompressionStream("gzip");
+		const stream = new Blob([raw]).stream().pipeThrough(ds);
+		const decompressed = await new Response(stream).arrayBuffer();
+		text = new TextDecoder().decode(decompressed);
+	} catch {
+		text = new TextDecoder().decode(raw);
+	}
+
+	return {
+		json: JSON.parse(text),
+		customMetadata: object.customMetadata || {},
+	};
+}
+
+async function compressJson(data: unknown): Promise<ArrayBuffer> {
+	const jsonBytes = new TextEncoder().encode(JSON.stringify(data));
+	const cs = new CompressionStream("gzip");
+	const stream = new Blob([jsonBytes]).stream().pipeThrough(cs);
+	return new Response(stream).arrayBuffer();
+}
+
+async function handleUpdateSession(
+	key: string,
+	request: Request,
+	env: Env,
+	corsOrigin: string
+): Promise<Response> {
+	const contentLength = request.headers.get("Content-Length");
+	if (contentLength && parseInt(contentLength) > MAX_BODY_SIZE) {
+		return jsonResponse(
+			{ error: "body too large, max 5MB" },
+			413,
+			corsOrigin
+		);
+	}
+
+	const session = await readSessionJson(key, env);
+	if (!session) {
+		return jsonResponse(
+			{ error: "session not found or expired" },
+			404,
+			corsOrigin
+		);
+	}
+
+	let body: { patterns?: unknown[] };
+	try {
+		body = (await request.json()) as { patterns?: unknown[] };
+	} catch {
+		return jsonResponse(
+			{ error: "invalid JSON body" },
+			400,
+			corsOrigin
+		);
+	}
+
+	if (!body.patterns || !Array.isArray(body.patterns)) {
+		return jsonResponse(
+			{ error: "invalid body: patterns array required" },
+			400,
+			corsOrigin
+		);
+	}
+
+	// Merge updated patterns into existing session data
+	const updated = { ...session.json } as Record<string, unknown>;
+	if (
+		updated.session &&
+		typeof updated.session === "object" &&
+		(updated.session as Record<string, unknown>).patterns
+	) {
+		(updated.session as Record<string, unknown>).patterns =
+			body.patterns;
+	} else {
+		updated.patterns = body.patterns;
+	}
+
+	const compressed = await compressJson(updated);
+
+	await env.MUR_SESSIONS.put(key, compressed, {
+		httpMetadata: {
+			contentType: "application/json",
+			contentEncoding: "gzip",
+		},
+		customMetadata: {
+			...session.customMetadata,
+			updated_at: new Date().toISOString(),
+		},
+	});
+
+	return jsonResponse(
+		{ ok: true, updated: body.patterns.length },
+		200,
+		corsOrigin
+	);
+}
+
+async function handleExportSession(
+	key: string,
+	env: Env,
+	corsOrigin: string
+): Promise<Response> {
+	const session = await readSessionJson(key, env);
+	if (!session) {
+		return jsonResponse(
+			{ error: "session not found or expired" },
+			404,
+			corsOrigin
+		);
+	}
+
+	const data = session.json as Record<string, unknown>;
+	const rawPatterns =
+		(data.patterns as unknown[]) ||
+		((data.session as Record<string, unknown>)
+			?.patterns as unknown[]) ||
+		[];
+
+	// Return mur-compatible format: clean JSON array
+	const exported = rawPatterns.map((p: unknown) => {
+		const pat = p as Record<string, unknown>;
+		return {
+			name: pat.name || "",
+			category: pat.category || "uncategorized",
+			domain: pat.domain || "",
+			description: pat.description || "",
+			content: pat.content || pat.description || "",
+			confidence: pat.confidence || 0,
+			tags: pat.tags || [],
+		};
+	});
+
+	return jsonResponse(exported, 200, corsOrigin);
 }

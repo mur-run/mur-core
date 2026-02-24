@@ -89,6 +89,9 @@
         <code id="cli-command" class="text-sm text-mur-400 flex-1 break-all"></code>
         <button onclick="copyCliCommand()" class="shrink-0 px-2 py-1 text-xs bg-gray-800 hover:bg-gray-700 rounded text-gray-300 transition-colors">Copy</button>
       </div>
+      <div class="mt-3 flex justify-end">
+        <button onclick="downloadExport()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-700 text-white hover:bg-emerald-800 transition-colors">Download JSON</button>
+      </div>
     </div>
   </div>
 
@@ -399,9 +402,17 @@
         <div class="prose prose-invert prose-sm max-w-none">
           <pre class="bg-gray-950 rounded-lg p-4 text-sm text-gray-300 whitespace-pre-wrap overflow-x-auto mono">${esc(pattern.content || pattern.description || 'No content available.')}</pre>
         </div>
-        ${pattern.tags && pattern.tags.length > 0
-          ? `<div class="flex flex-wrap gap-1.5 mt-4">${pattern.tags.map(t => `<span class="px-2 py-0.5 text-[10px] rounded bg-gray-800 text-gray-500">${esc(t)}</span>`).join('')}</div>`
-          : ''}
+        <div class="mt-4">
+          <div class="flex items-center gap-2 mb-1.5">
+            <label class="text-xs text-gray-500 uppercase tracking-wider">Tags</label>
+            <button class="edit-tags-btn text-[10px] text-mur-500 hover:text-mur-400" data-index="${pattern._index}">edit</button>
+          </div>
+          <div class="tags-display flex flex-wrap gap-1.5" data-index="${pattern._index}">
+            ${(pattern.tags || []).length > 0
+              ? (pattern.tags || []).map(t => `<span class="px-2 py-0.5 text-[10px] rounded bg-gray-800 text-gray-500">${esc(t)}</span>`).join('')
+              : '<span class="text-[10px] text-gray-600 italic">No tags</span>'}
+          </div>
+        </div>
       `;
 
       // Expand/collapse on header click (but not checkbox/delete)
@@ -479,6 +490,39 @@
         });
       }
 
+      // Editable tags handler
+      const editTagsBtn = detail.querySelector('.edit-tags-btn');
+      if (editTagsBtn) {
+        editTagsBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const idx = parseInt(e.target.dataset.index);
+          const p = currentPatterns.find(pt => pt._index === idx);
+          if (!p) return;
+          const tagsDisplay = detail.querySelector('.tags-display');
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.value = (p.tags || []).join(', ');
+          input.className = 'w-full px-3 py-1.5 text-xs bg-gray-800 border border-mur-500 rounded-lg text-gray-200 outline-none';
+          input.placeholder = 'Comma-separated tags';
+          const finishEdit = () => {
+            p.tags = input.value.split(',').map(t => t.trim()).filter(Boolean);
+            tagsDisplay.innerHTML = p.tags.length > 0
+              ? p.tags.map(t => `<span class="px-2 py-0.5 text-[10px] rounded bg-gray-800 text-gray-500">${esc(t)}</span>`).join('')
+              : '<span class="text-[10px] text-gray-600 italic">No tags</span>';
+            tagsDisplay.style.display = '';
+            input.remove();
+          };
+          input.addEventListener('blur', finishEdit);
+          input.addEventListener('keydown', (ev) => {
+            if (ev.key === 'Enter') input.blur();
+            if (ev.key === 'Escape') { input.value = (p.tags || []).join(', '); input.blur(); }
+          });
+          tagsDisplay.style.display = 'none';
+          tagsDisplay.parentNode.insertBefore(input, tagsDisplay.nextSibling);
+          input.focus();
+        });
+      }
+
       card.appendChild(header);
       card.appendChild(detail);
       return card;
@@ -542,6 +586,28 @@
     function copyCliCommand() {
       const cmd = document.getElementById('cli-command').textContent;
       navigator.clipboard.writeText(cmd).then(() => showToast('Copied to clipboard.'));
+    }
+
+    async function downloadExport() {
+      if (!currentSessionKey) return;
+      try {
+        const url = `${API_BASE}/session/${encodeURIComponent(currentSessionKey)}/export`;
+        const resp = await fetch(url);
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.error || `HTTP ${resp.status}`);
+        }
+        const data = await resp.json();
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `mur-patterns-${currentSessionKey}.json`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        showToast('Downloaded patterns JSON.');
+      } catch (err) {
+        showToast('Download failed: ' + err.message);
+      }
     }
 
     function showToast(message) {
