@@ -40,6 +40,10 @@ func (s *Server) setupRoutes() {
 	s.mux.HandleFunc("/api/health", s.handleHealth)
 	s.mux.HandleFunc("/api/sync", s.handleSync)
 
+	// Workflow API routes
+	s.mux.HandleFunc("/api/workflows", s.handleWorkflows)
+	s.mux.HandleFunc("/api/workflows/", s.handleWorkflowByID)
+
 	// Static files (embedded HTML)
 	s.mux.HandleFunc("/", s.handleIndex)
 }
