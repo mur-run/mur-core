@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/mur-run/mur-core/internal/workflow"
@@ -178,6 +179,12 @@ func (s *Server) handleWorkflowExport(w http.ResponseWriter, r *http.Request, id
 		format = "yaml"
 	}
 
+	// Sanitize filename
+	safeName := sanitizeFilename(wf.Name)
+	if safeName == "" {
+		safeName = "workflow"
+	}
+
 	switch format {
 	case "yaml":
 		data, err := yaml.Marshal(wf)
@@ -186,7 +193,7 @@ func (s *Server) handleWorkflowExport(w http.ResponseWriter, r *http.Request, id
 			return
 		}
 		w.Header().Set("Content-Type", "application/x-yaml")
-		w.Header().Set("Content-Disposition", "attachment; filename="+wf.Name+".yaml")
+		w.Header().Set("Content-Disposition", `attachment; filename="`+safeName+`.yaml"`)
 		w.Write(data)
 
 	case "json":
@@ -196,10 +203,16 @@ func (s *Server) handleWorkflowExport(w http.ResponseWriter, r *http.Request, id
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Content-Disposition", "attachment; filename="+wf.Name+".json")
+		w.Header().Set("Content-Disposition", `attachment; filename="`+safeName+`.json"`)
 		w.Write(data)
 
 	default:
 		writeJSON(w, http.StatusBadRequest, APIResponse{Error: "unsupported format: " + format + " (use yaml or json)"})
 	}
+}
+
+var unsafeFilenameChars = regexp.MustCompile(`[^a-zA-Z0-9._-]`)
+
+func sanitizeFilename(name string) string {
+	return unsafeFilenameChars.ReplaceAllString(name, "_")
 }

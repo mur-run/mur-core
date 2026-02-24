@@ -436,8 +436,26 @@ Requires Pro plan or higher. Uses the same auth as 'mur cloud login'.`,
 			return fmt.Errorf("no team configured. Run 'mur cloud login' first")
 		}
 
-		// Build changes from local workflows
-		changes, err := workflow.BuildChangesFromLocal()
+		// Pull first
+		fmt.Fprintf(os.Stderr, "Checking for server updates...\n")
+		pullResp, err := client.WorkflowPull(teamID, 0)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "  Pull skipped: %v\n", err)
+		} else if len(pullResp.Workflows) > 0 {
+			fmt.Fprintf(os.Stderr, "  Pulled %d workflow(s) from server\n", len(pullResp.Workflows))
+			// TODO: apply pulled workflows to local store
+		}
+
+		// Build known IDs from pull response
+		knownIDs := map[string]bool{}
+		if pullResp != nil {
+			for _, w := range pullResp.Workflows {
+				knownIDs[w.ID] = true
+			}
+		}
+
+		// Push local changes
+		changes, err := workflow.BuildChangesFromLocal(knownIDs)
 		if err != nil {
 			return fmt.Errorf("build sync changes: %w", err)
 		}

@@ -23,16 +23,25 @@ func MergeWorkflows(ids []string, name string) (*Workflow, error) {
 
 	var allSteps []session.Step
 	varMap := make(map[string]session.Variable)
+	varOrder := []string{} // track insertion order for deterministic output
 	toolSet := make(map[string]bool)
+	toolOrder := []string{}
 	tagSet := make(map[string]bool)
+	tagOrder := []string{}
 	var descriptions []string
 	var sources []SourceRef
+	var firstTrigger string
 
 	stepOrder := 1
 	for _, id := range ids {
 		wf, _, err := Get(id)
 		if err != nil {
 			return nil, fmt.Errorf("get workflow %s: %w", id, err)
+		}
+
+		// Capture first workflow's trigger
+		if firstTrigger == "" && wf.Trigger != "" {
+			firstTrigger = wf.Trigger
 		}
 
 		// Collect descriptions
@@ -47,21 +56,28 @@ func MergeWorkflows(ids []string, name string) (*Workflow, error) {
 			allSteps = append(allSteps, step)
 		}
 
-		// Deduplicate variables by name (first wins)
+		// Deduplicate variables by name (first wins), deterministic order
 		for _, v := range wf.Variables {
 			if _, exists := varMap[v.Name]; !exists {
 				varMap[v.Name] = v
+				varOrder = append(varOrder, v.Name)
 			}
 		}
 
-		// Union tools
+		// Union tools, deterministic order
 		for _, t := range wf.Tools {
-			toolSet[t] = true
+			if !toolSet[t] {
+				toolSet[t] = true
+				toolOrder = append(toolOrder, t)
+			}
 		}
 
-		// Union tags
+		// Union tags, deterministic order
 		for _, t := range wf.Tags {
-			tagSet[t] = true
+			if !tagSet[t] {
+				tagSet[t] = true
+				tagOrder = append(tagOrder, t)
+			}
 		}
 
 		// Track source sessions
@@ -73,26 +89,18 @@ func MergeWorkflows(ids []string, name string) (*Workflow, error) {
 
 	merged.Steps = allSteps
 	merged.SourceSessions = sources
+	merged.Trigger = firstTrigger
 
-	// Convert maps to slices
-	for _, v := range varMap {
-		merged.Variables = append(merged.Variables, v)
+	// Convert maps to slices in deterministic order
+	for _, name := range varOrder {
+		merged.Variables = append(merged.Variables, varMap[name])
 	}
-	for t := range toolSet {
-		merged.Tools = append(merged.Tools, t)
-	}
-	for t := range tagSet {
-		merged.Tags = append(merged.Tags, t)
-	}
+	merged.Tools = toolOrder
+	merged.Tags = tagOrder
 
 	// Build description
 	if len(descriptions) > 0 {
 		merged.Description = fmt.Sprintf("Merged from %d workflows", len(ids))
-	}
-
-	// Use first workflow's trigger if available
-	if first, _, err := Get(ids[0]); err == nil && first.Trigger != "" {
-		merged.Trigger = first.Trigger
 	}
 
 	// Set name

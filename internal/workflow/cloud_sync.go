@@ -2,6 +2,8 @@ package workflow
 
 import (
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
 // WorkflowSyncPayload is the wire format for syncing workflows to/from the cloud.
@@ -63,6 +65,8 @@ type WorkflowSyncStatus struct {
 
 // BuildSyncPayload converts a local Workflow + Metadata into a sync payload.
 func BuildSyncPayload(wf *Workflow, meta *Metadata) *WorkflowSyncPayload {
+	data, _ := yaml.Marshal(wf) // best-effort; nil on error
+
 	return &WorkflowSyncPayload{
 		ID:           wf.ID,
 		Name:         wf.Name,
@@ -74,14 +78,20 @@ func BuildSyncPayload(wf *Workflow, meta *Metadata) *WorkflowSyncPayload {
 		PublishedVer: meta.PublishedVersion,
 		CreatedAt:    meta.CreatedAt,
 		UpdatedAt:    meta.UpdatedAt,
+		WorkflowData: data,
 	}
 }
 
 // BuildChangesFromLocal scans all local workflows and builds sync changes.
-func BuildChangesFromLocal() ([]WorkflowSyncChange, error) {
+// knownIDs is the set of workflow IDs already on the server; if nil, all are treated as "create".
+func BuildChangesFromLocal(knownIDs map[string]bool) ([]WorkflowSyncChange, error) {
 	entries, err := List()
 	if err != nil {
 		return nil, err
+	}
+
+	if knownIDs == nil {
+		knownIDs = map[string]bool{}
 	}
 
 	var changes []WorkflowSyncChange
@@ -91,8 +101,14 @@ func BuildChangesFromLocal() ([]WorkflowSyncChange, error) {
 			continue
 		}
 		payload := BuildSyncPayload(wf, meta)
+
+		action := "create"
+		if knownIDs[wf.ID] {
+			action = "update"
+		}
+
 		changes = append(changes, WorkflowSyncChange{
-			Action:   "create",
+			Action:   action,
 			ID:       wf.ID,
 			Workflow: payload,
 		})

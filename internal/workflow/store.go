@@ -351,7 +351,7 @@ func removeFromIndex(id string) error {
 		return err
 	}
 
-	filtered := idx.Workflows[:0]
+	var filtered []IndexEntry
 	for _, e := range idx.Workflows {
 		if e.ID != id {
 			filtered = append(filtered, e)
