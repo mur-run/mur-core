@@ -132,13 +132,17 @@ func updateBinary() error {
 	switch installMethod {
 	case "homebrew":
 		fmt.Println("  📦 Detected Homebrew installation")
-		// Force-refresh tap to ensure we have the latest formula
+		// Force-refresh the tap to ensure we see the latest release
 		fmt.Println("  ↻ Refreshing tap...")
-		tapCmd := exec.Command("brew", "tap", "--force", "mur-run/tap")
-		if err := tapCmd.Run(); err != nil {
-			// Fallback to full brew update if tap refresh fails
-			fmt.Println("  ↻ Tap refresh failed, running brew update...")
+		refreshTap := exec.Command("brew", "tap", "--force", "mur-run/tap")
+		refreshTap.Stdout = os.Stdout
+		refreshTap.Stderr = os.Stderr
+		if err := refreshTap.Run(); err != nil {
+			// Fallback: full brew update (slower but reliable)
+			fmt.Println("  ↻ Full brew update...")
 			fullUpdate := exec.Command("brew", "update")
+			fullUpdate.Stdout = os.Stdout
+			fullUpdate.Stderr = os.Stderr
 			_ = fullUpdate.Run()
 		}
 		cmd = exec.Command("brew", "upgrade", "mur")
@@ -155,7 +159,7 @@ func updateBinary() error {
 
 	if err := cmd.Run(); err != nil {
 		if installMethod == "homebrew" {
-			// upgrade returns error when already up to date
+			// brew upgrade returns error when already up to date
 			fmt.Println("  ✓ mur is already up to date")
 			return nil
 		}
