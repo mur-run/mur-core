@@ -447,6 +447,12 @@ For patterns you don't have locally, search the community:
 
 Patterns are loaded on-demand to save tokens and stay relevant.
 
+## Contributing
+
+When you discover a non-obvious pattern, workaround, or fix during development:
+
+%s
+
 *Managed by [mur](https://github.com/mur-run/mur-core). Updated: %s*
 `, patternCount,
 		"`mur search \"<your query>\"`",
@@ -454,6 +460,7 @@ Patterns are loaded on-demand to save tokens and stay relevant.
 		"`mur search \"API retry\"`",
 		"`mur search --community \"Swift async\"`",
 		"`mur search --community-only \"error handling\"`",
+		"`mur learn add --name \"pattern-name\" --content \"what you discovered\"`",
 		time.Now().Format("2006-01-02 15:04"))
 }
 
