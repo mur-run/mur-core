@@ -256,17 +256,31 @@ func syncSkillsToTarget(home, skillsDir string, target SkillsTarget, skillFiles 
 		}
 	}
 
-	// Copy each skill file
+	// Symlink each skill file
 	copied := 0
 	for _, filename := range skillFiles {
 		srcPath := filepath.Join(skillsDir, filename)
 		dstPath := filepath.Join(targetDir, filename)
 
-		if err := copyFile(srcPath, dstPath); err != nil {
-			return SyncResult{
-				Target:  target.Name,
-				Success: false,
-				Message: fmt.Sprintf("cannot copy %s: %v", filename, err),
+		// Remove existing (old copy or stale symlink)
+		if info, err := os.Lstat(dstPath); err == nil {
+			if info.Mode()&os.ModeSymlink != 0 {
+				if linkTarget, err := os.Readlink(dstPath); err == nil && linkTarget == srcPath {
+					copied++
+					continue
+				}
+			}
+			os.Remove(dstPath)
+		}
+
+		if err := os.Symlink(srcPath, dstPath); err != nil {
+			// Fallback to copy if symlink fails (e.g. cross-device)
+			if err := copyFile(srcPath, dstPath); err != nil {
+				return SyncResult{
+					Target:  target.Name,
+					Success: false,
+					Message: fmt.Sprintf("cannot sync %s: %v", filename, err),
+				}
 			}
 		}
 		copied++
@@ -279,9 +293,9 @@ func syncSkillsToTarget(home, skillsDir string, target SkillsTarget, skillFiles 
 	}
 }
 
-// syncWorkflowDirsToTarget copies entire workflow skill directories to a CLI target.
-// Each workflow directory (containing SKILL.md, workflow.yaml, run.sh, steps/) is
-// copied as a complete directory to the target skills dir.
+// syncWorkflowDirsToTarget symlinks workflow skill directories to a CLI target.
+// Each workflow directory is symlinked so edits in ~/.mur/skills/ are instantly
+// reflected without re-running sync.
 func syncWorkflowDirsToTarget(home, skillsDir string, target SkillsTarget, workflowDirs []string) SyncResult {
 	targetDir := filepath.Join(home, target.SkillsDir)
 
@@ -293,54 +307,39 @@ func syncWorkflowDirsToTarget(home, skillsDir string, target SkillsTarget, workf
 		}
 	}
 
-	copied := 0
+	linked := 0
 	for _, dirName := range workflowDirs {
 		srcDir := filepath.Join(skillsDir, dirName)
 		dstDir := filepath.Join(targetDir, dirName)
 
-		if err := copyDir(srcDir, dstDir); err != nil {
+		// Remove existing (old copy or stale symlink)
+		if info, err := os.Lstat(dstDir); err == nil {
+			if info.Mode()&os.ModeSymlink != 0 {
+				// Already a symlink — check if it points to the right place
+				target, err := os.Readlink(dstDir)
+				if err == nil && target == srcDir {
+					linked++
+					continue
+				}
+			}
+			os.RemoveAll(dstDir)
+		}
+
+		if err := os.Symlink(srcDir, dstDir); err != nil {
 			return SyncResult{
 				Target:  target.Name,
 				Success: false,
-				Message: fmt.Sprintf("cannot copy workflow skill %s: %v", dirName, err),
+				Message: fmt.Sprintf("cannot symlink workflow skill %s: %v", dirName, err),
 			}
 		}
-		copied++
+		linked++
 	}
 
 	return SyncResult{
 		Target:  target.Name,
 		Success: true,
-		Message: fmt.Sprintf("synced %d workflow skills", copied),
+		Message: fmt.Sprintf("synced %d workflow skills", linked),
 	}
-}
-
-// copyDir recursively copies a directory from src to dst.
-func copyDir(src, dst string) error {
-	if err := os.MkdirAll(dst, 0755); err != nil {
-		return err
-	}
-
-	entries, err := os.ReadDir(src)
-	if err != nil {
-		return err
-	}
-
-	for _, entry := range entries {
-		srcPath := filepath.Join(src, entry.Name())
-		dstPath := filepath.Join(dst, entry.Name())
-
-		if entry.IsDir() {
-			if err := copyDir(srcPath, dstPath); err != nil {
-				return err
-			}
-		} else {
-			if err := copyFile(srcPath, dstPath); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
 }
 
 // copyFile copies a file from src to dst.
