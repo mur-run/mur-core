@@ -261,7 +261,16 @@ func updateSkillDefinitions() error {
 	}
 
 	// Write default skill template
-	defaultSkill := `# mur Learning Skill
+	defaultSkill := `---
+name: mur-learning
+description: |
+  Learn from development sessions by capturing non-obvious patterns, fixes, and techniques.
+  When to use: discovering workarounds, debugging solutions, or project-specific configurations.
+  Trigger keywords: mur, learn, pattern, capture, record, save pattern, 學習, 記錄,
+  non-obvious, workaround, debugging fix, lesson learned, best practice
+---
+
+# mur Learning Skill
 
 This skill helps you learn from development sessions.
 
@@ -273,10 +282,19 @@ When you discover something non-obvious during development:
 
 Patterns are automatically synced to all your AI CLIs.
 `
-	skillPath := filepath.Join(skillsDir, "learning.md")
+	// Use proper directory structure: mur-learning/SKILL.md
+	skillDir := filepath.Join(skillsDir, "mur-learning")
+	if err := os.MkdirAll(skillDir, 0755); err != nil {
+		return err
+	}
+	skillPath := filepath.Join(skillDir, "SKILL.md")
 	if err := os.WriteFile(skillPath, []byte(defaultSkill), 0644); err != nil {
 		return err
 	}
+
+	// Clean up old learning.md if it exists
+	oldPath := filepath.Join(skillsDir, "learning.md")
+	os.Remove(oldPath)
 
 	fmt.Println("  ✓ Skill definitions updated")
 	return nil
