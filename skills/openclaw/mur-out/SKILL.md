@@ -23,13 +23,18 @@ When the user invokes this skill:
    ```bash
    mur sync --quiet
    ```
-5. Clean up by deleting `~/.mur/openclaw-session.json`
-6. Report results to the user:
+5. Upload session data to get a shareable workflow URL:
+   ```bash
+   mur workflows upload --file ~/.mur/last-session.json
+   ```
+   - If the upload succeeds, capture the URL from stdout
+   - If the upload fails (no internet, API down), skip gracefully and continue
+6. Clean up by deleting `~/.mur/openclaw-session.json`
+7. Report results to the user:
    - Session duration
    - Number of patterns extracted (parse from mur learn extract output)
    - Confirmation that patterns were synced to CLI tools
    - The project and goal from the session (if provided)
+   - If upload succeeded, show the workflow URL: "Open Workflow: <url>"
 
-If either command fails, report the error but continue with the remaining steps. Always clean up the state file.
-
-**Note:** In the future, this will also upload session data to mur.run and provide a workflow design URL. For now, only local analysis is performed.
+If any command fails, report the error but continue with the remaining steps. Always clean up the state file.

@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>mur workflow</title>
+  <meta name="description" content="View and explore extracted workflow patterns from mur sessions">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            mur: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              200: '#bae6fd',
+              300: '#7dd3fc',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    code, .mono { font-family: 'JetBrains Mono', monospace; }
+    .pattern-card { transition: all 0.15s ease; }
+    .pattern-card:hover { transform: translateY(-1px); }
+    .fade-in { animation: fadeIn 0.3s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .spinner { border: 3px solid rgba(255,255,255,0.1); border-top-color: #0ea5e9; border-radius: 50%; width: 32px; height: 32px; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen">
+
+  <!-- Loading State -->
+  <div id="loading" class="hidden fixed inset-0 flex items-center justify-center bg-gray-950 z-50">
+    <div class="text-center">
+      <div class="spinner mx-auto mb-4"></div>
+      <p class="text-gray-400 text-sm">Loading session data...</p>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div id="error" class="hidden fixed inset-0 flex items-center justify-center bg-gray-950 z-50">
+    <div class="text-center max-w-md px-6">
+      <div class="text-4xl mb-4">&#x26a0;</div>
+      <h2 class="text-xl font-semibold mb-2">Session Not Found</h2>
+      <p id="error-message" class="text-gray-400 mb-6">The session may have expired or the link is invalid.</p>
+      <a href="/" class="inline-block px-4 py-2 bg-mur-600 hover:bg-mur-700 rounded-lg text-sm font-medium transition-colors">
+        Go Home
+      </a>
+    </div>
+  </div>
+
+  <!-- Landing Page (no session key) -->
+  <div id="landing" class="hidden">
+    <div class="max-w-3xl mx-auto px-6 py-20">
+      <div class="text-center mb-16">
+        <h1 class="text-4xl font-bold mb-4">
+          <span class="text-mur-400">mur</span> workflow
+        </h1>
+        <p class="text-xl text-gray-400 max-w-lg mx-auto">
+          View and explore patterns extracted from your AI coding sessions.
+        </p>
+      </div>
+
+      <div class="grid gap-6 md:grid-cols-3 mb-16">
+        <div class="bg-gray-900 rounded-xl p-6 border border-gray-800">
+          <div class="text-2xl mb-3">1.</div>
+          <h3 class="font-semibold mb-2">Record</h3>
+          <p class="text-sm text-gray-400">
+            Start a session with <code class="text-mur-400 bg-gray-800 px-1.5 py-0.5 rounded">/mur-in</code> in your AI CLI tool.
+          </p>
+        </div>
+        <div class="bg-gray-900 rounded-xl p-6 border border-gray-800">
+          <div class="text-2xl mb-3">2.</div>
+          <h3 class="font-semibold mb-2">Extract</h3>
+          <p class="text-sm text-gray-400">
+            End with <code class="text-mur-400 bg-gray-800 px-1.5 py-0.5 rounded">/mur-out</code> to analyze and extract patterns.
+          </p>
+        </div>
+        <div class="bg-gray-900 rounded-xl p-6 border border-gray-800">
+          <div class="text-2xl mb-3">3.</div>
+          <h3 class="font-semibold mb-2">Review</h3>
+          <p class="text-sm text-gray-400">
+            Get a shareable link to browse your workflow patterns here.
+          </p>
+        </div>
+      </div>
+
+      <div class="text-center">
+        <p class="text-sm text-gray-500">
+          Get started: <code class="text-mur-400 bg-gray-800 px-2 py-1 rounded">pip install mur</code> or
+          <code class="text-mur-400 bg-gray-800 px-2 py-1 rounded">go install github.com/mur-run/mur-core/cmd/mur@latest</code>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Session View -->
+  <div id="session" class="hidden">
+    <header class="border-b border-gray-800 bg-gray-950/80 backdrop-blur-sm sticky top-0 z-10">
+      <div class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <a href="/" class="text-lg font-bold"><span class="text-mur-400">mur</span> workflow</a>
+          <span class="text-gray-600">|</span>
+          <span id="header-project" class="text-sm text-gray-400 mono"></span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span id="header-duration" class="text-xs text-gray-500 mono"></span>
+          <span id="header-date" class="text-xs text-gray-500"></span>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-6 py-8">
+      <!-- Metadata -->
+      <section id="metadata" class="mb-8 fade-in">
+        <div class="bg-gray-900 rounded-xl p-6 border border-gray-800">
+          <div class="flex flex-wrap gap-6">
+            <div>
+              <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Project</div>
+              <div id="meta-project" class="font-medium"></div>
+            </div>
+            <div>
+              <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Goal</div>
+              <div id="meta-goal" class="text-gray-300"></div>
+            </div>
+            <div>
+              <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Duration</div>
+              <div id="meta-duration" class="mono text-gray-300"></div>
+            </div>
+            <div>
+              <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Timestamp</div>
+              <div id="meta-timestamp" class="mono text-gray-300"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Stats -->
+      <section id="stats" class="mb-8 fade-in">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="bg-gray-900 rounded-xl p-5 border border-gray-800 text-center">
+            <div id="stat-total" class="text-3xl font-bold text-mur-400">0</div>
+            <div class="text-xs text-gray-500 mt-1">Patterns</div>
+          </div>
+          <div class="bg-gray-900 rounded-xl p-5 border border-gray-800 text-center">
+            <div id="stat-categories" class="text-3xl font-bold text-emerald-400">0</div>
+            <div class="text-xs text-gray-500 mt-1">Categories</div>
+          </div>
+          <div class="bg-gray-900 rounded-xl p-5 border border-gray-800 text-center">
+            <div id="stat-domains" class="text-3xl font-bold text-amber-400">0</div>
+            <div class="text-xs text-gray-500 mt-1">Domains</div>
+          </div>
+          <div class="bg-gray-900 rounded-xl p-5 border border-gray-800 text-center">
+            <div id="stat-confidence" class="text-3xl font-bold text-purple-400">0%</div>
+            <div class="text-xs text-gray-500 mt-1">Avg Confidence</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Category Filter -->
+      <section id="filters" class="mb-6 fade-in">
+        <div class="flex flex-wrap gap-2" id="category-filters"></div>
+      </section>
+
+      <!-- Patterns List -->
+      <section id="patterns" class="space-y-4 fade-in"></section>
+    </main>
+  </div>
+
+  <script>
+    const API_BASE = 'https://mur-workflow-api.mur-run.workers.dev';
+
+    async function init() {
+      const params = new URLSearchParams(window.location.search);
+      const sessionKey = params.get('s');
+
+      if (!sessionKey) {
+        document.getElementById('landing').classList.remove('hidden');
+        return;
+      }
+
+      document.getElementById('loading').classList.remove('hidden');
+
+      try {
+        const resp = await fetch(`${API_BASE}/session/${encodeURIComponent(sessionKey)}`);
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.error || `HTTP ${resp.status}`);
+        }
+        const data = await resp.json();
+        renderSession(data);
+      } catch (err) {
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('error-message').textContent = err.message;
+        document.getElementById('error').classList.remove('hidden');
+      }
+    }
+
+    function renderSession(data) {
+      document.getElementById('loading').classList.add('hidden');
+
+      const session = data.session || data;
+      const patterns = data.patterns || session.patterns || [];
+      const meta = session.metadata || session;
+
+      // Header
+      document.getElementById('header-project').textContent = meta.project || 'Unknown Project';
+      document.getElementById('header-duration').textContent = meta.duration || '';
+      document.getElementById('header-date').textContent = meta.timestamp
+        ? new Date(meta.timestamp).toLocaleDateString()
+        : '';
+
+      // Metadata section
+      document.getElementById('meta-project').textContent = meta.project || 'Unknown';
+      document.getElementById('meta-goal').textContent = meta.goal || 'No goal specified';
+      document.getElementById('meta-duration').textContent = meta.duration || 'N/A';
+      document.getElementById('meta-timestamp').textContent = meta.timestamp
+        ? new Date(meta.timestamp).toLocaleString()
+        : 'N/A';
+
+      // Stats
+      const categories = new Set(patterns.map(p => p.category).filter(Boolean));
+      const domains = new Set(patterns.map(p => p.domain).filter(Boolean));
+      const avgConf = patterns.length > 0
+        ? Math.round(patterns.reduce((sum, p) => sum + (p.confidence || 0), 0) / patterns.length * 100)
+        : 0;
+
+      document.getElementById('stat-total').textContent = patterns.length;
+      document.getElementById('stat-categories').textContent = categories.size;
+      document.getElementById('stat-domains').textContent = domains.size;
+      document.getElementById('stat-confidence').textContent = avgConf + '%';
+
+      // Category filters
+      const filtersEl = document.getElementById('category-filters');
+      const allBtn = createFilterBtn('All', true);
+      allBtn.addEventListener('click', () => filterPatterns(patterns, null));
+      filtersEl.appendChild(allBtn);
+
+      for (const cat of categories) {
+        const btn = createFilterBtn(cat, false);
+        btn.addEventListener('click', () => filterPatterns(patterns, cat));
+        filtersEl.appendChild(btn);
+      }
+
+      // Render patterns
+      filterPatterns(patterns, null);
+
+      document.getElementById('session').classList.remove('hidden');
+    }
+
+    function createFilterBtn(label, active) {
+      const btn = document.createElement('button');
+      btn.textContent = label;
+      btn.className = active
+        ? 'px-3 py-1.5 text-xs font-medium rounded-lg bg-mur-600 text-white filter-btn'
+        : 'px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-800 text-gray-400 hover:bg-gray-700 filter-btn';
+      btn.dataset.label = label;
+      return btn;
+    }
+
+    function filterPatterns(patterns, category) {
+      // Update active filter button
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        const isActive = category === null
+          ? btn.dataset.label === 'All'
+          : btn.dataset.label === category;
+        btn.className = isActive
+          ? 'px-3 py-1.5 text-xs font-medium rounded-lg bg-mur-600 text-white filter-btn'
+          : 'px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-800 text-gray-400 hover:bg-gray-700 filter-btn';
+      });
+
+      const filtered = category
+        ? patterns.filter(p => p.category === category)
+        : patterns;
+
+      const container = document.getElementById('patterns');
+      container.innerHTML = '';
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-center py-8">No patterns found.</p>';
+        return;
+      }
+
+      for (const pattern of filtered) {
+        container.appendChild(createPatternCard(pattern));
+      }
+    }
+
+    function createPatternCard(pattern) {
+      const card = document.createElement('div');
+      card.className = 'pattern-card bg-gray-900 rounded-xl border border-gray-800 overflow-hidden';
+
+      const confidenceColor = (pattern.confidence || 0) >= 0.8 ? 'text-emerald-400'
+        : (pattern.confidence || 0) >= 0.5 ? 'text-amber-400'
+        : 'text-red-400';
+
+      const header = document.createElement('div');
+      header.className = 'p-5 cursor-pointer flex items-start justify-between gap-4';
+      header.innerHTML = `
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1.5">
+            <h3 class="font-semibold truncate">${esc(pattern.name || 'Unnamed Pattern')}</h3>
+            ${pattern.category ? `<span class="px-2 py-0.5 text-[10px] font-medium rounded-full bg-gray-800 text-gray-400 uppercase tracking-wider shrink-0">${esc(pattern.category)}</span>` : ''}
+            ${pattern.domain ? `<span class="px-2 py-0.5 text-[10px] font-medium rounded-full bg-gray-800 text-mur-400 uppercase tracking-wider shrink-0">${esc(pattern.domain)}</span>` : ''}
+          </div>
+          <p class="text-sm text-gray-400 line-clamp-2">${esc(pattern.description || '')}</p>
+        </div>
+        <div class="shrink-0 text-right">
+          <span class="text-sm font-medium ${confidenceColor} mono">${Math.round((pattern.confidence || 0) * 100)}%</span>
+          <svg class="w-4 h-4 text-gray-600 mt-1 ml-auto transition-transform expand-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+          </svg>
+        </div>
+      `;
+
+      const detail = document.createElement('div');
+      detail.className = 'hidden border-t border-gray-800 p-5 bg-gray-900/50';
+      detail.innerHTML = `
+        <div class="prose prose-invert prose-sm max-w-none">
+          <pre class="bg-gray-950 rounded-lg p-4 text-sm text-gray-300 whitespace-pre-wrap overflow-x-auto mono">${esc(pattern.content || pattern.description || 'No content available.')}</pre>
+        </div>
+        ${pattern.tags && pattern.tags.length > 0
+          ? `<div class="flex flex-wrap gap-1.5 mt-4">${pattern.tags.map(t => `<span class="px-2 py-0.5 text-[10px] rounded bg-gray-800 text-gray-500">${esc(t)}</span>`).join('')}</div>`
+          : ''}
+      `;
+
+      header.addEventListener('click', () => {
+        const isOpen = !detail.classList.contains('hidden');
+        detail.classList.toggle('hidden');
+        const icon = header.querySelector('.expand-icon');
+        icon.style.transform = isOpen ? '' : 'rotate(180deg)';
+      });
+
+      card.appendChild(header);
+      card.appendChild(detail);
+      return card;
+    }
+
+    function esc(str) {
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    init();
+  </script>
+</body>
+</html>
