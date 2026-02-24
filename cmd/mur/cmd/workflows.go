@@ -8,6 +8,8 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/mur-run/mur-core/internal/cloud"
+	"github.com/mur-run/mur-core/internal/config"
 	"github.com/mur-run/mur-core/internal/session"
 	"github.com/mur-run/mur-core/internal/workflow"
 )
@@ -412,6 +414,119 @@ a user-visible version number (v1, v2, v3...).`,
 	},
 }
 
+// Phase 2: Sync command
+var workflowsSyncCmd = &cobra.Command{
+	Use:   "sync",
+	Short: "Sync workflows to/from the cloud",
+	Long: `Synchronize local workflows with the mur cloud server.
+Requires Pro plan or higher. Uses the same auth as 'mur cloud login'.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cfg, err := config.Load()
+		if err != nil {
+			return fmt.Errorf("load config: %w", err)
+		}
+
+		client, err := cloud.NewClient(cfg.Server.URL)
+		if err != nil {
+			return fmt.Errorf("create cloud client: %w", err)
+		}
+
+		teamID := cfg.Server.Team
+		if teamID == "" {
+			return fmt.Errorf("no team configured. Run 'mur cloud login' first")
+		}
+
+		// Build changes from local workflows
+		changes, err := workflow.BuildChangesFromLocal()
+		if err != nil {
+			return fmt.Errorf("build sync changes: %w", err)
+		}
+
+		if len(changes) == 0 {
+			fmt.Println("No workflows to sync.")
+			return nil
+		}
+
+		fmt.Fprintf(os.Stderr, "Pushing %d workflow(s) to cloud...\n", len(changes))
+
+		resp, err := client.WorkflowPush(teamID, workflow.WorkflowPushRequest{
+			BaseVersion: 0,
+			Changes:     changes,
+		})
+		if err != nil {
+			return fmt.Errorf("push workflows: %w", err)
+		}
+
+		if resp.OK {
+			fmt.Fprintf(os.Stderr, "Synced successfully (server version: %d)\n", resp.Version)
+		} else if len(resp.Conflicts) > 0 {
+			fmt.Fprintf(os.Stderr, "Sync completed with %d conflict(s)\n", len(resp.Conflicts))
+			for _, c := range resp.Conflicts {
+				fmt.Fprintf(os.Stderr, "  ⚠ %s (%s)\n", c.WorkflowName, c.WorkflowID)
+			}
+		}
+
+		return nil
+	},
+}
+
+// Phase 2: Share command
+var workflowsShareCmd = &cobra.Command{
+	Use:   "share <workflow-id>",
+	Short: "Share a workflow with a user",
+	Long: `Grant a user permission to access a workflow.
+
+Permission levels:
+  read          Can view and use the workflow
+  write         Can edit the workflow
+  execute-only  Can run via Commander but can't see implementation`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		userEmail, _ := cmd.Flags().GetString("user")
+		perm, _ := cmd.Flags().GetString("permission")
+
+		if userEmail == "" {
+			return fmt.Errorf("--user is required")
+		}
+		if !workflow.ValidPermission(perm) {
+			return fmt.Errorf("invalid permission %q (use: read, write, execute-only)", perm)
+		}
+
+		// TODO: get current user email from auth
+		grantedBy := "owner"
+
+		if err := workflow.SetPermission(args[0], userEmail, workflow.Permission(perm), grantedBy); err != nil {
+			return fmt.Errorf("set permission: %w", err)
+		}
+
+		fmt.Fprintf(os.Stderr, "Granted %s permission to %s on workflow %s\n", perm, userEmail, args[0])
+		return nil
+	},
+}
+
+// Phase 2: Merge command
+var workflowsMergeCmd = &cobra.Command{
+	Use:   "merge <id1> <id2> [<id3>...]",
+	Short: "Merge multiple workflows into one",
+	Long: `Combine multiple workflows into a single new workflow.
+Steps are concatenated in order, variables deduplicated, tools and tags unioned.`,
+	Args: cobra.MinimumNArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		name, _ := cmd.Flags().GetString("name")
+
+		merged, err := workflow.MergeWorkflows(args, name)
+		if err != nil {
+			return fmt.Errorf("merge workflows: %w", err)
+		}
+
+		fmt.Fprintf(os.Stderr, "Created merged workflow: %s\n", merged.ID[:8])
+		fmt.Fprintf(os.Stderr, "  Name:  %s\n", merged.Name)
+		fmt.Fprintf(os.Stderr, "  Steps: %d\n", len(merged.Steps))
+		fmt.Fprintf(os.Stderr, "  Tools: %v\n", merged.Tools)
+		return nil
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(workflowsCmd)
 	workflowsCmd.AddCommand(workflowsListCmd)
@@ -421,6 +536,11 @@ func init() {
 	workflowsCmd.AddCommand(workflowsExportCmd)
 	workflowsCmd.AddCommand(workflowsDeleteCmd)
 	workflowsCmd.AddCommand(workflowsPublishCmd)
+
+	// Phase 2 commands
+	workflowsCmd.AddCommand(workflowsSyncCmd)
+	workflowsCmd.AddCommand(workflowsShareCmd)
+	workflowsCmd.AddCommand(workflowsMergeCmd)
 
 	workflowsCreateCmd.Flags().String("from-session", "", "Session ID to create workflow from (required)")
 	workflowsCreateCmd.Flags().Int("start", 0, "Start step index for partial extraction")
@@ -432,4 +552,10 @@ func init() {
 	workflowsExportCmd.Flags().StringP("output", "o", "", "Output path")
 
 	workflowsDeleteCmd.Flags().BoolP("force", "f", false, "Skip confirmation prompt")
+
+	// Phase 2 flags
+	workflowsShareCmd.Flags().String("user", "", "User email to share with (required)")
+	workflowsShareCmd.Flags().String("permission", "read", "Permission level: read, write, execute-only")
+
+	workflowsMergeCmd.Flags().String("name", "", "Name for the merged workflow")
 }
