@@ -140,7 +140,29 @@ func parseAnalysisResponse(raw string) (*AnalysisResult, error) {
 
 	var result AnalysisResult
 	if err := json.Unmarshal([]byte(jsonStr), &result); err != nil {
-		return nil, fmt.Errorf("invalid JSON in response: %w", err)
+		// LLMs sometimes return numbers/bools for string fields (e.g. "default": 8080).
+		// Try lenient parsing: decode into raw map, coerce types, re-marshal.
+		var raw map[string]any
+		if jsonErr := json.Unmarshal([]byte(jsonStr), &raw); jsonErr == nil {
+			if vars, ok := raw["variables"].([]any); ok {
+				for _, v := range vars {
+					if vm, ok := v.(map[string]any); ok {
+						// Coerce "default" to string
+						if d, exists := vm["default"]; exists {
+							vm["default"] = fmt.Sprintf("%v", d)
+						}
+					}
+				}
+			}
+			if fixed, marshalErr := json.Marshal(raw); marshalErr == nil {
+				if retryErr := json.Unmarshal(fixed, &result); retryErr == nil {
+					err = nil
+				}
+			}
+		}
+		if err != nil {
+			return nil, fmt.Errorf("invalid JSON in response: %w", err)
+		}
 	}
 
 	// Normalize step ordering
