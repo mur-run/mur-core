@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+
+	"github.com/mur-run/mur-core/internal/envfile"
 )
 
 var rootCmd = &cobra.Command{
@@ -28,6 +30,9 @@ func Execute() error {
 
 func init() {
 	rootCmd.SetVersionTemplate("mur version {{.Version}}\n")
+
+	// Load ~/.mur/.env before any subcommand runs
+	_ = envfile.Load()
 
 	// Global flags
 	rootCmd.PersistentFlags().BoolP("verbose", "V", false, "verbose output")
