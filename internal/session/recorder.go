@@ -72,6 +72,12 @@ func RecordEventForActive(event EventRecord) error {
 
 // ReadEvents reads all events from a session JSONL file.
 func ReadEvents(sessionID string) ([]EventRecord, error) {
+	// Resolve short prefix to full UUID
+	resolved, err := ResolveSessionID(sessionID)
+	if err == nil {
+		sessionID = resolved
+	}
+
 	recDir, err := recordingsDir()
 	if err != nil {
 		return nil, err
