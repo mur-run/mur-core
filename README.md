@@ -1,3 +1,11 @@
+> ## ⚠️ MUR has moved to v2 (Rust)
+>
+> This Go version (v1) is in maintenance mode. The active development continues at:
+>
+> **👉 [github.com/mur-run/mur](https://github.com/mur-run/mur)** — Rust rewrite with semantic search, pattern evolution, and workflow intelligence.
+>
+> To upgrade: `brew upgrade mur` then `mur migrate`
+
 # MUR Core 🔮
 
 [![Go Version](https://img.shields.io/github/go-mod/go-version/mur-run/mur-core)](https://go.dev)
