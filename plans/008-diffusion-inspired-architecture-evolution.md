@@ -141,75 +141,151 @@ attachments:
 
 ---
 
-## Part C: Pattern ↔ Workflow — 用 `kind` 欄位統一
+## Part C: Pattern ↔ Workflow — 分開但共享基礎
 
 > **決策：現在就分，不等 v2 完成。越晚分越痛。**
-> v2 alpha 階段改 struct = 加一個欄位。穩定後再改 = breaking change + migration。
+> **修正：分開的 struct + 目錄，但共享 KnowledgeBase + 統一 LanceDB index。**
+>
+> 理由：Pattern 和 Workflow 的演化方向不同。Pattern 往 maturity/decay/emergence，
+> Workflow 往 execution/permissions/marketplace。硬綁在一起，兩邊都走不快。
 
-### C1. 最小改動方案：PatternKind 欄位
-
-**不建立獨立 Workflow struct，不分目錄。Pattern 就是 Pattern，只是 `kind` 不同。**
+### C1. 共享基礎 + 獨立結構
 
 ```rust
-// mur-common/src/pattern.rs
-#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "lowercase")]
-pub enum PatternKind {
-    #[default]
-    Knowledge,
-    Workflow,
+// mur-common/src/knowledge.rs — 共用欄位
+pub struct KnowledgeBase {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub content: DualLayer,
+    pub tags: TagSet,
+    pub maturity: Maturity,        // draft → emerging → stable → canonical
+    pub confidence: f64,
+    pub decay: DecayMeta,
+    pub security: SecurityMeta,
+    pub learning: LearningMeta,
+    pub lifecycle: LifecycleMeta,
+    pub embedding_hash: Option<String>,
 }
 
-// Pattern struct 加：
-#[serde(default)]
-pub kind: PatternKind,
+// mur-common/src/pattern.rs — 知識片段
+pub struct Pattern {
+    #[serde(flatten)]
+    pub base: KnowledgeBase,
+    pub applies: ApplyConditions,
+    pub relations: Relations,
+    pub attachments: Vec<Attachment>,    // diagrams (Phase 3)
+    pub resources: Resources,
+    pub health: HealthMeta,
+}
+
+// mur-common/src/workflow.rs — 可執行流程
+pub struct Workflow {
+    #[serde(flatten)]
+    pub base: KnowledgeBase,
+    pub steps: Vec<Step>,
+    pub variables: Vec<Variable>,
+    pub source_sessions: Vec<SourceRef>,
+    pub permissions: Permissions,        // read/write/execute-only
+    pub published_version: u32,
+    pub trigger: String,                 // 何時使用
+    pub tools: Vec<String>,             // 用到的工具
+}
+
+pub struct Step {
+    pub order: u32,
+    pub description: String,
+    pub command: Option<String>,
+    pub tool: Option<String>,
+    pub needs_approval: bool,
+    pub on_failure: FailureAction,       // skip, abort, retry
+}
+
+pub struct Variable {
+    pub name: String,
+    pub var_type: VarType,               // string, path, url, number, bool
+    pub required: bool,
+    pub default: Option<String>,
+    pub description: String,
+}
 ```
 
-**Workflow 用現有 DualLayer：**
-- `technical` = 步驟描述（有序的 markdown list）
-- `principle` = 何時使用這個 workflow
+### C2. 儲存
 
-**儲存：** 都留在 `~/.mur/patterns/`，用 `kind` 欄位區分。
+```
+~/.mur/
+├── patterns/          # Knowledge patterns (YAML)
+│   ├── swift-testing.yaml
+│   └── swift-testing/         # 附件目錄 (diagrams)
+├── workflows/         # Workflows (YAML)
+│   ├── deploy-prod.yaml
+│   └── deploy-prod/
+│       └── revisions/         # auto-save snapshots
+└── index/             # 統一 LanceDB
+    └── mur.lance              # type 欄位區分 pattern vs workflow
+```
 
-**LanceDB：** 加一個 `kind` string 欄位，搜尋時可 filter。
+### C3. 統一搜尋
 
-**Inject 行為根據 kind 調整：**
-- `Knowledge` → 照舊
-- `Workflow` → 注入時加「Steps:」前綴，格式化為有序列表
+LanceDB 統一 index，`item_type` 欄位 filter：
 
-**現有 222 patterns 全部 default 為 Knowledge（serde default，零成本）。**
+```rust
+pub enum SearchResult {
+    Pattern(Pattern),
+    Workflow(Workflow),
+}
 
-**工作量：~2 小時。**
+// 搜尋 API
+pub fn search(query: &str, filter: Option<ItemType>) -> Vec<SearchResult>;
+```
+
+```bash
+mur search "swift testing"           # 搜全部
+mur search "deploy" --type workflow  # 只搜 workflows
+mur search "nginx" --type pattern    # 只搜 patterns
+```
+
+### C4. Inject 行為
+
+- **Pattern** → 照舊注入 content
+- **Workflow** → 注入時格式化為有序步驟 + 觸發條件
+- Hook 選擇邏輯：prompt 分析後，同時從 patterns + workflows 取最相關的
+
+### C5. 共享 Lifecycle
+
+兩邊都走 maturity/decay/feedback：
+- Pattern: draft → emerging → stable → canonical（基於 inject effectiveness）
+- Workflow: draft → emerging → stable → canonical（基於 execution 成功率）
+
+### C6. 進階功能（後續 Phase）
+
+- **Workflow → Pattern 提取：** workflow 某 step 被多處引用 → 建議提取為 pattern
+- **Pattern → Workflow 組合：** co-occurrence 偵測 → 建議組成 workflow
+- **Cross-reference：** Pattern.relations 可引用 Workflow，反之亦然
+
+### C7. 與 Go v1 的關係
+
+Go v1 已有獨立 `internal/workflow/` 模組（types, store, extract, merge, permissions）。
+
+**策略：**
+- Go v1 保持現狀
+- Rust v2 的 Workflow struct 對齊 Go v1 的 types（Steps, Variables, SourceRef, Permissions）
+- Migration: v1 `~/.mur/workflows/` → v2 `~/.mur/workflows/`（結構接近，轉換低成本）
+- v1 patterns 全部映射為 v2 Pattern（現有行為不變）
+
+### C8. 工作量
 
 | 改動 | 預估 |
 |------|------|
-| PatternKind enum + serde | 15 min |
-| LanceDB schema 加 kind 欄位 | 30 min |
-| inject 根據 kind 格式化 | 30 min |
-| tests 更新 | 30 min |
-| mur reindex | 自動 |
-
-**不做的：**
-- ❌ 獨立的 Workflow struct — 過度設計，90% 欄位跟 Pattern 一樣
-- ❌ 分開的 `~/.mur/workflows/` 目錄 — 增加 store 複雜度，GC/links 要跨目錄
-- ❌ 步驟 schema（steps[]）— 太早，先用 markdown list 在 content 裡表達
-
-### C2. 進階功能（後續 Phase）
-
-**Workflow → Knowledge 提取：** 當 workflow 某個 step 被多處引用 → 建議提取為獨立 knowledge pattern
-
-**Knowledge → Workflow 組合：** Co-occurrence matrix 偵測常一起使用的 patterns → 建議組成 workflow
-
-**共享 Maturity lifecycle：** Knowledge 和 Workflow 都走 draft → emerging → stable → canonical
-
-### C3. 與 Go v1 Workflow 模組的關係
-
-Go v1 有獨立的 `internal/workflow/` 模組（types.go, store.go, extract.go 等），Phase 1-2 已完成。
-
-**策略：**
-- Go v1 的 workflow 模組保持現狀（已有用戶用 `mur workflows` 命令）
-- Rust v2 用 `kind` 欄位簡化，不 port Go v1 的獨立 workflow store
-- 當 v2 取代 v1 時，提供 migration：v1 workflows → v2 patterns with `kind: workflow`
+| KnowledgeBase 共用 struct | 1h |
+| Pattern struct 重構（embed KnowledgeBase） | 1h |
+| Workflow struct（新增） | 1.5h |
+| WorkflowStore (YAML read/write) | 1.5h |
+| LanceDB 統一 index + item_type | 1h |
+| CLI: `mur workflow list/show/create` 基礎命令 | 2h |
+| inject 支援 workflow 格式化 | 30m |
+| tests | 1.5h |
+| **合計** | **~10h** |
 
 ---
 
@@ -308,16 +384,19 @@ Rust v2 已開始，Phase 1-3 完成。策略：
 - **快速驗證的功能** → 可在 Go v1 先 prototype
 - **重大新模組** → 直接在 Rust v2 做
 
-### Phase 0: PatternKind 分離 (Day 1, ~2hr) ⚡ DO FIRST
-**目標：** Pattern 和 Workflow 用 kind 欄位區分
+### Phase 0: Pattern/Workflow 分離 + KnowledgeBase (Day 1-2, ~10hr) ⚡ DO FIRST
+**目標：** Pattern 和 Workflow 獨立 struct，共享 KnowledgeBase，統一 LanceDB
 
 | Task | Where | Est |
 |------|-------|-----|
-| PatternKind enum (Knowledge/Workflow) | Rust v2 `pattern.rs` | 15m |
-| LanceDB schema 加 kind 欄位 | Rust v2 `store/lance.rs` | 30m |
-| inject 根據 kind 格式化 | Rust v2 `retrieve/` | 30m |
-| tests 更新 | | 30m |
-| `mur reindex` 自動處理 | | 0m |
+| KnowledgeBase 共用 struct | `mur-common/src/knowledge.rs` | 1h |
+| Pattern struct 重構（embed KnowledgeBase） | `mur-common/src/pattern.rs` | 1h |
+| Workflow struct + Step/Variable types | `mur-common/src/workflow.rs` | 1.5h |
+| WorkflowStore (YAML read/write) | `mur-core/src/store/workflow.rs` | 1.5h |
+| LanceDB 統一 index + item_type 欄位 | `mur-core/src/store/lance.rs` | 1h |
+| CLI: `mur workflow list/show/create` | `mur-core/src/main.rs` | 2h |
+| inject 支援 workflow 格式化 | `mur-core/src/retrieve/` | 30m |
+| tests | | 1.5h |
 
 ### Phase 1: Pattern Maturity + Decay (Week 1)
 **目標：** Pattern 會自動進化和衰退
@@ -458,8 +537,8 @@ Rust v2 已開始，Phase 1-3 完成。策略：
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| Pattern/Workflow 分離時機 | 現在（Phase 0） | 越晚分越痛，alpha 階段改 = 加欄位 |
-| Pattern/Workflow 架構 | `kind` 欄位，不分 struct/目錄 | 90% 欄位相同，不過度設計 |
+| Pattern/Workflow 分離時機 | 現在（Phase 0） | 越晚分越痛，alpha 階段改成本最低 |
+| Pattern/Workflow 架構 | 分開 struct + 目錄，共享 KnowledgeBase | 演化方向不同，硬綁會成 God Object |
 | Maturity 幾個階段 | 4 (draft/emerging/stable/canonical) | 太多太複雜，4 個剛好 |
 | Decay 觸發時機 | 每次 sync/inject | 不需要 daemon，利用現有命令 |
 | Multimodal Phase 1 | Diagram only (mermaid/plantuml) | 純文字存儲，成本最低價值最高 |
@@ -476,4 +555,4 @@ Rust v2 已開始，Phase 1-3 完成。策略：
 2. **Emergence threshold？** 3 次 vs 5 次 — 太低會有噪音，太高會漏掉
 3. **Proactive hallucination** 要不要做？— 風險是注入錯誤 pattern，但有 maturity 機制保護
 4. **Rust v2 real-data validation** — 要先驗證 Phase 1-3 再加新功能？還是邊加邊驗？
-5. **v1→v2 workflow migration** — Go v1 的 `~/.mur/workflows/` 怎麼映射到 v2 的 `kind: workflow` patterns？
+5. **v1→v2 workflow migration** — Go v1 的 `~/.mur/workflows/` 結構接近 v2，直接搬還是需要轉換？
