@@ -98,176 +98,118 @@ Hook flow:
 
 ## Part B: Multi-Modal Pattern Support
 
-### B1. Pattern Content Types
+> **核心原則：** MUR 的使用者是 AI 模型，不是人類。模型已經知道「蘋果」是什麼。
+> 有價值的多模態 pattern 是：**模型預訓練裡沒有的、你專屬的視覺知識。**
+> 例如：你的 app UI mockup、你的系統架構圖、你專案特有的 error screenshot。
 
-**問題：** Patterns 目前只支援文字。現代 AI CLI（Claude Code、Gemini）支援圖片理解，UI patterns、架構圖、錯誤截圖都無法被 pattern 捕捉。
+### B1. Phase 1 — Diagram Attachments（v2.1，成本最低價值最高）
 
-**方案：** 擴展 Pattern schema 支援多模態內容。
+Mermaid / PlantUML 格式的架構圖，**純文字存儲但可渲染**。
 
 ```yaml
-# Pattern Schema v2 擴展
-name: ios-layout-pattern
-content: |
-  When building iOS layouts, use this constraint pattern...
-  
+name: bitl-architecture
+content:
+  technical: |
+    BitL uses a 3-layer architecture...
+  principle: |
+    Always route through ServiceManager, never call Homebrew directly.
 attachments:
-  - type: image
-    path: assets/layout-example.png    # 相對於 pattern 目錄
-    description: "正確的 Auto Layout constraint 結構"
-    role: example                       # example | reference | error | before-after
-  - type: image  
-    path: assets/layout-antipattern.png
-    description: "常見的錯誤 layout 方式"
-    role: error
-  - type: snippet
-    path: assets/layout.swift
-    language: swift
-    description: "完整可用的 layout code"
-
-content_type: text         # text | rich (with attachments) | visual-only
+  - type: diagram
+    format: mermaid
+    path: assets/bitl-architecture.mermaid
+    description: "系統架構圖"
 ```
 
-**Storage：**
-```
-~/.mur/patterns/
-├── ios-layout-pattern.yaml
-└── ios-layout-pattern/           # 同名目錄放 assets
-    ├── layout-example.png
-    └── layout-antipattern.png
-```
+- 存儲：純文字（mermaid/plantuml），不需要 binary asset 管理
+- 注入：直接 inline 到 prompt（模型能讀 mermaid）
+- 搜尋：description 參與 text embedding search（零額外成本）
+- **一張圖勝過 500 字的文字描述**
 
-**Injection 策略：**
-- 文字 CLI（不支援圖片的）→ 只注入 text content + attachment descriptions
-- 多模態 CLI（Claude Code、Gemini）→ 注入 text + 圖片 reference
-- 圖片本身不 inline inject（太大），而是生成參考路徑讓 AI 自行讀取
+### B2. Phase 2 — Image Attachments（v3，等 CLIP 成熟）
 
-**使用場景：**
-1. **UI/UX patterns** — 正確的 layout 截圖 + 反面教材
-2. **Architecture diagrams** — 系統架構圖作為 pattern 附件
-3. **Error screenshots** — "遇到這個錯誤畫面時，解法是..."
-4. **Before/After** — 重構前後的對比截圖
+等 CLIP-aligned embedding 在本地跑得順時（~6-12 個月），加圖片。
 
-### B2. Visual Pattern Extraction
+**挑戰（不急著解決）：**
+1. Embedding 不統一 — text 用 qwen3，圖片要 CLIP/SigLIP，兩個向量空間不同
+2. Token 預算 — 一張圖 ~1000 tokens base64，2000 budget 放不下幾張
+3. 提取方式 — `mur learn extract` 怎麼判斷哪張截圖值得保存？
+4. ROI — 99% AI coding 場景是純文字
 
-**問題：** Session 中的截圖、UI 操作目前無法被提取為 patterns。
+### B3. 聲音 — 不做
 
-**方案：** 從 session recordings 中提取視覺 patterns。
-
-```
-Session recording (mur:in/mur:out):
-  event: tool_call(screenshot) → 檢測到截圖
-  event: user("這個 UI 應該長這樣") → 語義標記
-  → 提取: visual pattern with screenshot + description
-```
-
-**實作（Phase 2，需要 LLM vision）：**
-- `internal/learn/visual_extract.go` — 掃描 session events 中的圖片 tool calls
-- 用 vision LLM 生成圖片描述
-- 與文字 context 合併，生成 rich pattern
-
-### B3. Multimodal Search
-
-**現有：** 文字 embedding search（OpenAI/Ollama）
-
-**擴展：** 支援 CLIP-like 跨模態搜索
-
-```bash
-mur search "rounded corner card layout"
-# → 找到文字 pattern + 帶截圖的 visual pattern
-
-mur search --image screenshot.png
-# → 以圖搜圖，找到類似 UI 的 patterns
-```
-
-**分階段：**
-- Phase 1: 圖片的 description 參與文字 embedding search（零成本）
-- Phase 2: 真正的 vision embedding（需要 CLIP model，Ollama 支援）
+除非 MUR 定位從 coding assistant 擴展到通用 AI 記憶系統。
 
 ---
 
-## Part C: Pattern ↔ Workflow Unified Architecture
+## Part C: Pattern ↔ Workflow — 用 `kind` 欄位統一
 
-### C1. 統一知識圖譜
+> **決策：現在就分，不等 v2 完成。越晚分越痛。**
+> v2 alpha 階段改 struct = 加一個欄位。穩定後再改 = breaking change + migration。
 
-**問題：** Patterns 和 Workflows 是獨立的兩套系統，但實際上高度相關。
+### C1. 最小改動方案：PatternKind 欄位
 
-**現狀：**
-```
-~/.mur/patterns/     → Pattern Store (YAML)
-~/.mur/workflows/    → Workflow Store (YAML + index.json)
-```
-沒有 cross-reference。一個 workflow 可能用到某些 patterns，但系統不知道。
+**不建立獨立 Workflow struct，不分目錄。Pattern 就是 Pattern，只是 `kind` 不同。**
 
-**方案：** 建立雙向連結。
+```rust
+// mur-common/src/pattern.rs
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum PatternKind {
+    #[default]
+    Knowledge,
+    Workflow,
+}
 
-```yaml
-# Pattern: swift-testing.yaml
-relations:
-  used_in_workflows: ["wf-ios-test-setup", "wf-swift-migration"]
-  
-# Workflow: ios-test-setup/workflow.yaml  
-pattern_refs:
-  - pattern: swift-testing
-    step: 3                    # 在第 3 步用到
-    role: prerequisite         # prerequisite | reference | output
-  - pattern: xcode-config
-    step: 1
-    role: reference
+// Pattern struct 加：
+#[serde(default)]
+pub kind: PatternKind,
 ```
 
-**自動發現：**
-- Workflow 的 steps 與 pattern content 做語義匹配
-- 高相似度 → 自動建立 `pattern_refs`
-- 利用 Rust v2 的 `evolve/linker.rs` Zettelkasten 機制
+**Workflow 用現有 DualLayer：**
+- `technical` = 步驟描述（有序的 markdown list）
+- `principle` = 何時使用這個 workflow
 
-### C2. Workflow-to-Pattern Extraction
+**儲存：** 都留在 `~/.mur/patterns/`，用 `kind` 欄位區分。
 
-**問題：** Workflows 太重（多步驟 SOP），有時候用戶只需要其中一個 step 的知識。
+**LanceDB：** 加一個 `kind` string 欄位，搜尋時可 filter。
 
-**方案：** 支援 Workflow → Pattern 反向提取。
+**Inject 行為根據 kind 調整：**
+- `Knowledge` → 照舊
+- `Workflow` → 注入時加「Steps:」前綴，格式化為有序列表
 
-```bash
-mur workflows decompose <workflow-id>
-# → 分析每個 step
-# → 有通用價值的 step → 提取為獨立 pattern
-# → 例：workflow "deploy-to-production" 的 step 3 "check nginx config" 
-#      → 提取為 pattern "nginx-config-checklist"
-```
+**現有 222 patterns 全部 default 為 Knowledge（serde default，零成本）。**
 
-**自動觸發：**
-- 當同一個 workflow step 被多個不同 workflow 引用時 → 建議提取為 pattern
-- 這就是 DRY 原則在知識層面的應用
+**工作量：~2 小時。**
 
-### C3. Pattern-to-Workflow Composition
+| 改動 | 預估 |
+|------|------|
+| PatternKind enum + serde | 15 min |
+| LanceDB schema 加 kind 欄位 | 30 min |
+| inject 根據 kind 格式化 | 30 min |
+| tests 更新 | 30 min |
+| mur reindex | 自動 |
 
-**反向操作：** 多個相關 patterns → 自動建議組成 workflow。
+**不做的：**
+- ❌ 獨立的 Workflow struct — 過度設計，90% 欄位跟 Pattern 一樣
+- ❌ 分開的 `~/.mur/workflows/` 目錄 — 增加 store 複雜度，GC/links 要跨目錄
+- ❌ 步驟 schema（steps[]）— 太早，先用 markdown list 在 content 裡表達
 
-```
-Patterns:
-  - "swift-testing-setup"
-  - "xcode-scheme-config" 
-  - "ci-fastlane-config"
-  
-系統檢測到這三個 patterns 經常在同一個 session 中被一起使用
-→ 建議: "要不要把這些組成一個 'iOS CI Setup' workflow?"
-```
+### C2. 進階功能（後續 Phase）
 
-**實作：**
-- `internal/core/suggest/composition.go`
-- 基於 co-occurrence matrix（哪些 patterns 常一起被注入/使用）
-- Threshold: 3+ sessions 中共同出現
+**Workflow → Knowledge 提取：** 當 workflow 某個 step 被多處引用 → 建議提取為獨立 knowledge pattern
 
-### C4. Unified Lifecycle
+**Knowledge → Workflow 組合：** Co-occurrence matrix 偵測常一起使用的 patterns → 建議組成 workflow
 
-Pattern 和 Workflow 共享生命週期語義：
+**共享 Maturity lifecycle：** Knowledge 和 Workflow 都走 draft → emerging → stable → canonical
 
-| 階段 | Pattern | Workflow |
-|------|---------|----------|
-| draft | 剛提取，低 confidence | 剛錄製，未編輯 |
-| emerging | 被使用幾次，效果待驗證 | 被跑過幾次，step 可能需要調整 |
-| stable | 持續有效 | 穩定可靠，可分享 |
-| canonical | 團隊標準 | 團隊 SOP |
-| archived | 過時 | 不再使用 |
+### C3. 與 Go v1 Workflow 模組的關係
+
+Go v1 有獨立的 `internal/workflow/` 模組（types.go, store.go, extract.go 等），Phase 1-2 已完成。
+
+**策略：**
+- Go v1 的 workflow 模組保持現狀（已有用戶用 `mur workflows` 命令）
+- Rust v2 用 `kind` 欄位簡化，不 port Go v1 的獨立 workflow store
+- 當 v2 取代 v1 時，提供 migration：v1 workflows → v2 patterns with `kind: workflow`
 
 ---
 
@@ -366,6 +308,17 @@ Rust v2 已開始，Phase 1-3 完成。策略：
 - **快速驗證的功能** → 可在 Go v1 先 prototype
 - **重大新模組** → 直接在 Rust v2 做
 
+### Phase 0: PatternKind 分離 (Day 1, ~2hr) ⚡ DO FIRST
+**目標：** Pattern 和 Workflow 用 kind 欄位區分
+
+| Task | Where | Est |
+|------|-------|-----|
+| PatternKind enum (Knowledge/Workflow) | Rust v2 `pattern.rs` | 15m |
+| LanceDB schema 加 kind 欄位 | Rust v2 `store/lance.rs` | 30m |
+| inject 根據 kind 格式化 | Rust v2 `retrieve/` | 30m |
+| tests 更新 | | 30m |
+| `mur reindex` 自動處理 | | 0m |
+
 ### Phase 1: Pattern Maturity + Decay (Week 1)
 **目標：** Pattern 會自動進化和衰退
 
@@ -390,32 +343,18 @@ Rust v2 已開始，Phase 1-3 完成。策略：
 | Feedback → confidence update pipeline | Rust v2 | 2h |
 | Tests | | 3h |
 
-### Phase 3: Multimodal Patterns (Week 3)
-**目標：** Patterns 支援圖片附件
+### Phase 3: Diagram Attachments (Week 3)
+**目標：** Patterns 支援 mermaid/plantuml 圖表附件
 
 | Task | Where | Est |
 |------|-------|-----|
-| Pattern schema 加 `attachments` field | Rust v2 `pattern.rs` | 2h |
-| Asset directory convention + resolver | Rust v2 `store/` | 3h |
-| Inject formatter: multimodal vs text-only output | Rust v2 `retrieve/` | 3h |
-| `mur new --image <path>` CLI | CLI | 2h |
-| `mur search` 包含 attachment descriptions | search | 2h |
-| Tests | | 2h |
+| Pattern schema 加 `attachments` field (diagram only) | Rust v2 `pattern.rs` | 1h |
+| Mermaid/PlantUML inline inject formatter | Rust v2 `retrieve/` | 2h |
+| `mur new --diagram <path>` CLI | CLI | 1h |
+| `mur search` 包含 attachment descriptions | search | 1h |
+| Tests | | 1h |
 
-### Phase 4: Pattern ↔ Workflow Links (Week 4)
-**目標：** Patterns 和 Workflows 雙向連結
-
-| Task | Where | Est |
-|------|-------|-----|
-| Pattern `relations.used_in_workflows` field | schema | 1h |
-| Workflow `pattern_refs` field | workflow types | 1h |
-| Auto-discovery: workflow steps ↔ pattern matching | `suggest/composition.rs` | 4h |
-| `mur workflows decompose` command | CLI | 3h |
-| Co-occurrence matrix tracking | analytics | 3h |
-| Composition suggestion ("these patterns → workflow?") | suggest | 3h |
-| Tests | | 3h |
-
-### Phase 5: Cross-Session Emergence (Week 5)
+### Phase 4: Cross-Session Emergence (Week 4)
 **目標：** 跨 session 行為自動浮現為 patterns
 
 | Task | Where | Est |
@@ -427,12 +366,22 @@ Rust v2 已開始，Phase 1-3 完成。策略：
 | `mur learn --emerge` CLI flag | CLI | 1h |
 | Tests | | 3h |
 
+### Phase 5: Knowledge↔Workflow Intelligence (Week 5)
+**目標：** 自動偵測 patterns 間的 workflow 關係
+
+| Task | Where | Est |
+|------|-------|-----|
+| Co-occurrence matrix tracking | analytics | 3h |
+| Workflow decompose → knowledge extraction | evolve | 3h |
+| Knowledge composition suggestion | suggest | 3h |
+| Tests | | 2h |
+
 ### Phase 6: Advanced (Week 6+, 依需求)
 - Speculative pre-loading
-- Pattern decomposition
+- Pattern decomposition (大 pattern 拆小)
 - Proactive hallucination
+- Image attachments (等 CLIP 成熟, ~6-12 months)
 - Visual pattern extraction (需要 vision LLM)
-- CLIP-based multimodal search
 
 ---
 
@@ -509,11 +458,14 @@ Rust v2 已開始，Phase 1-3 完成。策略：
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
+| Pattern/Workflow 分離時機 | 現在（Phase 0） | 越晚分越痛，alpha 階段改 = 加欄位 |
+| Pattern/Workflow 架構 | `kind` 欄位，不分 struct/目錄 | 90% 欄位相同，不過度設計 |
 | Maturity 幾個階段 | 4 (draft/emerging/stable/canonical) | 太多太複雜，4 個剛好 |
 | Decay 觸發時機 | 每次 sync/inject | 不需要 daemon，利用現有命令 |
-| Multimodal 圖片存放 | 同名子目錄 | 符合 pattern 一個 YAML 一個目錄的慣例 |
+| Multimodal Phase 1 | Diagram only (mermaid/plantuml) | 純文字存儲，成本最低價值最高 |
+| Multimodal Phase 2 | Image (等 CLIP 成熟) | 6-12 月後再評估 |
+| 聲音支援 | 不做 | Coding assistant 不需要 |
 | Feedback 初版 | Keyword-based | 不需要 LLM，快速可靠 |
-| Pattern↔Workflow links | 雙向 + auto-discovery | 手動維護不現實 |
 | 先做哪裡 | Rust v2 為主 | Go v1 已有完整功能，新架構直接做在 v2 |
 
 ---
@@ -521,7 +473,7 @@ Rust v2 已開始，Phase 1-3 完成。策略：
 ## Open Questions
 
 1. **Decay half-life 預設值？** 30 天 vs 14 天 — 需要 real data 驗證
-2. **Multimodal inject 格式？** Claude Code 支援 `![](path)` 嗎？還是需要 base64？
-3. **Emergence threshold？** 3 次 vs 5 次 — 太低會有噪音，太高會漏掉
-4. **Proactive hallucination** 要不要做？— 風險是注入錯誤 pattern，但有 maturity 機制保護
-5. **Rust v2 timeline** — Phase 1-3 done，但 real-data validation 還沒做，要先驗證再加新功能？
+2. **Emergence threshold？** 3 次 vs 5 次 — 太低會有噪音，太高會漏掉
+3. **Proactive hallucination** 要不要做？— 風險是注入錯誤 pattern，但有 maturity 機制保護
+4. **Rust v2 real-data validation** — 要先驗證 Phase 1-3 再加新功能？還是邊加邊驗？
+5. **v1→v2 workflow migration** — Go v1 的 `~/.mur/workflows/` 怎麼映射到 v2 的 `kind: workflow` patterns？
